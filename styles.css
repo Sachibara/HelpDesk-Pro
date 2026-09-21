@@ -39,3 +39,13 @@ dialog{border:0;padding:0;background:transparent;color:var(--text);width:min(100
 @media(max-width:900px){.app{display:block}.sidebar{position:fixed;width:min(290px,88vw);left:0;top:0;transform:translateX(-105%);transition:.2s;box-shadow:var(--shadow)}.sidebar.open{transform:none}.menu-btn{display:grid;place-items:center}.topbar{padding:12px 15px}main{padding:20px 14px}.hero-grid,.dashboard-grid,.analytics-grid,.about-grid{grid-template-columns:1fr}.about-grid .wide-card{grid-column:auto}.service-health{grid-template-columns:1fr}.sla-ring{margin-top:15px}.architecture{grid-template-columns:1fr}.architecture b{transform:rotate(90deg);justify-self:center}.ticket-detail-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.refresh-label,.top-actions .secondary{display:none}.stats-grid,.kb-grid,.team-grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.toolbar{flex-wrap:wrap}.search{min-width:100%}.priority-preview{align-items:flex-start;flex-direction:column}.section-head{align-items:flex-start;flex-direction:column}}
 @media(max-width:430px){.stats-grid,.kb-grid,.team-grid{grid-template-columns:1fr}}
+
+
+.attachment-heading{margin-top:18px!important}
+.attachment-list{display:grid;gap:7px;margin-top:8px}
+.attachment-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.018)}
+.attachment-item strong,.attachment-item small{display:block}.attachment-item strong{font-size:.68rem}.attachment-item small{font-size:.57rem;color:var(--muted)}
+.attachment-item a{color:var(--cyan);font-size:.62rem;font-weight:900}
+.attachment-upload{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}
+.attachment-upload input{padding:7px;min-height:40px}
+@media(max-width:650px){.attachment-upload{grid-template-columns:1fr}.attachment-upload .btn{width:100%}}

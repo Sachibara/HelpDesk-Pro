@@ -67,19 +67,19 @@
   }
   function cloneDemo(){
     const base=JSON.parse(JSON.stringify(window.HELPDESK_DEMO));
-    const saved=sessionStorage.getItem("helpdesk_demo_state");
+    const saved=localStorage.getItem("helpdesk_demo_state");
     if(saved){try{return JSON.parse(saved)}catch{}}
     return base;
   }
-  function persistDemo(){if(state.mode==="demo")sessionStorage.setItem("helpdesk_demo_state",JSON.stringify(state.data))}
+  function persistDemo(){if(state.mode==="demo")localStorage.setItem("helpdesk_demo_state",JSON.stringify(state.data))}
   function setModeStatus(kind,title,detail){
     $("modeDot").className="mode-dot"+(kind?" "+kind:"");$("modeTitle").textContent=title;$("modeDetail").textContent=detail;
   }
 
   async function loadData(showToast=false){
     if(state.mode==="demo"){
-      state.data=cloneDemo();state.lastRefresh=new Date();setModeStatus("","Portfolio Demo","Representative ITSM data");renderAll();
-      if(showToast)toast("Demo refreshed","Interactive service desk data loaded.");return;
+      state.data=cloneDemo();state.lastRefresh=new Date();setModeStatus("","Browser workspace","Saved locally in this browser");renderAll();
+      if(showToast)toast("Workspace refreshed","Your browser-saved service desk data is ready.");return;
     }
     setModeStatus("","Connecting…",state.backendUrl);
     try{
@@ -205,7 +205,7 @@
     }
     const max=Math.max(1000,...state.data.tickets.map(t=>t.id));const id=max+1;
     const ticket={...payload,id,number:"HD-"+id,requester:requester?.name||"Requester",asset:asset?.hostname||"",status:"New",assignee_id:null,assignee:"Unassigned",escalation:0,created_at:now.toISOString(),updated_at:now.toISOString(),response_due:new Date(now.getTime()+sla.response*3600000).toISOString(),resolution_due:new Date(now.getTime()+sla.resolution*3600000).toISOString(),first_response_at:null,resolved_at:null,csat:null,activities:[{at:now.toISOString(),actor:requester?.name||"Requester",action:"Created ticket",note:payload.description}]};
-    state.data.tickets.unshift(ticket);persistDemo();renderAll();toast("Ticket created",ticket.number+" added to the demo queue.");e.target.reset();updatePriorityPreview();openPage("tickets");
+    state.data.tickets.unshift(ticket);persistDemo();renderAll();toast("Ticket created",ticket.number+" saved in this browser.");e.target.reset();updatePriorityPreview();openPage("tickets");
   });
   $("resetTicketButton").addEventListener("click",()=>setTimeout(updatePriorityPreview));
 
@@ -258,7 +258,7 @@
   $("addCommentButton").addEventListener("click",async()=>{
     const note=$("newComment").value.trim();if(!note||!state.selectedTicket)return;
     if(state.mode==="live"){try{await fetchJson("/api/tickets/"+state.selectedTicket+"/comments",{method:"POST",body:JSON.stringify({author_id:10,note})});await loadData();await openTicket(state.selectedTicket);toast("Work note added")}catch(e){toast("Could not add note",e.message,"error")}return}
-    const t=state.data.tickets.find(x=>x.id===state.selectedTicket);t.activities.push({at:new Date().toISOString(),actor:"Jim Camus",action:"Work note",note});t.updated_at=new Date().toISOString();persistDemo();renderAll();openTicket(t.id);toast("Work note added","Saved to the demo ticket timeline.");
+    const t=state.data.tickets.find(x=>x.id===state.selectedTicket);t.activities.push({at:new Date().toISOString(),actor:"Jim Camus",action:"Work note",note});t.updated_at=new Date().toISOString();persistDemo();renderAll();openTicket(t.id);toast("Work note added","Saved to this browser workspace.");
   });
 
   $("uploadAttachmentButton").addEventListener("click",async()=>{
@@ -271,7 +271,7 @@
       t.attachments=t.attachments||[];
       t.attachments.push({id:Date.now(),filename:file.name,size_bytes:file.size,uploaded_at:new Date().toISOString(),uploaded_by:"Jim Camus"});
       t.activities.push({at:new Date().toISOString(),actor:"Jim Camus",action:"Attachment added",note:file.name});
-      t.updated_at=new Date().toISOString();persistDemo();renderAll();openTicket(id);toast("Attachment added","Demo stores attachment metadata only.");return;
+      t.updated_at=new Date().toISOString();persistDemo();renderAll();openTicket(id);toast("Attachment added","Browser workspace stores attachment metadata locally.");return;
     }
 
     const form=new FormData();form.append("file",file);form.append("author_id","10");

@@ -70,9 +70,9 @@ http://127.0.0.1:8790
 
 The backend serves the same UI but with persistent local data.
 
-## Public Demo
+## Public Browser App
 
-The public deployment intentionally uses browser-local demo data. It does not expose or depend on a private service desk database.
+The public deployment uses browser-local workspace data and persists user changes in local browser storage. It does not expose or depend on a private service desk database.
 
 ## Developer
 
@@ -83,7 +83,7 @@ GitHub: [@Sachibara](https://github.com/Sachibara)
 
 ## Deployment
 
-The public recruiter-facing demo is prepared for GitHub Pages at:
+The public browser app is deployed through GitHub Pages at:
 
 ```text
 https://sachibara.github.io/HelpDesk-Pro/

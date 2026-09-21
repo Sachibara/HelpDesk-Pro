@@ -8,7 +8,7 @@ HelpDesk Pro demonstrates skills relevant to IT Service Desk, IT Help Desk, Desk
 
 HelpDesk Pro supports two operating modes:
 
-- **Portfolio Demo Mode** — a public static deployment with realistic service desk data and interactive workflows for recruiters.
+- **Browser Workspace Mode** — a public browser application with realistic service desk data and interactive workflows for recruiters.
 - **Live Backend Mode** — a local FastAPI + SQLite backend with persistent tickets, users, comments, assets, knowledge articles, SLA calculations, and audit history.
 
 ## Core Features
@@ -72,7 +72,7 @@ The backend serves the same UI but with persistent local data.
 
 ## Public Demo
 
-The public deployment intentionally uses representative demo data. It does not expose or depend on a private service desk database.
+The public deployment intentionally uses browser-local demo data. It does not expose or depend on a private service desk database.
 
 ## Developer
 

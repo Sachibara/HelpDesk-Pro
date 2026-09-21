@@ -22,6 +22,7 @@ HelpDesk Pro supports two operating modes:
 - Escalation levels
 - Requester, Technician, and Administrator roles
 - Ticket comments and work notes
+- Ticket attachments (up to 5 MB in live mode)
 - Asset / configuration-item association
 - IT categories: Network, Hardware, Software, Accounts, Microsoft 365, VPN, Printer, Endpoint, Security
 - Knowledge base with searchable articles
@@ -78,3 +79,15 @@ The public deployment intentionally uses representative demo data. It does not e
 **Jim Rodmark Camus**  
 BSIT — Network Technology  
 GitHub: [@Sachibara](https://github.com/Sachibara)
+
+
+## Deployment
+
+The public recruiter-facing demo is prepared for GitHub Pages at:
+
+```text
+https://sachibara.github.io/HelpDesk-Pro/
+```
+
+The live FastAPI backend remains local by design so the service desk database and uploaded attachments are not exposed publicly.
+

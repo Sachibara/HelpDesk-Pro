@@ -208,6 +208,12 @@
           <textarea id="newComment" placeholder="Add technician work note or update..."></textarea>
           <button type="button" class="btn secondary" id="addCommentButton">Add work note</button>
         </div>
+        <h4 class="attachment-heading">Attachments</h4>
+        <div class="attachment-list" id="ticketAttachments"></div>
+        <div class="attachment-upload">
+          <input type="file" id="ticketAttachment" aria-label="Choose ticket attachment">
+          <button type="button" class="btn secondary" id="uploadAttachmentButton">Upload attachment</button>
+        </div>
       </div>
       <aside class="ticket-side">
         <label><span>Status</span><select id="detailStatus"><option>New</option><option>Assigned</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option></select></label>

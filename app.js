@@ -46,6 +46,11 @@
     const h=min/60;
     return h<24?h.toFixed(h<10?1:0)+"h":(h/24).toFixed(1)+"d";
   }
+  function fmtBytes(bytes){
+    let n=Number(bytes)||0;const units=["B","KB","MB","GB"];let i=0;
+    while(n>=1024&&i<units.length-1){n/=1024;i++}
+    return n.toFixed(n>=10||i===0?0:1)+" "+units[i];
+  }
   function toast(title,msg="",type="info"){
     const n=document.createElement("div");n.className="toast "+type;
     n.innerHTML="<strong>"+esc(title)+"</strong><span>"+esc(msg)+"</span>";
@@ -243,13 +248,41 @@
     $("detailAssignee").innerHTML='<option value="">Unassigned</option>'+technicianUsers().map(u=>'<option value="'+u.id+'">'+esc(u.name+" · "+u.role)+'</option>').join("");$("detailAssignee").value=t.assignee_id?String(t.assignee_id):"";
     const sla=slaState(t);$("detailSlaBox").innerHTML='<strong class="sla-text '+sla.level+'">'+sla.label+'</strong><span>Response due: '+new Date(t.response_due).toLocaleString()+'</span><span>Resolution due: '+new Date(t.resolution_due).toLocaleString()+'</span>';
     $("ticketTimeline").innerHTML=(t.activities||[]).slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).map(a=>'<div class="timeline-item"><i></i><div><strong>'+esc(a.actor+" · "+a.action)+'</strong><p>'+esc(a.note||"")+'</p><small>'+new Date(a.at).toLocaleString()+'</small></div></div>').join("");
-    $("newComment").value="";$("ticketDialog").showModal();
+    const attachments=t.attachments||[];
+    $("ticketAttachments").innerHTML=attachments.length?attachments.map(a=>{
+      const download=state.mode==="live"&&a.id?'<a href="'+esc(state.backendUrl.replace(/\/$/,"")+"/api/attachments/"+a.id)+'" target="_blank" rel="noopener">Download</a>':'<span class="sla-text good">Demo file</span>';
+      return '<div class="attachment-item"><div><strong>'+esc(a.filename)+'</strong><small>'+fmtBytes(a.size_bytes)+' · '+esc(a.uploaded_by||"Service Desk")+' · '+fmtTime(a.uploaded_at)+'</small></div>'+download+'</div>';
+    }).join(""):'<div class="empty">No attachments on this ticket.</div>';
+    $("newComment").value="";$("ticketAttachment").value="";$("ticketDialog").showModal();
   }
   $("addCommentButton").addEventListener("click",async()=>{
     const note=$("newComment").value.trim();if(!note||!state.selectedTicket)return;
     if(state.mode==="live"){try{await fetchJson("/api/tickets/"+state.selectedTicket+"/comments",{method:"POST",body:JSON.stringify({author_id:10,note})});await loadData();await openTicket(state.selectedTicket);toast("Work note added")}catch(e){toast("Could not add note",e.message,"error")}return}
     const t=state.data.tickets.find(x=>x.id===state.selectedTicket);t.activities.push({at:new Date().toISOString(),actor:"Jim Camus",action:"Work note",note});t.updated_at=new Date().toISOString();persistDemo();renderAll();openTicket(t.id);toast("Work note added","Saved to the demo ticket timeline.");
   });
+
+  $("uploadAttachmentButton").addEventListener("click",async()=>{
+    const input=$("ticketAttachment"),file=input.files?.[0],id=state.selectedTicket;
+    if(!id||!file){toast("Choose a file","Select an attachment before uploading.","error");return}
+    if(file.size>5*1024*1024){toast("Attachment too large","Maximum size is 5 MB.","error");return}
+
+    if(state.mode==="demo"){
+      const t=state.data.tickets.find(x=>x.id===id);
+      t.attachments=t.attachments||[];
+      t.attachments.push({id:Date.now(),filename:file.name,size_bytes:file.size,uploaded_at:new Date().toISOString(),uploaded_by:"Jim Camus"});
+      t.activities.push({at:new Date().toISOString(),actor:"Jim Camus",action:"Attachment added",note:file.name});
+      t.updated_at=new Date().toISOString();persistDemo();renderAll();openTicket(id);toast("Attachment added","Demo stores attachment metadata only.");return;
+    }
+
+    const form=new FormData();form.append("file",file);form.append("author_id","10");
+    try{
+      const response=await fetch(state.backendUrl.replace(/\/$/,"")+"/api/tickets/"+id+"/attachments",{method:"POST",body:form});
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(result.detail||"Upload failed");
+      await loadData();openTicket(id);toast("Attachment uploaded",result.filename||file.name);
+    }catch(e){toast("Could not upload attachment",e.message,"error")}
+  });
+
   $("saveTicketButton").addEventListener("click",async()=>{
     const id=state.selectedTicket;if(!id)return;
     const assigneeId=$("detailAssignee").value?Number($("detailAssignee").value):null,tech=technicianUsers().find(u=>u.id===assigneeId);

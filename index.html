@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07131f">
+  <meta name="description" content="HelpDesk Pro - IT Service Desk and Help Desk management platform.">
+  <title>HelpDesk Pro | IT Service Desk</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./demo-data.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#dashboard">
+      <span class="brand-mark">HD</span>
+      <span><strong>HelpDesk Pro</strong><small>IT Service Management</small></span>
+    </a>
+
+    <div class="mode-card">
+      <span class="mode-dot" id="modeDot"></span>
+      <div><strong id="modeTitle">Portfolio Demo</strong><small id="modeDetail">Representative ITSM data</small></div>
+      <button id="connectionButton" class="text-btn">Configure</button>
+    </div>
+
+    <nav>
+      <button class="nav-item active" data-page="dashboard"><span>▦</span>Dashboard</button>
+      <button class="nav-item" data-page="tickets"><span>◫</span>Tickets <b id="openTicketBadge">0</b></button>
+      <button class="nav-item" data-page="new-ticket"><span>＋</span>New Ticket</button>
+      <button class="nav-item" data-page="assets"><span>▣</span>Assets</button>
+      <button class="nav-item" data-page="knowledge"><span>◇</span>Knowledge Base</button>
+      <button class="nav-item" data-page="team"><span>◎</span>Service Desk Team</button>
+      <button class="nav-item" data-page="analytics"><span>⌁</span>Analytics</button>
+      <button class="nav-item" data-page="about"><span>ⓘ</span>About</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span>Current role</span>
+      <strong id="currentRole">Administrator</strong>
+      <small>ITSM portfolio environment</small>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="menu-btn" id="menuButton">☰</button>
+        <div><p id="pageEyebrow">IT operations</p><h1 id="pageTitle">Dashboard</h1></div>
+      </div>
+      <div class="top-actions">
+        <div class="refresh-label"><span>Last refresh</span><strong id="lastRefresh">—</strong></div>
+        <button class="btn secondary" id="refreshButton">Refresh</button>
+        <button class="btn primary" data-go="new-ticket">Create ticket</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="page active" data-page-panel="dashboard">
+        <div class="hero-grid">
+          <article class="panel service-health">
+            <div>
+              <p class="eyebrow">Service desk posture</p>
+              <div class="health-row"><h2 id="serviceHealthTitle">Operational</h2><span class="pill good" id="serviceHealthBadge">Within SLA</span></div>
+              <p id="serviceHealthCopy">Tracking incidents, service requests, SLA risk, technician workload, and user support outcomes.</p>
+              <div class="health-facts">
+                <span><i class="green"></i><b id="dashboardOpen">0</b> open</span>
+                <span><i class="amber"></i><b id="dashboardRisk">0</b> SLA at risk</span>
+                <span><i class="red"></i><b id="dashboardBreached">0</b> breached</span>
+              </div>
+            </div>
+            <div class="sla-ring" id="slaRing"><span><b id="slaCompliance">0%</b><small>SLA compliance</small></span></div>
+          </article>
+
+          <article class="panel quick-panel">
+            <div class="panel-head"><div><p class="eyebrow">Quick actions</p><h3>Service desk</h3></div></div>
+            <button class="action-row" data-go="new-ticket"><span>＋</span><div><strong>Log a ticket</strong><small>Incident or service request</small></div><b>→</b></button>
+            <button class="action-row" data-go="tickets"><span>◫</span><div><strong>Open queue</strong><small>Assign, update, resolve</small></div><b>→</b></button>
+            <button class="action-row" data-go="knowledge"><span>◇</span><div><strong>Search knowledge</strong><small>Known fixes and runbooks</small></div><b>→</b></button>
+          </article>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat"><span>Open tickets</span><strong id="statOpen">0</strong><small id="statOpenNote">Current queue</small></article>
+          <article class="stat"><span>Unassigned</span><strong id="statUnassigned">0</strong><small>Needs triage</small></article>
+          <article class="stat"><span>Avg. first response</span><strong id="statResponse">—</strong><small>Resolved ticket sample</small></article>
+          <article class="stat"><span>Resolved today</span><strong id="statResolved">0</strong><small>Service desk throughput</small></article>
+          <article class="stat"><span>CSAT</span><strong id="statCsat">—</strong><small>User satisfaction</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Queue</p><h3>Priority workload</h3></div><button class="text-btn" data-go="tickets">View queue</button></div>
+            <div class="priority-bars" id="priorityBars"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">SLA</p><h3>Attention required</h3></div></div>
+            <div class="mini-list" id="slaAttentionList"></div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Recent activity</p><h3>Latest tickets</h3></div></div>
+            <div class="mini-list" id="recentTicketList"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Technicians</p><h3>Workload</h3></div></div>
+            <div class="mini-list" id="workloadList"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" data-page-panel="tickets">
+        <div class="section-head">
+          <div><p class="eyebrow">Ticket operations</p><h2>Service Desk Queue</h2><p>Review, assign, prioritize, escalate, and resolve incidents and service requests.</p></div>
+          <button class="btn primary" data-go="new-ticket">Create ticket</button>
+        </div>
+        <article class="panel">
+          <div class="toolbar">
+            <div class="search"><span>⌕</span><input id="ticketSearch" placeholder="Search ticket, requester, device, or category"></div>
+            <select id="ticketStatusFilter"><option value="all">All statuses</option><option>New</option><option>Assigned</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option></select>
+            <select id="ticketPriorityFilter"><option value="all">All priorities</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
+            <select id="ticketTypeFilter"><option value="all">All types</option><option>Incident</option><option>Service Request</option></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Ticket</th><th>Type</th><th>Priority</th><th>Status</th><th>Requester</th><th>Category</th><th>Assignee</th><th>SLA</th><th>Updated</th></tr></thead>
+              <tbody id="ticketTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="page" data-page-panel="new-ticket">
+        <div class="section-head"><div><p class="eyebrow">Intake</p><h2>Create a Ticket</h2><p>Capture enough technical context for efficient triage, ownership, and SLA management.</p></div></div>
+        <form class="panel ticket-form" id="newTicketForm">
+          <div class="form-grid">
+            <label><span>Ticket type</span><select id="newType" required><option>Incident</option><option>Service Request</option></select></label>
+            <label><span>Requester</span><select id="newRequester" required></select></label>
+            <label class="wide"><span>Subject</span><input id="newSubject" maxlength="160" required placeholder="Example: Unable to connect to corporate VPN"></label>
+            <label class="wide"><span>Description</span><textarea id="newDescription" required placeholder="Describe symptoms, impact, troubleshooting already attempted, and when the issue started."></textarea></label>
+            <label><span>Category</span><select id="newCategory" required><option>Network</option><option>Hardware</option><option>Software</option><option>Account Access</option><option>Microsoft 365</option><option>VPN</option><option>Printer</option><option>Endpoint</option><option>Security</option><option>Other</option></select></label>
+            <label><span>Asset / CI</span><select id="newAsset"><option value="">No linked asset</option></select></label>
+            <label><span>Impact</span><select id="newImpact"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></label>
+            <label><span>Urgency</span><select id="newUrgency"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></label>
+          </div>
+          <div class="priority-preview"><span>Calculated priority</span><strong id="priorityPreview">P3</strong><small id="slaPreview">Response 4h · Resolution 24h</small></div>
+          <div class="form-actions"><button type="reset" class="btn secondary" id="resetTicketButton">Reset</button><button type="submit" class="btn primary">Submit ticket</button></div>
+        </form>
+      </section>
+
+      <section class="page" data-page-panel="assets">
+        <div class="section-head"><div><p class="eyebrow">Configuration items</p><h2>IT Assets</h2><p>Associate service desk work with the endpoints and infrastructure affected by each issue.</p></div></div>
+        <div class="stats-grid compact" id="assetSummary"></div>
+        <article class="panel">
+          <div class="toolbar"><div class="search"><span>⌕</span><input id="assetSearch" placeholder="Search hostname, user, serial, type, or status"></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Asset</th><th>Type</th><th>User / Owner</th><th>Serial</th><th>OS / Platform</th><th>Status</th><th>Location</th></tr></thead><tbody id="assetTableBody"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="page" data-page-panel="knowledge">
+        <div class="section-head"><div><p class="eyebrow">Knowledge management</p><h2>Knowledge Base</h2><p>Document repeatable fixes, troubleshooting procedures, and support runbooks.</p></div></div>
+        <article class="panel">
+          <div class="toolbar"><div class="search"><span>⌕</span><input id="kbSearch" placeholder="Search article, category, symptom, or keyword"></div></div>
+          <div class="kb-grid" id="kbGrid"></div>
+        </article>
+      </section>
+
+      <section class="page" data-page-panel="team">
+        <div class="section-head"><div><p class="eyebrow">People & workload</p><h2>Service Desk Team</h2><p>Role-based service desk staffing, queue ownership, workload, and SLA performance.</p></div></div>
+        <div class="team-grid" id="teamGrid"></div>
+      </section>
+
+      <section class="page" data-page-panel="analytics">
+        <div class="section-head"><div><p class="eyebrow">Operational reporting</p><h2>Analytics</h2><p>Ticket volume, resolution performance, SLA compliance, categories, and support outcomes.</p></div></div>
+        <div class="analytics-grid">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Ticket mix</p><h3>By category</h3></div></div><div class="chart-bars" id="categoryChart"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Status</p><h3>Lifecycle distribution</h3></div></div><div class="chart-bars" id="statusChart"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Performance</p><h3>Service metrics</h3></div></div><div class="metric-stack" id="performanceMetrics"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Experience</p><h3>Resolution outcomes</h3></div></div><div class="metric-stack" id="outcomeMetrics"></div></article>
+        </div>
+      </section>
+
+      <section class="page" data-page-panel="about">
+        <div class="section-head"><div><p class="eyebrow">Project architecture</p><h2>About HelpDesk Pro</h2><p>A practical ITSM portfolio system demonstrating service desk operations and full-stack development.</p></div></div>
+        <div class="about-grid">
+          <article class="panel wide-card"><p class="eyebrow">Deployment model</p><h3>Public demo + persistent local backend</h3><div class="architecture"><div><strong>Browser UI</strong><small>Recruiter-facing demo</small></div><b>↔</b><div><strong>FastAPI</strong><small>REST service desk backend</small></div><b>↔</b><div><strong>SQLite</strong><small>Tickets, assets, KB & audit</small></div></div></article>
+          <article class="panel"><p class="eyebrow">ITSM skills</p><div class="tag-cloud"><span>Incident Management</span><span>Service Requests</span><span>SLA</span><span>Triage</span><span>Escalation</span><span>Asset Linking</span><span>Knowledge Base</span><span>Audit Trail</span></div></article>
+          <article class="panel"><p class="eyebrow">Development skills</p><div class="tag-cloud"><span>Python</span><span>FastAPI</span><span>SQLite</span><span>REST APIs</span><span>JavaScript</span><span>HTML/CSS</span><span>Role-Based Workflows</span></div></article>
+        </div>
+      </section>
+    </main>
+  </section>
+</div>
+
+<dialog id="ticketDialog">
+  <form method="dialog" class="dialog-card" id="ticketDetailForm">
+    <div class="dialog-head"><div><p class="eyebrow">Ticket details</p><h2 id="detailTicketId">HD-0000</h2></div><button class="icon-btn" value="cancel">×</button></div>
+    <div class="ticket-detail-grid">
+      <div class="ticket-main">
+        <h3 id="detailSubject">—</h3>
+        <p id="detailDescription">—</p>
+        <div class="detail-meta" id="detailMeta"></div>
+        <h4>Activity & work notes</h4>
+        <div class="timeline" id="ticketTimeline"></div>
+        <div class="comment-box">
+          <textarea id="newComment" placeholder="Add technician work note or update..."></textarea>
+          <button type="button" class="btn secondary" id="addCommentButton">Add work note</button>
+        </div>
+      </div>
+      <aside class="ticket-side">
+        <label><span>Status</span><select id="detailStatus"><option>New</option><option>Assigned</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option></select></label>
+        <label><span>Priority</span><select id="detailPriority"><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></label>
+        <label><span>Assignee</span><select id="detailAssignee"></select></label>
+        <label><span>Escalation</span><select id="detailEscalation"><option value="0">Level 0</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select></label>
+        <div class="sla-box" id="detailSlaBox"></div>
+        <button type="button" class="btn primary" id="saveTicketButton">Save changes</button>
+      </aside>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="connectionDialog">
+  <form method="dialog" class="dialog-card small-dialog">
+    <div class="dialog-head"><div><p class="eyebrow">Data source</p><h2>Connection Settings</h2></div><button class="icon-btn" value="cancel">×</button></div>
+    <label class="radio-card"><input type="radio" name="mode" value="demo" checked><span><strong>Portfolio demo</strong><small>Interactive representative ITSM data.</small></span></label>
+    <label class="radio-card"><input type="radio" name="mode" value="live"><span><strong>Live backend</strong><small>Connect to the local HelpDesk Pro API.</small></span></label>
+    <label><span>Backend URL</span><input id="backendUrlInput" value="http://127.0.0.1:8790"></label>
+    <div class="dialog-actions"><button class="btn secondary" value="cancel">Cancel</button><button type="button" class="btn primary" id="saveConnectionButton">Save</button></div>
+  </form>
+</dialog>
+
+<div class="toast-region" id="toastRegion"></div>
+</body>
+</html>

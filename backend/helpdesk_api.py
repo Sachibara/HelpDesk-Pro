@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BACKEND_DIR = Path(__file__).resolve().parent
 DATA_DIR = BACKEND_DIR / "data"
 DB_PATH = DATA_DIR / "helpdesk.db"
+UPLOAD_DIR = DATA_DIR / "uploads"
+MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 
 SLA = {
     "P1": {"response": 1, "resolution": 2},
@@ -105,6 +107,18 @@ def init_db() -> None:
                 views INTEGER NOT NULL DEFAULT 0,
                 helpful INTEGER NOT NULL DEFAULT 100,
                 tags TEXT NOT NULL DEFAULT ''
+            );
+
+            CREATE TABLE IF NOT EXISTS attachments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id INTEGER NOT NULL,
+                filename TEXT NOT NULL,
+                stored_name TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                uploaded_at TEXT NOT NULL,
+                uploaded_by INTEGER,
+                uploaded_by_name TEXT NOT NULL,
+                FOREIGN KEY(ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
             );
             """
         )
@@ -302,6 +316,19 @@ def get_ticket(conn: sqlite3.Connection, ticket_id: int) -> dict[str, Any]:
         }
         for activity in conn.execute(
             "SELECT * FROM activities WHERE ticket_id=? ORDER BY at ASC, id ASC",
+            (ticket_id,),
+        ).fetchall()
+    ]
+    ticket["attachments"] = [
+        {
+            "id": attachment["id"],
+            "filename": attachment["filename"],
+            "size_bytes": attachment["size_bytes"],
+            "uploaded_at": attachment["uploaded_at"],
+            "uploaded_by": attachment["uploaded_by_name"],
+        }
+        for attachment in conn.execute(
+            "SELECT * FROM attachments WHERE ticket_id=? ORDER BY uploaded_at ASC, id ASC",
             (ticket_id,),
         ).fetchall()
     ]
@@ -520,6 +547,79 @@ def api_add_comment(ticket_id: int, request: CommentCreate):
         conn.execute("UPDATE tickets SET updated_at=? WHERE id=?", (now, ticket_id))
         conn.commit()
         return get_ticket(conn, ticket_id)
+
+
+
+@app.post("/api/tickets/{ticket_id}/attachments")
+async def api_upload_attachment(
+    ticket_id: int,
+    file: UploadFile = File(...),
+    author_id: int = Form(10),
+):
+    with db() as conn:
+        if not conn.execute("SELECT 1 FROM tickets WHERE id=?", (ticket_id,)).fetchone():
+            raise HTTPException(status_code=404, detail="Ticket not found.")
+        author = conn.execute("SELECT * FROM users WHERE id=?", (author_id,)).fetchone()
+        if not author:
+            raise HTTPException(status_code=400, detail="Uploader not found.")
+
+        original_name = Path(file.filename or "attachment.bin").name
+        safe_name = "".join(ch for ch in original_name if ch.isalnum() or ch in "._- ").strip()
+        if not safe_name:
+            safe_name = "attachment.bin"
+
+        content = await file.read(MAX_ATTACHMENT_BYTES + 1)
+        if len(content) > MAX_ATTACHMENT_BYTES:
+            raise HTTPException(status_code=413, detail="Attachment exceeds the 5 MB limit.")
+
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+        stored_name = f"{ticket_id}_{stamp}_{safe_name}"
+        (UPLOAD_DIR / stored_name).write_bytes(content)
+
+        now = utc_now()
+        cur = conn.execute(
+            """
+            INSERT INTO attachments(
+                ticket_id,filename,stored_name,size_bytes,uploaded_at,
+                uploaded_by,uploaded_by_name
+            ) VALUES(?,?,?,?,?,?,?)
+            """,
+            (
+                ticket_id, safe_name, stored_name, len(content), now,
+                author_id, author["name"],
+            ),
+        )
+        conn.execute(
+            "INSERT INTO activities(ticket_id,at,actor_id,actor_name,action,note) VALUES(?,?,?,?,?,?)",
+            (
+                ticket_id, now, author_id, author["name"],
+                "Attachment added", safe_name,
+            ),
+        )
+        conn.execute("UPDATE tickets SET updated_at=? WHERE id=?", (now, ticket_id))
+        conn.commit()
+        attachment_id = int(cur.lastrowid)
+
+    return {
+        "id": attachment_id,
+        "filename": safe_name,
+        "size_bytes": len(content),
+        "uploaded_at": now,
+        "uploaded_by": author["name"],
+    }
+
+
+@app.get("/api/attachments/{attachment_id}")
+def api_download_attachment(attachment_id: int):
+    with db() as conn:
+        row = conn.execute("SELECT * FROM attachments WHERE id=?", (attachment_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Attachment not found.")
+        path = UPLOAD_DIR / row["stored_name"]
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail="Attachment file is missing.")
+        return FileResponse(path, filename=row["filename"], media_type="application/octet-stream")
 
 
 @app.get("/")

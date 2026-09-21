@@ -131,12 +131,12 @@ def seed_database(conn: sqlite3.Connection) -> None:
         conn.executemany(
             "INSERT INTO users(id,name,email,role,department) VALUES(?,?,?,?,?)",
             [
-                (1, "Alyssa Reyes", "alyssa.reyes@contoso.local", "Requester", "Finance"),
+                (1, "Adrian Reyes", "adrian.reyes@contoso.local", "Requester", "Finance"),
                 (2, "Marco Santos", "marco.santos@contoso.local", "Requester", "Operations"),
-                (3, "Nina Cruz", "nina.cruz@contoso.local", "Requester", "Human Resources"),
+                (3, "Nico Cruz", "nico.cruz@contoso.local", "Requester", "Human Resources"),
                 (10, "Jim Camus", "jim.camus@helpdesk.local", "Administrator", "IT"),
                 (11, "Kevin Lim", "kevin.lim@helpdesk.local", "Technician", "IT"),
-                (12, "Rhea Mendoza", "rhea.mendoza@helpdesk.local", "Technician", "IT"),
+                (12, "Ryan Mendoza", "ryan.mendoza@helpdesk.local", "Technician", "IT"),
             ],
         )
 
@@ -147,9 +147,9 @@ def seed_database(conn: sqlite3.Connection) -> None:
             VALUES(?,?,?,?,?,?,?,?)
             """,
             [
-                (1, "FIN-LT-014", "Laptop", "Alyssa Reyes", "LNV-83F4A2", "Windows 11 Pro", "In Service", "Finance"),
+                (1, "FIN-LT-014", "Laptop", "Adrian Reyes", "LNV-83F4A2", "Windows 11 Pro", "In Service", "Finance"),
                 (2, "OPS-DT-022", "Desktop", "Marco Santos", "DEL-72D19B", "Windows 11 Pro", "In Service", "Operations"),
-                (3, "HR-LT-008", "Laptop", "Nina Cruz", "HP-19A8D1", "Windows 11 Pro", "In Service", "Human Resources"),
+                (3, "HR-LT-008", "Laptop", "Nico Cruz", "HP-19A8D1", "Windows 11 Pro", "In Service", "Human Resources"),
                 (4, "CORE-SW-01", "Switch", "IT Infrastructure", "CSC-9200-01", "Cisco IOS XE", "In Service", "MDF"),
                 (5, "AP-F2-03", "Access Point", "IT Infrastructure", "UBQ-U6-003", "UniFi", "In Service", "Floor 2"),
                 (6, "PRN-FIN-01", "Printer", "Finance", "HP-M428-11", "Embedded", "Degraded", "Finance"),

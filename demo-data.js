@@ -4,18 +4,18 @@ window.HELPDESK_DEMO = (() => {
   const isoFromNow = (hours) => new Date(now + hours * 3600000).toISOString();
 
   const users = [
-    {id:1,name:"Alyssa Reyes",email:"alyssa.reyes@contoso.local",role:"Requester",department:"Finance"},
+    {id:1,name:"Adrian Reyes",email:"adrian.reyes@contoso.local",role:"Requester",department:"Finance"},
     {id:2,name:"Marco Santos",email:"marco.santos@contoso.local",role:"Requester",department:"Operations"},
-    {id:3,name:"Nina Cruz",email:"nina.cruz@contoso.local",role:"Requester",department:"Human Resources"},
+    {id:3,name:"Nico Cruz",email:"nico.cruz@contoso.local",role:"Requester",department:"Human Resources"},
     {id:10,name:"Jim Camus",email:"jim.camus@helpdesk.local",role:"Administrator",department:"IT"},
     {id:11,name:"Kevin Lim",email:"kevin.lim@helpdesk.local",role:"Technician",department:"IT"},
-    {id:12,name:"Rhea Mendoza",email:"rhea.mendoza@helpdesk.local",role:"Technician",department:"IT"}
+    {id:12,name:"Ryan Mendoza",email:"ryan.mendoza@helpdesk.local",role:"Technician",department:"IT"}
   ];
 
   const assets = [
-    {id:1,hostname:"FIN-LT-014",type:"Laptop",owner:"Alyssa Reyes",serial:"LNV-83F4A2",platform:"Windows 11 Pro",status:"In Service",location:"Finance"},
+    {id:1,hostname:"FIN-LT-014",type:"Laptop",owner:"Adrian Reyes",serial:"LNV-83F4A2",platform:"Windows 11 Pro",status:"In Service",location:"Finance"},
     {id:2,hostname:"OPS-DT-022",type:"Desktop",owner:"Marco Santos",serial:"DEL-72D19B",platform:"Windows 11 Pro",status:"In Service",location:"Operations"},
-    {id:3,hostname:"HR-LT-008",type:"Laptop",owner:"Nina Cruz",serial:"HP-19A8D1",platform:"Windows 11 Pro",status:"In Service",location:"Human Resources"},
+    {id:3,hostname:"HR-LT-008",type:"Laptop",owner:"Nico Cruz",serial:"HP-19A8D1",platform:"Windows 11 Pro",status:"In Service",location:"Human Resources"},
     {id:4,hostname:"CORE-SW-01",type:"Switch",owner:"IT Infrastructure",serial:"CSC-9200-01",platform:"Cisco IOS XE",status:"In Service",location:"MDF"},
     {id:5,hostname:"AP-F2-03",type:"Access Point",owner:"IT Infrastructure",serial:"UBQ-U6-003",platform:"UniFi",status:"In Service",location:"Floor 2"},
     {id:6,hostname:"PRN-FIN-01",type:"Printer",owner:"Finance",serial:"HP-M428-11",platform:"Embedded",status:"Degraded",location:"Finance"},
@@ -27,11 +27,11 @@ window.HELPDESK_DEMO = (() => {
     {
       id:1001,number:"HD-1001",type:"Incident",subject:"Finance printer unavailable after paper jam",
       description:"PRN-FIN-01 remains offline after clearing a paper jam. Users cannot print invoices.",
-      requester_id:1,requester:"Alyssa Reyes",category:"Printer",asset_id:6,asset:"PRN-FIN-01",
+      requester_id:1,requester:"Adrian Reyes",category:"Printer",asset_id:6,asset:"PRN-FIN-01",
       impact:"Medium",urgency:"High",priority:"P2",status:"In Progress",assignee_id:11,assignee:"Kevin Lim",escalation:1,
       created_at:isoAgo(5.5),updated_at:isoAgo(.4),response_due:isoAgo(4.5),resolution_due:isoFromNow(2.5),first_response_at:isoAgo(5),resolved_at:null,csat:null,
       activities:[
-        {at:isoAgo(5.5),actor:"Alyssa Reyes",action:"Created ticket",note:"Printing stopped after paper jam."},
+        {at:isoAgo(5.5),actor:"Adrian Reyes",action:"Created ticket",note:"Printing stopped after paper jam."},
         {at:isoAgo(5),actor:"Kevin Lim",action:"First response",note:"Requested printer status page and began remote checks."},
         {at:isoAgo(1.2),actor:"Kevin Lim",action:"Work note",note:"Spooler reachable; device reports hardware fault. On-site inspection scheduled."}
       ]
@@ -50,14 +50,14 @@ window.HELPDESK_DEMO = (() => {
     },
     {
       id:1003,number:"HD-1003",type:"Service Request",subject:"New Microsoft 365 shared mailbox access",
-      description:"Finance manager requests access for Alyssa to the AP shared mailbox.",
-      requester_id:1,requester:"Alyssa Reyes",category:"Microsoft 365",asset_id:null,asset:"",
-      impact:"Low",urgency:"Medium",priority:"P3",status:"Pending",assignee_id:12,assignee:"Rhea Mendoza",escalation:0,
+      description:"Finance manager requests access for Adrian to the AP shared mailbox.",
+      requester_id:1,requester:"Adrian Reyes",category:"Microsoft 365",asset_id:null,asset:"",
+      impact:"Low",urgency:"Medium",priority:"P3",status:"Pending",assignee_id:12,assignee:"Ryan Mendoza",escalation:0,
       created_at:isoAgo(8),updated_at:isoAgo(2),response_due:isoAgo(4),resolution_due:isoFromNow(18),first_response_at:isoAgo(7.5),resolved_at:null,csat:null,
       activities:[
-        {at:isoAgo(8),actor:"Alyssa Reyes",action:"Created request",note:"Needs AP shared mailbox access."},
-        {at:isoAgo(7.5),actor:"Rhea Mendoza",action:"First response",note:"Request acknowledged."},
-        {at:isoAgo(2),actor:"Rhea Mendoza",action:"Pending approval",note:"Awaiting mailbox owner approval."}
+        {at:isoAgo(8),actor:"Adrian Reyes",action:"Created request",note:"Needs AP shared mailbox access."},
+        {at:isoAgo(7.5),actor:"Ryan Mendoza",action:"First response",note:"Request acknowledged."},
+        {at:isoAgo(2),actor:"Ryan Mendoza",action:"Pending approval",note:"Awaiting mailbox owner approval."}
       ]
     },
     {
@@ -71,36 +71,36 @@ window.HELPDESK_DEMO = (() => {
     {
       id:1005,number:"HD-1005",type:"Incident",subject:"User account locked repeatedly",
       description:"HR user account re-locks shortly after unlock. Suspected stale credentials on another endpoint.",
-      requester_id:3,requester:"Nina Cruz",category:"Account Access",asset_id:3,asset:"HR-LT-008",
+      requester_id:3,requester:"Nico Cruz",category:"Account Access",asset_id:3,asset:"HR-LT-008",
       impact:"Medium",urgency:"High",priority:"P2",status:"Resolved",assignee_id:10,assignee:"Jim Camus",escalation:1,
       created_at:isoAgo(26),updated_at:isoAgo(3),response_due:isoAgo(25),resolution_due:isoAgo(18),first_response_at:isoAgo(25.7),resolved_at:isoAgo(3),csat:5,
       activities:[
-        {at:isoAgo(26),actor:"Nina Cruz",action:"Created ticket",note:"Account locked three times today."},
+        {at:isoAgo(26),actor:"Nico Cruz",action:"Created ticket",note:"Account locked three times today."},
         {at:isoAgo(25.7),actor:"Jim Camus",action:"First response",note:"Unlocked account and checked lockout source."},
         {at:isoAgo(4),actor:"Jim Camus",action:"Resolution",note:"Removed stale mobile mail credentials causing repeated lockouts."},
-        {at:isoAgo(3),actor:"Nina Cruz",action:"CSAT",note:"5/5 - issue resolved quickly."}
+        {at:isoAgo(3),actor:"Nico Cruz",action:"CSAT",note:"5/5 - issue resolved quickly."}
       ]
     },
     {
       id:1006,number:"HD-1006",type:"Service Request",subject:"Prepare replacement laptop for Finance",
       description:"Provision spare laptop with standard apps, BitLocker, Microsoft 365, VPN, and printer mappings.",
-      requester_id:1,requester:"Alyssa Reyes",category:"Endpoint",asset_id:8,asset:"SPARE-LT-02",
-      impact:"Medium",urgency:"Medium",priority:"P3",status:"In Progress",assignee_id:12,assignee:"Rhea Mendoza",escalation:0,
+      requester_id:1,requester:"Adrian Reyes",category:"Endpoint",asset_id:8,asset:"SPARE-LT-02",
+      impact:"Medium",urgency:"Medium",priority:"P3",status:"In Progress",assignee_id:12,assignee:"Ryan Mendoza",escalation:0,
       created_at:isoAgo(15),updated_at:isoAgo(1.5),response_due:isoAgo(11),resolution_due:isoFromNow(9),first_response_at:isoAgo(14),resolved_at:null,csat:null,
       activities:[
-        {at:isoAgo(15),actor:"Alyssa Reyes",action:"Created request",note:"Replacement needed before next business day."},
-        {at:isoAgo(14),actor:"Rhea Mendoza",action:"First response",note:"Spare device reserved."},
-        {at:isoAgo(1.5),actor:"Rhea Mendoza",action:"Work note",note:"OS updates complete; validating VPN and M365 apps."}
+        {at:isoAgo(15),actor:"Adrian Reyes",action:"Created request",note:"Replacement needed before next business day."},
+        {at:isoAgo(14),actor:"Ryan Mendoza",action:"First response",note:"Spare device reserved."},
+        {at:isoAgo(1.5),actor:"Ryan Mendoza",action:"Work note",note:"OS updates complete; validating VPN and M365 apps."}
       ]
     },
     {
       id:1007,number:"HD-1007",type:"Incident",subject:"Outlook desktop client not synchronizing",
       description:"New messages appear in Outlook Web but desktop Outlook remains several hours behind.",
-      requester_id:3,requester:"Nina Cruz",category:"Microsoft 365",asset_id:3,asset:"HR-LT-008",
+      requester_id:3,requester:"Nico Cruz",category:"Microsoft 365",asset_id:3,asset:"HR-LT-008",
       impact:"Low",urgency:"Medium",priority:"P3",status:"Assigned",assignee_id:11,assignee:"Kevin Lim",escalation:0,
       created_at:isoAgo(3),updated_at:isoAgo(1),response_due:isoFromNow(1),resolution_due:isoFromNow(21),first_response_at:isoAgo(2),resolved_at:null,csat:null,
       activities:[
-        {at:isoAgo(3),actor:"Nina Cruz",action:"Created ticket",note:"Outlook desktop not receiving mail."},
+        {at:isoAgo(3),actor:"Nico Cruz",action:"Created ticket",note:"Outlook desktop not receiving mail."},
         {at:isoAgo(2),actor:"Kevin Lim",action:"First response",note:"Checking cached mode and profile health."}
       ]
     },
@@ -119,24 +119,24 @@ window.HELPDESK_DEMO = (() => {
     {
       id:1009,number:"HD-1009",type:"Service Request",subject:"Install approved PDF editor",
       description:"User needs approved PDF editing application for HR document workflow.",
-      requester_id:3,requester:"Nina Cruz",category:"Software",asset_id:3,asset:"HR-LT-008",
-      impact:"Low",urgency:"Low",priority:"P4",status:"Closed",assignee_id:12,assignee:"Rhea Mendoza",escalation:0,
+      requester_id:3,requester:"Nico Cruz",category:"Software",asset_id:3,asset:"HR-LT-008",
+      impact:"Low",urgency:"Low",priority:"P4",status:"Closed",assignee_id:12,assignee:"Ryan Mendoza",escalation:0,
       created_at:isoAgo(72),updated_at:isoAgo(48),response_due:isoAgo(64),resolution_due:isoAgo(24),first_response_at:isoAgo(68),resolved_at:isoAgo(50),csat:5,
       activities:[
-        {at:isoAgo(72),actor:"Nina Cruz",action:"Created request",note:"Needs approved PDF editor."},
-        {at:isoAgo(68),actor:"Rhea Mendoza",action:"First response",note:"License availability confirmed."},
-        {at:isoAgo(50),actor:"Rhea Mendoza",action:"Resolution",note:"Application installed and verified."},
-        {at:isoAgo(48),actor:"Rhea Mendoza",action:"Closed",note:"Requester confirmed completion."}
+        {at:isoAgo(72),actor:"Nico Cruz",action:"Created request",note:"Needs approved PDF editor."},
+        {at:isoAgo(68),actor:"Ryan Mendoza",action:"First response",note:"License availability confirmed."},
+        {at:isoAgo(50),actor:"Ryan Mendoza",action:"Resolution",note:"Application installed and verified."},
+        {at:isoAgo(48),actor:"Ryan Mendoza",action:"Closed",note:"Requester confirmed completion."}
       ]
     },
     {
       id:1010,number:"HD-1010",type:"Incident",subject:"Suspicious browser redirect detected",
       description:"Endpoint redirects some searches to an unexpected domain. Security scan requested.",
-      requester_id:1,requester:"Alyssa Reyes",category:"Security",asset_id:1,asset:"FIN-LT-014",
+      requester_id:1,requester:"Adrian Reyes",category:"Security",asset_id:1,asset:"FIN-LT-014",
       impact:"High",urgency:"High",priority:"P1",status:"In Progress",assignee_id:10,assignee:"Jim Camus",escalation:2,
       created_at:isoAgo(2.2),updated_at:isoAgo(.3),response_due:isoAgo(1.7),resolution_due:isoFromNow(-.2),first_response_at:isoAgo(2),resolved_at:null,csat:null,
       activities:[
-        {at:isoAgo(2.2),actor:"Alyssa Reyes",action:"Created ticket",note:"Unexpected browser redirects."},
+        {at:isoAgo(2.2),actor:"Adrian Reyes",action:"Created ticket",note:"Unexpected browser redirects."},
         {at:isoAgo(2),actor:"Jim Camus",action:"First response",note:"Isolated endpoint from non-essential network access."},
         {at:isoAgo(.3),actor:"Jim Camus",action:"Work note",note:"Browser extension removed; endpoint malware scan underway."}
       ]
@@ -144,12 +144,12 @@ window.HELPDESK_DEMO = (() => {
     {
       id:1011,number:"HD-1011",type:"Service Request",subject:"Create user account for new hire",
       description:"Provision standard account, M365 license, baseline groups, and temporary password for new Finance employee.",
-      requester_id:1,requester:"Alyssa Reyes",category:"Account Access",asset_id:null,asset:"",
-      impact:"Medium",urgency:"Low",priority:"P3",status:"Assigned",assignee_id:12,assignee:"Rhea Mendoza",escalation:0,
+      requester_id:1,requester:"Adrian Reyes",category:"Account Access",asset_id:null,asset:"",
+      impact:"Medium",urgency:"Low",priority:"P3",status:"Assigned",assignee_id:12,assignee:"Ryan Mendoza",escalation:0,
       created_at:isoAgo(9),updated_at:isoAgo(4),response_due:isoAgo(5),resolution_due:isoFromNow(15),first_response_at:isoAgo(7),resolved_at:null,csat:null,
       activities:[
-        {at:isoAgo(9),actor:"Alyssa Reyes",action:"Created request",note:"New starter begins tomorrow."},
-        {at:isoAgo(7),actor:"Rhea Mendoza",action:"First response",note:"Onboarding details validated."}
+        {at:isoAgo(9),actor:"Adrian Reyes",action:"Created request",note:"New starter begins tomorrow."},
+        {at:isoAgo(7),actor:"Ryan Mendoza",action:"First response",note:"Onboarding details validated."}
       ]
     },
     {

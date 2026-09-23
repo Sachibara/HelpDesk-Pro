@@ -3,240 +3,683 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#07131f">
-  <meta name="description" content="HelpDesk Pro - IT Service Desk and Help Desk management platform.">
-  <title>HelpDesk Pro | IT Service Desk</title>
-  <link rel="stylesheet" href="./styles.css">
-  <script src="./demo-data.js" defer></script>
-  <script src="./app.js" defer></script>
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="OpsFusion unified IT operations workspace integrating troubleshooting, remote support, documentation, endpoint compliance, incidents, and audit history.">
+  <title>OpsFusion Unified IT Operations Platform</title>
+  <link rel="stylesheet" href="/projects/unified-it-operations-platform/styles.css?v=20260923-ui2">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
+  <script src="/projects/unified-it-operations-platform/cloud.js?v=20260923-ui2" defer></script>
+  <script src="/projects/unified-it-operations-platform/app.js?v=20260923-ui2" defer></script>
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar" id="sidebar">
-    <a class="brand" href="#dashboard">
-      <span class="brand-mark">HD</span>
-      <span><strong>HelpDesk Pro</strong><small>IT Service Management</small></span>
-    </a>
-
-    <div class="mode-card">
-      <span class="mode-dot" id="modeDot"></span>
-      <div><strong id="modeTitle">Browser workspace</strong><small id="modeDetail">Saved locally in this browser</small></div>
-      <button id="connectionButton" class="text-btn">Configure</button>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">OF</div>
+      <div>
+        <strong>OpsFusion</strong>
+        <span>Unified IT Operations</span>
+      </div>
     </div>
 
-    <nav>
-      <button class="nav-item active" data-page="dashboard"><span>▦</span>Dashboard</button>
-      <button class="nav-item" data-page="tickets"><span>◫</span>Tickets <b id="openTicketBadge">0</b></button>
-      <button class="nav-item" data-page="new-ticket"><span>＋</span>New Ticket</button>
-      <button class="nav-item" data-page="assets"><span>▣</span>Assets</button>
-      <button class="nav-item" data-page="knowledge"><span>◇</span>Knowledge Base</button>
-      <button class="nav-item" data-page="team"><span>◎</span>Service Desk Team</button>
-      <button class="nav-item" data-page="analytics"><span>⌁</span>Analytics</button>
-      <button class="nav-item" data-page="about"><span>ⓘ</span>About</button>
+    <div class="workspace-state">
+      <span class="status-dot"></span>
+      <div>
+        <strong>Unified browser workspace</strong>
+        <small>Shared state across all modules</small>
+      </div>
+    </div>
+
+    <div class="rail-label">CONTROL MODULES</div>
+    <nav class="side-nav" aria-label="Primary navigation">
+      <button class="nav-link active" data-page="overview"><span class="nav-code">OV</span><span>Overview</span></button>
+      <button class="nav-link" data-page="incidents"><span class="nav-code">SD</span><span>Service Desk</span></button>
+      <button class="nav-link" data-page="endpoints"><span class="nav-code">EP</span><span>Endpoints</span></button>
+      <button class="nav-link" data-page="assets"><span class="nav-code">AM</span><span>Assets</span></button>
+      <button class="nav-link" data-page="identity"><span class="nav-code">ID</span><span>Identity & Access</span></button>
+      <button class="nav-link" data-page="troubleshooting"><span class="nav-code">NT</span><span>Troubleshooting</span></button>
+      <button class="nav-link" data-page="remote"><span class="nav-code">RS</span><span>Remote Support</span></button>
+      <button class="nav-link" data-page="documentation"><span class="nav-code">ND</span><span>Documentation</span></button>
+      <button class="nav-link" data-page="compliance"><span class="nav-code">PC</span><span>Compliance</span></button>
+      <button class="nav-link" data-page="audit"><span class="nav-code">AU</span><span>Audit Log</span></button>
+      <button class="nav-link" data-page="settings"><span class="nav-code">ST</span><span>Settings</span></button>
     </nav>
 
-    <div class="sidebar-footer">
-      <span>Current role</span>
-      <strong id="currentRole">Administrator</strong>
-      <small>ITSM portfolio environment</small>
+    <div class="sidebar-note">
+      <strong>Portfolio mode</strong>
+      <p>Operational actions are safely simulated in-browser. Real probes and endpoint control require an authorized local agent/backend.</p>
     </div>
   </aside>
 
-  <section class="workspace">
+  <main class="main">
     <header class="topbar">
-      <div class="top-left">
-        <button class="menu-btn" id="menuButton">☰</button>
-        <div><p id="pageEyebrow">IT operations</p><h1 id="pageTitle">Dashboard</h1></div>
+      <div class="topbar-heading">
+        <span class="topbar-index">OPS / 15</span>
+        <div>
+          <p class="eyebrow" id="pageEyebrow">Unified operations</p>
+          <h1 id="pageTitle">Overview</h1>
+        </div>
       </div>
       <div class="top-actions">
-        <div class="refresh-label"><span>Last refresh</span><strong id="lastRefresh">—</strong></div>
-        <button class="btn secondary" id="refreshButton">Refresh</button>
-        <button class="btn primary" data-go="new-ticket">Create ticket</button>
+        <div class="global-search-wrap">
+          <input id="globalSearch" type="search" placeholder="Search endpoint, IP, ticket, site...">
+          <div id="searchResults" class="search-results" hidden></div>
+        </div>
+        <button class="btn secondary" id="exportBtn">Export Workspace</button>
+        <label class="btn secondary file-label">Import<input id="importInput" type="file" accept="application/json"></label>
+        <div class="cloud-user" id="cloudUser" hidden>
+          <span id="cloudUserLabel">Cloud user</span>
+          <b id="cloudRoleLabel">admin</b>
+          <button class="mini-btn" id="cloudSignOutBtn">Sign Out</button>
+        </div>
       </div>
     </header>
 
-    <main>
-      <section class="page active" data-page-panel="dashboard">
-        <div class="hero-grid">
-          <article class="panel service-health">
-            <div>
-              <p class="eyebrow">Service desk posture</p>
-              <div class="health-row"><h2 id="serviceHealthTitle">Operational</h2><span class="pill good" id="serviceHealthBadge">Within SLA</span></div>
-              <p id="serviceHealthCopy">Tracking incidents, service requests, SLA risk, technician workload, and user support outcomes.</p>
-              <div class="health-facts">
-                <span><i class="green"></i><b id="dashboardOpen">0</b> open</span>
-                <span><i class="amber"></i><b id="dashboardRisk">0</b> SLA at risk</span>
-                <span><i class="red"></i><b id="dashboardBreached">0</b> breached</span>
-              </div>
+    <div class="system-strip">
+      <div><span class="signal-dot live"></span><b>CONTROL FABRIC</b><small id="workspaceModeLabel">PORTFOLIO DEMO</small></div>
+      <div><span class="strip-key">SYNC</span><b id="persistenceModeLabel">LOCAL</b><small>workspace state</small></div>
+      <div><span class="strip-key">ACCESS</span><b id="accessModeLabel">DEMO</b><small>role boundary</small></div>
+      <div><span class="strip-key">AGENT</span><b>SAFE MODE</b><small>simulated actions</small></div>
+    </div>
+
+    <section class="page active" data-panel="overview">
+      <div class="hero">
+        <div class="hero-copy">
+          <div class="hero-sequence"><span>01</span><i></i><span>UNIFIED CONTROL PLANE</span></div>
+          <p class="eyebrow">Operations control fabric</p>
+          <h2>One command surface for the full IT lifecycle.</h2>
+          <p>
+            OpsFusion binds service desk, assets, identity, endpoints, diagnostics, remote support,
+            documentation, compliance, and audit into one operational model. Every action carries context
+            across the platform instead of ending inside a silo.
+          </p>
+          <div class="hero-actions">
+            <button class="btn primary" data-go="incidents">Enter Service Desk</button>
+            <button class="btn secondary" data-go="troubleshooting">Run Diagnostics</button>
+          </div>
+          <div class="hero-capabilities">
+            <span>ITSM</span><span>ITAM</span><span>IAM</span><span>NETOPS</span><span>ENDPOINT</span><span>GRC</span>
+          </div>
+        </div>
+        <div class="hero-status signal-board">
+          <div class="signal-board-head"><span>LIVE OPERATIONS SIGNAL</span><b>OPS-FABRIC</b></div>
+          <div class="signal-core">
+            <div class="signal-ring ring-a"></div>
+            <div class="signal-ring ring-b"></div>
+            <div class="signal-score">
+              <strong id="healthScoreHero">—</strong>
+              <small id="healthLabelHero">Calculating...</small>
             </div>
-            <div class="sla-ring" id="slaRing"><span><b id="slaCompliance">0%</b><small>SLA compliance</small></span></div>
-          </article>
-
-          <article class="panel quick-panel">
-            <div class="panel-head"><div><p class="eyebrow">Quick actions</p><h3>Service desk</h3></div></div>
-            <button class="action-row" data-go="new-ticket"><span>＋</span><div><strong>Log a ticket</strong><small>Incident or service request</small></div><b>→</b></button>
-            <button class="action-row" data-go="tickets"><span>◫</span><div><strong>Open queue</strong><small>Assign, update, resolve</small></div><b>→</b></button>
-            <button class="action-row" data-go="knowledge"><span>◇</span><div><strong>Search knowledge</strong><small>Known fixes and runbooks</small></div><b>→</b></button>
-          </article>
-        </div>
-
-        <div class="stats-grid">
-          <article class="stat"><span>Open tickets</span><strong id="statOpen">0</strong><small id="statOpenNote">Current queue</small></article>
-          <article class="stat"><span>Unassigned</span><strong id="statUnassigned">0</strong><small>Needs triage</small></article>
-          <article class="stat"><span>Avg. first response</span><strong id="statResponse">—</strong><small>Resolved ticket sample</small></article>
-          <article class="stat"><span>Resolved today</span><strong id="statResolved">0</strong><small>Service desk throughput</small></article>
-          <article class="stat"><span>CSAT</span><strong id="statCsat">—</strong><small>User satisfaction</small></article>
-        </div>
-
-        <div class="dashboard-grid">
-          <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">Queue</p><h3>Priority workload</h3></div><button class="text-btn" data-go="tickets">View queue</button></div>
-            <div class="priority-bars" id="priorityBars"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">SLA</p><h3>Attention required</h3></div></div>
-            <div class="mini-list" id="slaAttentionList"></div>
-          </article>
-        </div>
-
-        <div class="dashboard-grid">
-          <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">Recent activity</p><h3>Latest tickets</h3></div></div>
-            <div class="mini-list" id="recentTicketList"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">Technicians</p><h3>Workload</h3></div></div>
-            <div class="mini-list" id="workloadList"></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="page" data-page-panel="tickets">
-        <div class="section-head">
-          <div><p class="eyebrow">Ticket operations</p><h2>Service Desk Queue</h2><p>Review, assign, prioritize, escalate, and resolve incidents and service requests.</p></div>
-          <button class="btn primary" data-go="new-ticket">Create ticket</button>
-        </div>
-        <article class="panel">
-          <div class="toolbar">
-            <div class="search"><span>⌕</span><input id="ticketSearch" placeholder="Search ticket, requester, device, or category"></div>
-            <select id="ticketStatusFilter"><option value="all">All statuses</option><option>New</option><option>Assigned</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option></select>
-            <select id="ticketPriorityFilter"><option value="all">All priorities</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
-            <select id="ticketTypeFilter"><option value="all">All types</option><option>Incident</option><option>Service Request</option></select>
+            <span class="orbit-node n1">SD</span><span class="orbit-node n2">EP</span><span class="orbit-node n3">AM</span>
+            <span class="orbit-node n4">ID</span><span class="orbit-node n5">NT</span><span class="orbit-node n6">PC</span>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Ticket</th><th>Type</th><th>Priority</th><th>Status</th><th>Requester</th><th>Category</th><th>Assignee</th><th>SLA</th><th>Updated</th></tr></thead>
-              <tbody id="ticketTableBody"></tbody>
-            </table>
-          </div>
-        </article>
-      </section>
-
-      <section class="page" data-page-panel="new-ticket">
-        <div class="section-head"><div><p class="eyebrow">Intake</p><h2>Create a Ticket</h2><p>Capture enough technical context for efficient triage, ownership, and SLA management.</p></div></div>
-        <form class="panel ticket-form" id="newTicketForm">
-          <div class="form-grid">
-            <label><span>Ticket type</span><select id="newType" required><option>Incident</option><option>Service Request</option></select></label>
-            <label><span>Requester</span><select id="newRequester" required></select></label>
-            <label class="wide"><span>Subject</span><input id="newSubject" maxlength="160" required placeholder="Example: Unable to connect to corporate VPN"></label>
-            <label class="wide"><span>Description</span><textarea id="newDescription" required placeholder="Describe symptoms, impact, troubleshooting already attempted, and when the issue started."></textarea></label>
-            <label><span>Category</span><select id="newCategory" required><option>Network</option><option>Hardware</option><option>Software</option><option>Account Access</option><option>Microsoft 365</option><option>VPN</option><option>Printer</option><option>Endpoint</option><option>Security</option><option>Other</option></select></label>
-            <label><span>Asset / CI</span><select id="newAsset"><option value="">No linked asset</option></select></label>
-            <label><span>Impact</span><select id="newImpact"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></label>
-            <label><span>Urgency</span><select id="newUrgency"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></label>
-          </div>
-          <div class="priority-preview"><span>Calculated priority</span><strong id="priorityPreview">P3</strong><small id="slaPreview">Response 4h · Resolution 24h</small></div>
-          <div class="form-actions"><button type="reset" class="btn secondary" id="resetTicketButton">Reset</button><button type="submit" class="btn primary">Submit ticket</button></div>
-        </form>
-      </section>
-
-      <section class="page" data-page-panel="assets">
-        <div class="section-head"><div><p class="eyebrow">Configuration items</p><h2>IT Assets</h2><p>Associate service desk work with the endpoints and infrastructure affected by each issue.</p></div></div>
-        <div class="stats-grid compact" id="assetSummary"></div>
-        <article class="panel">
-          <div class="toolbar"><div class="search"><span>⌕</span><input id="assetSearch" placeholder="Search hostname, user, serial, type, or status"></div></div>
-          <div class="table-wrap"><table><thead><tr><th>Asset</th><th>Type</th><th>User / Owner</th><th>Serial</th><th>OS / Platform</th><th>Status</th><th>Location</th></tr></thead><tbody id="assetTableBody"></tbody></table></div>
-        </article>
-      </section>
-
-      <section class="page" data-page-panel="knowledge">
-        <div class="section-head"><div><p class="eyebrow">Knowledge management</p><h2>Knowledge Base</h2><p>Document repeatable fixes, troubleshooting procedures, and support runbooks.</p></div></div>
-        <article class="panel">
-          <div class="toolbar"><div class="search"><span>⌕</span><input id="kbSearch" placeholder="Search article, category, symptom, or keyword"></div></div>
-          <div class="kb-grid" id="kbGrid"></div>
-        </article>
-      </section>
-
-      <section class="page" data-page-panel="team">
-        <div class="section-head"><div><p class="eyebrow">People & workload</p><h2>Service Desk Team</h2><p>Role-based service desk staffing, queue ownership, workload, and SLA performance.</p></div></div>
-        <div class="team-grid" id="teamGrid"></div>
-      </section>
-
-      <section class="page" data-page-panel="analytics">
-        <div class="section-head"><div><p class="eyebrow">Operational reporting</p><h2>Analytics</h2><p>Ticket volume, resolution performance, SLA compliance, categories, and support outcomes.</p></div></div>
-        <div class="analytics-grid">
-          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Ticket mix</p><h3>By category</h3></div></div><div class="chart-bars" id="categoryChart"></div></article>
-          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Status</p><h3>Lifecycle distribution</h3></div></div><div class="chart-bars" id="statusChart"></div></article>
-          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Performance</p><h3>Service metrics</h3></div></div><div class="metric-stack" id="performanceMetrics"></div></article>
-          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Experience</p><h3>Resolution outcomes</h3></div></div><div class="metric-stack" id="outcomeMetrics"></div></article>
-        </div>
-      </section>
-
-      <section class="page" data-page-panel="about">
-        <div class="section-head"><div><p class="eyebrow">Project architecture</p><h2>About HelpDesk Pro</h2><p>A practical ITSM portfolio system demonstrating service desk operations and full-stack development.</p></div></div>
-        <div class="about-grid">
-          <article class="panel wide-card"><p class="eyebrow">Deployment model</p><h3>Persistent browser app + optional local backend</h3><div class="architecture"><div><strong>Browser workspace</strong><small>Persistent local-first ITSM app</small></div><b>↔</b><div><strong>FastAPI</strong><small>REST service desk backend</small></div><b>↔</b><div><strong>SQLite</strong><small>Tickets, assets, KB & audit</small></div></div></article>
-          <article class="panel"><p class="eyebrow">ITSM skills</p><div class="tag-cloud"><span>Incident Management</span><span>Service Requests</span><span>SLA</span><span>Triage</span><span>Escalation</span><span>Asset Linking</span><span>Knowledge Base</span><span>Audit Trail</span></div></article>
-          <article class="panel"><p class="eyebrow">Development skills</p><div class="tag-cloud"><span>Python</span><span>FastAPI</span><span>SQLite</span><span>REST APIs</span><span>JavaScript</span><span>HTML/CSS</span><span>Role-Based Workflows</span></div></article>
-        </div>
-      </section>
-    </main>
-  </section>
-</div>
-
-<dialog id="ticketDialog">
-  <form method="dialog" class="dialog-card" id="ticketDetailForm">
-    <div class="dialog-head"><div><p class="eyebrow">Ticket details</p><h2 id="detailTicketId">HD-0000</h2></div><button class="icon-btn" value="cancel">×</button></div>
-    <div class="ticket-detail-grid">
-      <div class="ticket-main">
-        <h3 id="detailSubject">—</h3>
-        <p id="detailDescription">—</p>
-        <div class="detail-meta" id="detailMeta"></div>
-        <h4>Activity & work notes</h4>
-        <div class="timeline" id="ticketTimeline"></div>
-        <div class="comment-box">
-          <textarea id="newComment" placeholder="Add technician work note or update..."></textarea>
-          <button type="button" class="btn secondary" id="addCommentButton">Add work note</button>
-        </div>
-        <h4 class="attachment-heading">Attachments</h4>
-        <div class="attachment-list" id="ticketAttachments"></div>
-        <div class="attachment-upload">
-          <input type="file" id="ticketAttachment" aria-label="Choose ticket attachment">
-          <button type="button" class="btn secondary" id="uploadAttachmentButton">Upload attachment</button>
+          <div class="health-bar"><i id="healthBar"></i></div>
+          <div class="hero-status-row"><span>Data plane</span><b id="heroPersistenceLabel">Local demo</b></div>
+          <div class="hero-status-row"><span>Control boundary</span><b>RLS / RBAC</b></div>
+          <div class="hero-status-row"><span>Action model</span><b>Safe simulation</b></div>
         </div>
       </div>
-      <aside class="ticket-side">
-        <label><span>Status</span><select id="detailStatus"><option>New</option><option>Assigned</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option></select></label>
-        <label><span>Priority</span><select id="detailPriority"><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></label>
-        <label><span>Assignee</span><select id="detailAssignee"></select></label>
-        <label><span>Escalation</span><select id="detailEscalation"><option value="0">Level 0</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select></label>
-        <div class="sla-box" id="detailSlaBox"></div>
-        <button type="button" class="btn primary" id="saveTicketButton">Save changes</button>
-      </aside>
-    </div>
-  </form>
-</dialog>
 
-<dialog id="connectionDialog">
-  <form method="dialog" class="dialog-card small-dialog">
-    <div class="dialog-head"><div><p class="eyebrow">Data source</p><h2>Connection Settings</h2></div><button class="icon-btn" value="cancel">×</button></div>
-    <label class="radio-card"><input type="radio" name="mode" value="demo" checked><span><strong>Browser workspace</strong><small>Use the service desk directly; changes persist in this browser.</small></span></label>
-    <label class="radio-card"><input type="radio" name="mode" value="live"><span><strong>Live backend</strong><small>Connect to the local HelpDesk Pro API.</small></span></label>
-    <label><span>Backend URL</span><input id="backendUrlInput" value="http://127.0.0.1:8790"></label>
-    <div class="dialog-actions"><button class="btn secondary" value="cancel">Cancel</button><button type="button" class="btn primary" id="saveConnectionButton">Save</button></div>
-  </form>
-</dialog>
+      <div class="kpi-grid">
+        <article><span>Endpoints</span><strong id="kpiEndpoints">0</strong><small>Shared managed inventory</small></article>
+        <article><span>Online agents</span><strong id="kpiOnline">0</strong><small>Remote-capable devices</small></article>
+        <article><span>Compliance</span><strong id="kpiCompliance">0%</strong><small>Passing current rules</small></article>
+        <article><span>Open incidents</span><strong id="kpiIncidents">0</strong><small>New / active / pending</small></article>
+        <article><span>Diagnostics</span><strong id="kpiDiagnostics">0</strong><small>Recorded test runs</small></article>
+      </div>
 
-<div class="toast-region" id="toastRegion"></div>
+      <div class="ops-visual-grid">
+        <article class="visual-card visual-card-wide">
+          <div class="visual-head">
+            <div><span class="visual-kicker">OPERATIONS TREND</span><h3>Fleet health telemetry</h3></div>
+            <div class="visual-legend"><span><i class="lg-cyan"></i>health</span><span><i class="lg-coral"></i>risk</span></div>
+          </div>
+          <svg id="healthTrendChart" class="trend-chart" viewBox="0 0 760 220" role="img" aria-label="Fleet health trend chart">
+            <defs>
+              <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#12b8b2" stop-opacity=".30"/>
+                <stop offset="100%" stop-color="#12b8b2" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <g class="chart-grid">
+              <line x1="42" y1="24" x2="742" y2="24"/><line x1="42" y1="70" x2="742" y2="70"/>
+              <line x1="42" y1="116" x2="742" y2="116"/><line x1="42" y1="162" x2="742" y2="162"/>
+              <line x1="42" y1="208" x2="742" y2="208"/>
+            </g>
+            <path id="healthTrendArea" class="trend-area" d=""></path>
+            <polyline id="healthTrendLine" class="trend-line" points=""></polyline>
+            <g id="healthTrendPoints"></g>
+            <g class="chart-labels">
+              <text x="8" y="29">100</text><text x="14" y="75">75</text><text x="14" y="121">50</text><text x="14" y="167">25</text><text x="20" y="213">0</text>
+            </g>
+            <g id="healthTrendDates" class="chart-dates"></g>
+          </svg>
+        </article>
+
+        <article class="visual-card">
+          <div class="visual-head">
+            <div><span class="visual-kicker">RISK COMPOSITION</span><h3>Operational exposure</h3></div>
+          </div>
+          <div class="risk-visual">
+            <div class="risk-donut" id="riskDonut"><div><strong id="riskScoreValue">0</strong><span>risk index</span></div></div>
+            <div class="risk-key" id="riskKey"></div>
+          </div>
+        </article>
+
+        <article class="visual-card visual-card-fabric">
+          <div class="visual-head">
+            <div><span class="visual-kicker">MODULE FABRIC</span><h3>Cross-system control map</h3></div>
+            <span class="fabric-status">LIVE</span>
+          </div>
+          <div class="module-fabric">
+            <div class="fabric-lines" aria-hidden="true">
+              <i class="fl f1"></i><i class="fl f2"></i><i class="fl f3"></i><i class="fl f4"></i>
+              <i class="fl f5"></i><i class="fl f6"></i><i class="fl f7"></i><i class="fl f8"></i>
+            </div>
+            <button class="fabric-node core" data-go="overview"><b>OF</b><span>OpsFusion</span><small>control fabric</small></button>
+            <button class="fabric-node fn1" data-go="incidents"><b>SD</b><span>Service</span><small id="fabricTickets">0 open</small></button>
+            <button class="fabric-node fn2" data-go="assets"><b>AM</b><span>Assets</span><small id="fabricAssets">0 managed</small></button>
+            <button class="fabric-node fn3" data-go="identity"><b>ID</b><span>Identity</span><small id="fabricUsers">0 users</small></button>
+            <button class="fabric-node fn4" data-go="endpoints"><b>EP</b><span>Endpoints</span><small id="fabricEndpoints">0 devices</small></button>
+            <button class="fabric-node fn5" data-go="troubleshooting"><b>NT</b><span>Network</span><small id="fabricDiagnostics">0 runs</small></button>
+            <button class="fabric-node fn6" data-go="compliance"><b>PC</b><span>Compliance</span><small id="fabricCompliance">0%</small></button>
+          </div>
+        </article>
+
+        <article class="visual-card">
+          <div class="visual-head">
+            <div><span class="visual-kicker">SITE DISTRIBUTION</span><h3>Managed estate</h3></div>
+          </div>
+          <div id="siteVisual" class="site-visual"></div>
+        </article>
+      </div>
+
+      <div class="module-launch-grid">
+        <button class="module-launch coral" data-go="incidents"><span class="module-glyph">01</span><div><b>Service Desk</b><small>SLA, requests, knowledge & technicians</small></div><i>↗</i></button>
+        <button class="module-launch cyan" data-go="assets"><span class="module-glyph">02</span><div><b>Asset Lifecycle</b><small>Ownership, warranty & maintenance</small></div><i>↗</i></button>
+        <button class="module-launch acid" data-go="identity"><span class="module-glyph">03</span><div><b>Identity & Access</b><small>Provisioning, groups & offboarding</small></div><i>↗</i></button>
+        <button class="module-launch blue" data-go="troubleshooting"><span class="module-glyph">04</span><div><b>Network Diagnostics</b><small>Guided tests & interpreted findings</small></div><i>↗</i></button>
+      </div>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Fleet posture</p><h3>Endpoint attention queue</h3></div>
+            <button class="link-btn" data-go="compliance">View compliance</button>
+          </div>
+          <div id="attentionQueue" class="stack"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Service desk</p><h3>Recent incidents</h3></div>
+            <button class="link-btn" data-go="incidents">Open queue</button>
+          </div>
+          <div id="recentIncidents" class="stack"></div>
+        </article>
+      </div>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">Unified timeline</p><h3>Latest operational activity</h3></div>
+          <button class="link-btn" data-go="audit">Full audit log</button>
+        </div>
+        <div id="overviewAudit" class="audit-list"></div>
+      </article>
+    </section>
+
+    <section class="page" data-panel="endpoints">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Shared source of truth</p>
+          <h2>Endpoint Inventory</h2>
+          <p>Every module references the same device records, site metadata, ownership, agent state, and compliance posture.</p>
+        </div>
+        <button class="btn primary" id="addEndpointBtn">Add Endpoint</button>
+      </div>
+
+      <div class="toolbar">
+        <input id="endpointSearch" type="search" placeholder="Search hostname, IP, owner, site...">
+        <select id="endpointSiteFilter"><option value="">All sites</option></select>
+        <select id="endpointStateFilter">
+          <option value="">All agent states</option>
+          <option value="online">Online</option>
+          <option value="offline">Offline</option>
+        </select>
+      </div>
+
+      <article class="panel table-panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Hostname</th><th>IP</th><th>Site</th><th>Owner</th><th>OS</th><th>Agent</th><th>Compliance</th><th></th></tr>
+            </thead>
+            <tbody id="endpointRows"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+
+    <section class="page" data-panel="assets">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">IT Asset Manager integration</p>
+          <h2>Asset Lifecycle Management</h2>
+          <p>Track ownership, lifecycle state, warranty exposure, endpoint relationships, maintenance, and assignment history from one asset register.</p>
+        </div>
+        <button class="btn primary" id="addAssetBtn">Add Asset</button>
+      </div>
+
+      <div class="asset-kpis">
+        <article><span>Total assets</span><strong id="assetTotal">0</strong></article>
+        <article><span>Assigned</span><strong id="assetAssigned">0</strong></article>
+        <article><span>Available</span><strong id="assetAvailable">0</strong></article>
+        <article><span>In repair</span><strong id="assetRepair">0</strong></article>
+        <article><span>Warranty risk</span><strong id="assetWarrantyRisk">0</strong></article>
+      </div>
+
+      <div class="toolbar">
+        <input id="assetSearch" type="search" placeholder="Search tag, hostname, serial, user, department...">
+        <select id="assetStatusFilter"><option value="">All lifecycle states</option></select>
+        <select id="assetTypeFilter"><option value="">All asset types</option></select>
+      </div>
+
+      <article class="panel table-panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Asset</th><th>Type</th><th>Status</th><th>Assigned To</th><th>Endpoint</th><th>Location</th><th>Warranty</th><th></th></tr></thead>
+            <tbody id="assetRows"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Maintenance Queue</h3><p>Open maintenance work tied to managed assets.</p></div></div>
+          <div id="maintenanceRows" class="stack"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h3>Software Exposure</h3><p>Installed-software inventory summarized by asset.</p></div></div>
+          <div id="softwareRows" class="stack"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="page" data-panel="identity">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">AD provisioning integration</p>
+          <h2>Identity & Access</h2>
+          <p>Manage joiner/mover/leaver workflows, role templates, groups, account state, password-reset flags, and asset relationships.</p>
+        </div>
+        <button class="btn primary" id="provisionUserBtn">Provision User</button>
+      </div>
+
+      <div class="identity-kpis">
+        <article><span>Directory users</span><strong id="idUsers">0</strong></article>
+        <article><span>Active</span><strong id="idActive">0</strong></article>
+        <article><span>Disabled</span><strong id="idDisabled">0</strong></article>
+        <article><span>Expiring soon</span><strong id="idExpiring">0</strong></article>
+        <article><span>Privileged users</span><strong id="idPrivileged">0</strong></article>
+      </div>
+
+      <div class="toolbar">
+        <input id="identitySearch" type="search" placeholder="Search name, username, department, title...">
+        <select id="identityStatusFilter"><option value="">All identity states</option></select>
+        <select id="identityDepartmentFilter"><option value="">All departments</option></select>
+      </div>
+
+      <article class="panel table-panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Department</th><th>Title</th><th>Status</th><th>Template</th><th>Groups</th><th>Assets</th><th></th></tr></thead>
+            <tbody id="identityRows"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Role Templates</h3><p>Reusable provisioning baselines and access bundles.</p></div></div>
+          <div id="templateRows" class="stack"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h3>Access Groups</h3><p>Security/distribution groups with ownership and risk context.</p></div></div>
+          <div id="groupRows" class="stack"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="page" data-panel="troubleshooting">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Network Troubleshooting Toolkit</p>
+          <h2>Guided Diagnostics</h2>
+          <p>Run portfolio-safe diagnostic simulations against shared endpoint records and convert failures directly into incidents.</p>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Diagnostic runner</h3><p>Select an endpoint and a test.</p></div></div>
+          <label class="field"><span>Endpoint</span><select id="diagEndpoint"></select></label>
+          <label class="field"><span>Diagnostic</span>
+            <select id="diagType">
+              <option value="ping">Reachability / Ping</option>
+              <option value="gateway">Gateway</option>
+              <option value="dns">DNS Resolution</option>
+              <option value="internet">Internet Reachability</option>
+              <option value="port">TCP Port Check</option>
+              <option value="trace">Route / Trace</option>
+              <option value="full">Full Guided Diagnostic</option>
+            </select>
+          </label>
+          <label class="field"><span>Port (for TCP check)</span><input id="diagPort" type="number" min="1" max="65535" value="443"></label>
+          <button class="btn primary wide" id="runDiagBtn">Run Diagnostic</button>
+          <div class="terminal" id="diagTerminal" aria-live="polite">Select an endpoint and run a diagnostic.</div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><h3>Latest diagnostic</h3><p>Interpretation and next action.</p></div></div>
+          <div id="diagSummary" class="detail-empty">No diagnostic selected yet.</div>
+          <div class="inline-actions">
+            <button class="btn secondary" id="diagCreateIncidentBtn" disabled>Create Incident</button>
+            <button class="btn secondary" id="diagOpenEndpointBtn" disabled>Open Endpoint</button>
+          </div>
+        </article>
+      </div>
+
+      <article class="panel">
+        <div class="panel-head"><div><h3>IPv4 / CIDR Calculator</h3><p>Reusable planning tool from the original troubleshooting toolkit.</p></div></div>
+        <div class="cidr-grid">
+          <input id="cidrInput" value="192.168.10.25/24" placeholder="192.168.10.25/24">
+          <button class="btn secondary" id="cidrCalcBtn">Calculate</button>
+          <div id="cidrOutput" class="cidr-output"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="page" data-panel="remote">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">LAN Deployment & Remote Support Console</p>
+          <h2>Remote Support</h2>
+          <p>Run approved support workflows against agent-enabled endpoints. State-changing actions require a ticket or change reference.</p>
+        </div>
+      </div>
+
+      <div class="grid remote-layout">
+        <article class="panel">
+          <label class="field"><span>Managed endpoint</span><select id="remoteEndpoint"></select></label>
+          <div id="remoteEndpointCard" class="endpoint-card"></div>
+          <div class="action-grid">
+            <button class="support-action" data-remote-action="system">System Info</button>
+            <button class="support-action" data-remote-action="software">Software Inventory</button>
+            <button class="support-action" data-remote-action="disk">Disk Health</button>
+            <button class="support-action" data-remote-action="network">Network Diagnostics</button>
+            <button class="support-action" data-remote-action="logs">Collect Logs</button>
+            <button class="support-action critical" data-remote-action="service">Restart Approved Service</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><h3>Support console</h3><p>Approved action output.</p></div></div>
+          <div class="terminal tall" id="remoteConsole">Choose an endpoint and an action.</div>
+        </article>
+      </div>
+
+      <article class="panel">
+        <div class="panel-head"><div><h3>Recent remote actions</h3><p>All actions are copied into the unified audit trail.</p></div></div>
+        <div id="remoteActionRows" class="stack"></div>
+      </article>
+    </section>
+
+    <section class="page" data-panel="documentation">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Network Documentation Generator</p>
+          <h2>Network Documentation</h2>
+          <p>Generate inventory, topology, VLAN/IP plans, switch-port mappings, and change notes directly from the shared operations data.</p>
+        </div>
+        <button class="btn secondary" id="printDocsBtn">Print Documentation</button>
+      </div>
+
+      <div class="doc-stats">
+        <article><span>Documented devices</span><strong id="docDevices">0</strong></article>
+        <article><span>Sites</span><strong id="docSites">0</strong></article>
+        <article><span>VLANs</span><strong id="docVlans">0</strong></article>
+        <article><span>Port mappings</span><strong id="docPorts">0</strong></article>
+      </div>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Topology</h3><p>Logical view generated from shared site/device data.</p></div></div>
+          <div id="topology" class="topology"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h3>VLAN / IP Plan</h3><p>Editable network documentation records.</p></div></div>
+          <div id="vlanRows" class="stack"></div>
+          <button class="btn secondary" id="addVlanBtn">Add VLAN</button>
+        </article>
+      </div>
+
+      <article class="panel table-panel">
+        <div class="panel-head"><div><h3>Device documentation</h3><p>Inventory derived from the unified endpoint source of truth.</p></div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Hostname</th><th>Type</th><th>IP</th><th>Site</th><th>Model / OS</th><th>Owner</th></tr></thead>
+            <tbody id="docDeviceRows"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Switch Port Mappings</h3><p>Document physical/logical attachment points.</p></div></div>
+          <div id="portRows" class="stack"></div>
+          <button class="btn secondary" id="addPortBtn">Add Port Mapping</button>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h3>Change Notes</h3><p>Documentation changes are also audited.</p></div></div>
+          <div class="inline-form">
+            <input id="changeNoteInput" placeholder="Describe a network/documentation change">
+            <button class="btn primary" id="addChangeNoteBtn">Add Note</button>
+          </div>
+          <div id="docChangeRows" class="stack"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="page" data-panel="compliance">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Patch & Endpoint Compliance Dashboard</p>
+          <h2>Endpoint Compliance</h2>
+          <p>Evaluate operating-system patch state, antivirus, firewall, BitLocker, reboot age, and agent freshness using configurable rules.</p>
+        </div>
+        <button class="btn primary" id="evaluateComplianceBtn">Evaluate Fleet</button>
+      </div>
+
+      <div class="compliance-summary">
+        <div class="score-ring"><strong id="complianceScore">0%</strong><span>Fleet score</span></div>
+        <div id="complianceBreakdown" class="compliance-breakdown"></div>
+      </div>
+
+      <article class="panel table-panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Endpoint</th><th>Updates</th><th>AV</th><th>Firewall</th><th>BitLocker</th><th>Reboot Age</th><th>Result</th><th></th></tr></thead>
+            <tbody id="complianceRows"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="page" data-panel="incidents">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">HelpDesk Pro integration</p>
+          <h2>Service Desk</h2>
+          <p>Unified incident and service-request operations with priority calculation, SLA tracking, requester/asset context, assignment, escalation, and knowledge support.</p>
+        </div>
+        <button class="btn primary" id="newIncidentBtn">New Ticket</button>
+      </div>
+
+      <div class="incident-kpis">
+        <article><span>Open tickets</span><strong id="incNew">0</strong></article>
+        <article><span>SLA at risk</span><strong id="incActive">0</strong></article>
+        <article><span>SLA breached</span><strong id="incPending">0</strong></article>
+        <article><span>Resolved / closed</span><strong id="incResolved">0</strong></article>
+      </div>
+
+      <div class="toolbar">
+        <input id="ticketSearch" type="search" placeholder="Search ticket, subject, requester, endpoint, asset...">
+        <select id="ticketStatusFilter"><option value="">All statuses</option></select>
+        <select id="ticketPriorityFilter"><option value="">All priorities</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
+      </div>
+
+      <article class="panel">
+        <div id="incidentRows" class="incident-list"></div>
+      </article>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Knowledge Base</h3><p>Suggested support articles from HelpDesk Pro.</p></div></div>
+          <div id="knowledgeRows" class="stack"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h3>Service Desk Team</h3><p>Assignment and workload context.</p></div></div>
+          <div id="technicianRows" class="stack"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="page" data-panel="audit">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Governance</p>
+          <h2>Unified Audit Log</h2>
+          <p>Cross-module actions are recorded in one immutable-style local activity history for demonstration and review.</p>
+        </div>
+        <button class="btn secondary" id="clearAuditBtn">Clear Demo Audit</button>
+      </div>
+
+      <div class="toolbar">
+        <input id="auditSearch" type="search" placeholder="Search action, target, detail...">
+        <select id="auditModuleFilter"><option value="">All modules</option></select>
+      </div>
+      <article class="panel">
+        <div id="auditRows" class="audit-list full"></div>
+      </article>
+    </section>
+
+    <section class="page" data-panel="settings">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Configuration</p>
+          <h2>Workspace Settings</h2>
+          <p>Adjust compliance policy and portfolio-safe automation behavior.</p>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Compliance rules</h3><p>Used by the shared compliance evaluator.</p></div></div>
+          <label class="field"><span>Maximum missing updates</span><input id="ruleMissingUpdates" type="number" min="0" max="50"></label>
+          <label class="field"><span>Maximum reboot age (days)</span><input id="ruleRebootAge" type="number" min="1" max="365"></label>
+          <label class="check-row"><input id="ruleFirewall" type="checkbox"><span>Require Windows Firewall / endpoint firewall</span></label>
+          <label class="check-row"><input id="ruleBitlocker" type="checkbox"><span>Require BitLocker / disk encryption</span></label>
+          <label class="check-row"><input id="ruleAv" type="checkbox"><span>Require healthy antivirus / EDR state</span></label>
+          <button class="btn primary" id="saveRulesBtn">Save Rules</button>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><h3>Workflow automation</h3><p>Portfolio-mode automation links modules without executing unsafe real-world actions.</p></div></div>
+          <label class="check-row"><input id="autoTicketCompliance" type="checkbox"><span>Automatically create an incident when an endpoint newly fails compliance</span></label>
+          <label class="check-row"><input id="autoTicketDiagnostic" type="checkbox"><span>Automatically create an incident for failed full diagnostics</span></label>
+          <label class="field"><span>Workspace name</span><input id="workspaceNameInput"></label>
+          <button class="btn primary" id="saveWorkflowSettingsBtn">Save Workflow Settings</button>
+        </article>
+      </div>
+
+      <article class="panel danger-panel">
+        <div><h3>Reset unified workspace</h3><p>Restore seeded portfolio data and erase local changes in this browser.</p></div>
+        <button class="btn danger" id="resetWorkspaceBtn">Reset Workspace</button>
+      </article>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head"><h2 id="modalTitle">Dialog</h2><button class="icon-btn" id="modalCloseBtn" aria-label="Close">×</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="auth-gate" id="authGate">
+  <div class="auth-shell">
+    <section class="auth-visual">
+      <div class="auth-visual-top">
+        <span class="auth-serial">OPS-FUSION / CONTROL FABRIC / 015</span>
+        <span class="auth-live"><i></i> SYSTEM READY</span>
+      </div>
+      <div class="auth-emblem">
+        <span class="auth-emblem-code">OF</span>
+        <div class="auth-emblem-ring r1"></div>
+        <div class="auth-emblem-ring r2"></div>
+        <div class="auth-emblem-ring r3"></div>
+        <span class="auth-node a1">ITSM</span><span class="auth-node a2">ITAM</span><span class="auth-node a3">IAM</span>
+        <span class="auth-node a4">NET</span><span class="auth-node a5">SEC</span><span class="auth-node a6">AUDIT</span>
+      </div>
+      <div class="auth-manifest">
+        <p>UNIFIED IT OPERATIONS PLATFORM</p>
+        <h2>Operate across systems, not inside silos.</h2>
+        <div class="manifest-grid">
+          <span><b>11</b> control modules</span>
+          <span><b>01</b> shared data fabric</span>
+          <span><b>03</b> access roles</span>
+          <span><b>24/7</b> portfolio demo</span>
+        </div>
+      </div>
+    </section>
+    <section class="auth-panel">
+      <div class="auth-card">
+        <div class="auth-panel-head">
+          <div class="brand auth-brand">
+            <div class="brand-mark">OF</div>
+            <div><strong>OpsFusion</strong><span>Unified IT Operations</span></div>
+          </div>
+          <span class="phase-chip">PHASE 3</span>
+        </div>
+        <p class="eyebrow">Supabase-backed cloud workspace</p>
+        <h2>Choose your operating mode.</h2>
+        <p class="auth-copy">Sign in for persistent cloud state and role-based access, or enter Demo Mode to inspect the complete product without an account.</p>
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-auth-tab="signin">Sign In</button>
+          <button class="auth-tab" data-auth-tab="signup">Create Account</button>
+        </div>
+        <form id="signInForm" class="auth-form">
+          <label class="field"><span>Email</span><input id="authEmail" type="email" autocomplete="email" required placeholder="operator@company.com"></label>
+          <label class="field"><span>Password</span><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="••••••••"></label>
+          <button class="btn primary wide" type="submit">Connect Cloud Workspace</button>
+        </form>
+        <form id="signUpForm" class="auth-form" hidden>
+          <label class="field"><span>Display name</span><input id="authDisplayName" autocomplete="name" required placeholder="IT Operator"></label>
+          <label class="field"><span>Email</span><input id="authSignupEmail" type="email" autocomplete="email" required placeholder="operator@company.com"></label>
+          <label class="field"><span>Password</span><input id="authSignupPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="8+ characters"></label>
+          <button class="btn primary wide" type="submit">Create Cloud Workspace</button>
+        </form>
+        <div id="authMessage" class="auth-message">Cloud data is protected with Supabase Auth, RLS, and role-based access control.</div>
+        <div class="auth-divider"><span>OR</span></div>
+        <button class="btn demo wide" id="continueDemoBtn">Launch Portfolio Demo</button>
+        <p class="auth-footnote">Demo Mode uses seeded, browser-local data. No infrastructure access is performed.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="toast-region" id="toastRegion" aria-live="polite"></div>
 </body>
 </html>

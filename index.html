@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#07111f">
+  <meta name="theme-color" content="#f4f7fb">
   <meta name="description" content="OpsFusion unified IT operations workspace integrating troubleshooting, remote support, documentation, endpoint compliance, incidents, and audit history.">
   <title>OpsFusion Unified IT Operations Platform</title>
-  <link rel="stylesheet" href="./styles.css?v=20260923-ui2">
+  <link rel="stylesheet" href="./styles.css?v=20260924-service-workspace">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
-  <script src="./cloud.js?v=20260923-ui2" defer></script>
-  <script src="./app.js?v=20260923-ui2" defer></script>
+  <script src="./cloud.js?v=20260924-service-workspace" defer></script>
+  <script src="./app.js?v=20260924-service-workspace" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -18,28 +18,28 @@
       <div class="brand-mark">OF</div>
       <div>
         <strong>OpsFusion</strong>
-        <span>Unified IT Operations</span>
+        <span>Enterprise Service Workspace</span>
       </div>
     </div>
 
     <div class="workspace-state">
       <span class="status-dot"></span>
       <div>
-        <strong>Unified browser workspace</strong>
+        <strong>Enterprise service workspace</strong>
         <small>Shared state across all modules</small>
       </div>
     </div>
 
-    <div class="rail-label">CONTROL MODULES</div>
+    <div class="rail-label">SERVICE WORKSPACE</div>
     <nav class="side-nav" aria-label="Primary navigation">
-      <button class="nav-link active" data-page="overview"><span class="nav-code">OV</span><span>Overview</span></button>
+      <button class="nav-link active" data-page="overview"><span class="nav-code">OV</span><span>Service Overview</span></button>
       <button class="nav-link" data-page="incidents"><span class="nav-code">SD</span><span>Service Desk</span></button>
       <button class="nav-link" data-page="endpoints"><span class="nav-code">EP</span><span>Endpoints</span></button>
       <button class="nav-link" data-page="assets"><span class="nav-code">AM</span><span>Assets</span></button>
       <button class="nav-link" data-page="identity"><span class="nav-code">ID</span><span>Identity & Access</span></button>
-      <button class="nav-link" data-page="troubleshooting"><span class="nav-code">NT</span><span>Troubleshooting</span></button>
+      <button class="nav-link" data-page="troubleshooting"><span class="nav-code">NT</span><span>Endpoint Diagnostics</span></button>
       <button class="nav-link" data-page="remote"><span class="nav-code">RS</span><span>Remote Support</span></button>
-      <button class="nav-link" data-page="documentation"><span class="nav-code">ND</span><span>Documentation</span></button>
+      <button class="nav-link" data-page="documentation"><span class="nav-code">ND</span><span>Knowledge Base</span></button>
       <button class="nav-link" data-page="compliance"><span class="nav-code">PC</span><span>Compliance</span></button>
       <button class="nav-link" data-page="audit"><span class="nav-code">AU</span><span>Audit Log</span></button>
       <button class="nav-link" data-page="settings"><span class="nav-code">ST</span><span>Settings</span></button>
@@ -54,9 +54,9 @@
   <main class="main">
     <header class="topbar">
       <div class="topbar-heading">
-        <span class="topbar-index">OPS / 15</span>
+        <span class="topbar-index">SERVICE OPS</span>
         <div>
-          <p class="eyebrow" id="pageEyebrow">Unified operations</p>
+          <p class="eyebrow" id="pageEyebrow">Enterprise IT service workspace</p>
           <h1 id="pageTitle">Overview</h1>
         </div>
       </div>
@@ -85,20 +85,18 @@
     <section class="page active" data-panel="overview">
       <div class="hero">
         <div class="hero-copy">
-          <div class="hero-sequence"><span>01</span><i></i><span>UNIFIED CONTROL PLANE</span></div>
-          <p class="eyebrow">Operations control fabric</p>
-          <h2>One command surface for the full IT lifecycle.</h2>
+          <div class="hero-sequence"><span>01</span><i></i><span>EMPLOYEE & ENDPOINT SERVICE OPERATIONS</span></div>
+          <p class="eyebrow">Enterprise service management</p>
+          <h2>Run support, endpoints, assets, and access from one workspace.</h2>
           <p>
-            OpsFusion binds service desk, assets, identity, endpoints, diagnostics, remote support,
-            documentation, compliance, and audit into one operational model. Every action carries context
-            across the platform instead of ending inside a silo.
+            OpsFusion connects employees, tickets, assigned assets, managed endpoints, access requests, remote support, compliance, knowledge, and audit in one service-delivery workspace.
           </p>
           <div class="hero-actions">
             <button class="btn primary" data-go="incidents">Enter Service Desk</button>
             <button class="btn secondary" data-go="troubleshooting">Run Diagnostics</button>
           </div>
           <div class="hero-capabilities">
-            <span>ITSM</span><span>ITAM</span><span>IAM</span><span>NETOPS</span><span>ENDPOINT</span><span>GRC</span>
+            <span>ITSM</span><span>ASSETS</span><span>IDENTITY</span><span>ENDPOINTS</span><span>REMOTE SUPPORT</span><span>COMPLIANCE</span>
           </div>
         </div>
         <div class="hero-status signal-board">

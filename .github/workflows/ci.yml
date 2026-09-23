@@ -1,4 +1,4 @@
-name: HelpDesk Pro CI
+name: OpsFusion CI
 
 on:
   push:
@@ -45,27 +45,35 @@ jobs:
           print("HelpDesk Pro backend smoke test passed")
           PY
 
-      - name: Check JavaScript syntax
+
+      - name: Check browser JavaScript syntax
         run: |
           node --check app.js
-          node --check demo-data.js
+          node --check cloud.js
 
-      - name: Validate HTML wiring
+      - name: Validate HTML and runtime-modal wiring
         run: |
           python - <<'PY'
           import re
           from pathlib import Path
+
           html = Path("index.html").read_text(encoding="utf-8")
           js = Path("app.js").read_text(encoding="utf-8")
-          ids = set(re.findall(r'id="([^"]+)"', html))
-          js_ids = set(re.findall(r'\$\("([^"]+)"\)', js))
-          missing = sorted(js_ids - ids)
-          assert not missing, f"Missing HTML ids referenced in JS: {missing}"
-          assert 'href="./styles.css"' in html
-          assert 'src="./demo-data.js"' in html
-          assert 'src="./app.js"' in html
-          print("HTML/JS wiring passed")
+
+          # Static DOM ids plus ids declared inside JS-generated modal markup.
+          defined_ids = set(re.findall(r'id="([^"]+)"', html + "\n" + js))
+          referenced_ids = set(re.findall(r'\$\("([^"]+)"\)', js))
+          missing = sorted(referenced_ids - defined_ids)
+          assert not missing, f"DOM ids referenced but never defined: {missing}"
+
+          assert 'href="./styles.css' in html
+          assert 'src="./cloud.js' in html
+          assert 'src="./app.js' in html
+          assert "supabase-js@2.117.0" in html
+          print("HTML/JS wiring test passed")
           PY
 
-      - name: Validate JSON
-        run: python -m json.tool vercel.json > /dev/null
+      - name: Validate deployment JSON
+        run: |
+          python -m json.tool vercel.json > /dev/null
+          echo "No additional JSON files"

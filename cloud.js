@@ -69,13 +69,22 @@
       user.email?.split("@")[0] ||
       "OpsFusion User";
 
-    const { error: profileError } = await client
+    // Separate insert/update avoids changing the immutable user_id in an UPSERT.
+    // RLS limits the row to the signed-in user and column grants protect identity.
+    const { data: existingProfile, error: profileLookupError } = await client
       .from("opsfusion_profiles")
-      .upsert({
-        user_id: user.id,
-        display_name: profileName,
-        updated_at: new Date().toISOString()
-      }, { onConflict: "user_id" });
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profileLookupError) throw profileLookupError;
+
+    const profileMutation = existingProfile
+      ? client.from("opsfusion_profiles")
+          .update({ display_name: profileName, updated_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+      : client.from("opsfusion_profiles")
+          .insert({ user_id: user.id, display_name: profileName });
+    const { error: profileError } = await profileMutation;
     if (profileError) throw profileError;
 
     let { data: workspaces, error: workspaceReadError } = await client

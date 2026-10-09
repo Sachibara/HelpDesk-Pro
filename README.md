@@ -18,6 +18,19 @@ OpsFusion has its own Supabase project in Sachibara's Org, **OpsFusion** (`qyizw
 
 Existing OmniShare and NetOps projects were not modified by this migration.
 
+## Cloud Workspace: server-backed records only
+
+The **authenticated live site** never initializes a cloud workspace from portfolio demo data or from browser localStorage.
+
+- Newly registered cloud accounts start with empty, private records in the dedicated OpsFusion Supabase project.
+- A previously initialized workspace containing only the original demo records was safely archived in `public.opsfusion_legacy_demo_backups` (administrator-only) and reset to an empty inventory. Account/authentication and workspace identity were retained.
+- Cloud inventory, tickets, assets, identity records, documentation and knowledge-base entries are **user-managed records**, stored in Supabase and restored on sign-in. They are not automatically discovered infrastructure.
+- The **Refresh Cloud Data** button loads the latest saved server workspace and audit history; browser-local data does not override cloud records.
+- Until an authorized endpoint agent and telemetry ingestion service exist, Cloud Workspace displays **No telemetry / Not measured** instead of artificial uptime, health curves, compliance rates, diagnostics, or remote commands. Simulated diagnostic, remote-action, compliance-evaluation, sample import and demo reset controls cannot run in Cloud Workspace.
+- **Portfolio Demo** is clearly separate and uses mock data for guided demonstrations. It does not upload its mock records into Cloud Workspace.
+- The public cloud application must not be presented as active LAN monitoring, real remote control, real AD provisioning, or continuously streaming endpoint telemetry without those integrations.
+
+
 
 **Portfolio:** https://jimcamus.vercel.app/
 

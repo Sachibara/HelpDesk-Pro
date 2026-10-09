@@ -55,6 +55,16 @@
     return data;
   }
 
+  async function changePassword(nextPassword) {
+    if (!session) throw new Error("Sign in before changing your password.");
+    if (typeof nextPassword !== "string" || nextPassword.length < 12) {
+      throw new Error("Use a password with at least 12 characters.");
+    }
+    const { error } = await client.auth.updateUser({ password: nextPassword });
+    if (error) throw error;
+    return true;
+  }
+
   async function signOut() {
     const { error } = await client.auth.signOut();
     if (error) throw error;
@@ -269,6 +279,7 @@
     init,
     signIn,
     signUp,
+    changePassword,
     signOut,
     bootstrap,
     saveWorkspace,

@@ -297,6 +297,7 @@
       workspaceOwnerId = null;
       workspaceUpdatedAt = null;
       role = "demo";
+      if (event === "SIGNED_OUT") window.dispatchEvent(new Event("opsfusion-session-ended"));
     }
   });
 

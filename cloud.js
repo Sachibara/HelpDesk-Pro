@@ -194,6 +194,31 @@
     if (error) throw error;
   }
 
+  async function refreshWorkspace() {
+    if (!session || !workspaceId) throw new Error("Sign in to refresh your cloud workspace.");
+    const { data: workspace, error: workspaceError } = await client
+      .from("opsfusion_workspaces")
+      .select("id, name, state, updated_at")
+      .eq("id", workspaceId)
+      .single();
+    if (workspaceError) throw workspaceError;
+    const { data: audit, error: auditError } = await client
+      .from("opsfusion_audit_events")
+      .select("id, module, action, target, detail, created_at")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false })
+      .limit(250);
+    if (auditError) throw auditError;
+    return {
+      state: workspace.state,
+      audit: (audit || []).map((row) => ({
+        id: row.id, module: row.module, action: row.action,
+        target: row.target, detail: row.detail, createdAt: row.created_at
+      })),
+      updatedAt: workspace.updated_at
+    };
+  }
+
   function isCloudActive() {
     return !!session && !!workspaceId;
   }
@@ -220,6 +245,7 @@
     signOut,
     bootstrap,
     saveWorkspace,
+    refreshWorkspace,
     pushAudit,
     isCloudActive,
     getRole,

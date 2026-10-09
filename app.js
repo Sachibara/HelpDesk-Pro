@@ -240,6 +240,8 @@
   let cloudRole = "demo";
   let demoMode = false;
   let cloudSaveTimer = null;
+  let cloudSavePending = false;
+  let cloudSavePromise = Promise.resolve();
 
   function migrateUnifiedState() {
     const base = demoMode ? seedState() : emptyCloudState();
@@ -267,11 +269,17 @@
     }
     if (window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
       clearTimeout(cloudSaveTimer);
+      cloudSavePending = true;
       cloudSaveTimer = setTimeout(() => {
-        window.OpsFusionCloud.saveWorkspace(state).catch((error) => {
+        cloudSavePending = false;
+        cloudSaveTimer = null;
+        cloudSavePromise = window.OpsFusionCloud.saveWorkspace(state).catch((error) => {
           console.error("Cloud save failed:", error);
           toast("Cloud save failed", error.message || "Your change was NOT saved to Supabase. Please retry.");
+          throw error;
         });
+        // A failed save must be visible but not produce an unhandled rejection.
+        cloudSavePromise.catch(() => {});
       }, 350);
     }
   }
@@ -550,6 +558,9 @@
     }).join("") : '<div class="empty">No incidents yet.</div>';
 
     $("overviewAudit").innerHTML = renderAuditEntries(state.audit.slice(0, 8));
+    if (!demoMode) {
+      $("attentionQueue").innerHTML = '<div class="empty">No live endpoint monitoring agent is connected. Inventory entries do not report device health.</div>';
+    }
     renderOpsVisuals(stats);
     bindOpenEndpointButtons();
   }
@@ -1985,7 +1996,15 @@
     if ($("workspaceModeLabel")) $("workspaceModeLabel").textContent = cloud ? "CLOUD WORKSPACE" : "PORTFOLIO DEMO";
     if ($("persistenceModeLabel")) $("persistenceModeLabel").textContent = cloud ? "SUPABASE" : "LOCAL";
     if ($("accessModeLabel")) $("accessModeLabel").textContent = String(role || "demo").toUpperCase();
-    if ($("heroPersistenceLabel")) $("heroPersistenceLabel").textContent = cloud ? "Supabase cloud" : "Local demo";
+    if ($("heroPersistenceLabel")) $("heroPersistenceLabel").textContent = cloud ? "Supabase records" : "Local demo";
+    if ($("agentStatusLabel")) $("agentStatusLabel").textContent = cloud ? "NOT CONNECTED" : "DEMO ONLY";
+    if ($("agentStatusDetail")) $("agentStatusDetail").textContent = cloud ? "No live telemetry" : "Simulated operations";
+    if ($("signalTitle")) $("signalTitle").textContent = cloud ? "SUPABASE WORKSPACE RECORDS" : "DEMO OPERATIONS SIGNAL";
+    if ($("actionModelLabel")) $("actionModelLabel").textContent = cloud ? "Database records only" : "Demo simulation";
+    if ($("opsAccessDisclosure")) $("opsAccessDisclosure").textContent = cloud
+      ? "Signed-in data comes from this account's Supabase workspace. Live endpoint probes require a separate authorized agent."
+      : "Portfolio Demo uses browser-local sample data and simulated endpoint actions.";
+    if ($("refreshCloudBtn")) $("refreshCloudBtn").hidden = !cloud;
   }
 
   function showCloudIdentity(user, role) {
@@ -2011,6 +2030,39 @@
     renderAll();
     toast("Cloud workspace connected", result.workspaceName + " · " + result.role);
   }
+
+  $("refreshCloudBtn").addEventListener("click", async () => {
+    if (!window.OpsFusionCloud?.isCloudActive?.()) {
+      toast("Sign in required", "Only a signed-in cloud workspace can refresh Supabase data.");
+      return;
+    }
+    const button = $("refreshCloudBtn");
+    button.disabled = true;
+    try {
+      if (cloudSavePending) {
+        clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = null;
+        cloudSavePending = false;
+        await cloudSavePromise;
+        await window.OpsFusionCloud.saveWorkspace(state);
+      } else {
+        await cloudSavePromise;
+      }
+      const latest = await window.OpsFusionCloud.refreshWorkspace();
+      state = latest.state && typeof latest.state === "object" ? latest.state : emptyCloudState();
+      state.audit = latest.audit || [];
+      demoMode = false;
+      migrateUnifiedState();
+      currentEndpointId = state.endpoints[0]?.id || null;
+      selectedDiagnosticId = null;
+      renderAll();
+      toast("Cloud records refreshed", "Loaded the latest saved records from Supabase.");
+    } catch (error) {
+      toast("Refresh failed", error.message || "Unable to contact Supabase.");
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   async function initCloudAuth() {
     if (!window.OpsFusionCloud?.available) {
@@ -2090,6 +2142,8 @@
       console.error(error);
     }
     clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+    cloudSavePending = false;
     demoMode = false;
     state = emptyCloudState();
     cloudRole = "demo";

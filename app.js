@@ -2087,6 +2087,17 @@
     }
   });
 
+  function showRecoveryPasswordForm() {
+    $("signInForm").hidden = true;
+    $("signUpForm").hidden = true;
+    $("resetPasswordForm").hidden = false;
+    qsa("[data-auth-tab]").forEach((button) => button.classList.remove("active"));
+    $("authGate").hidden = false;
+    setAuthMessage("Email recovery link accepted. Choose a new password with 12 or more characters.", "success");
+  }
+
+  window.addEventListener("opsfusion-password-recovery", showRecoveryPasswordForm);
+
   async function initCloudAuth() {
     if (!window.OpsFusionCloud?.available) {
       setAuthMessage("Cloud client could not load. Check your connection or choose the separate Portfolio Demo.", "error");
@@ -2094,6 +2105,11 @@
     }
     try {
       const session = await window.OpsFusionCloud.init();
+      if (window.OpsFusionCloud.isPasswordRecovery()) {
+        if (session) showRecoveryPasswordForm();
+        else setAuthMessage("Password recovery link is invalid or expired. Request a new email.", "error");
+        return;
+      }
       if (session) {
         setAuthMessage("Restoring your Supabase workspace...");
         await bootstrapCloud();
@@ -2109,8 +2125,46 @@
     const signup = button.dataset.authTab === "signup";
     $("signInForm").hidden = signup;
     $("signUpForm").hidden = !signup;
+    $("resetPasswordForm").hidden = true;
     setAuthMessage(signup ? "Create a Supabase Auth account for persistent cloud data." : "Sign in to load your persistent OpsFusion workspace.");
   }));
+
+  $("forgotPasswordBtn").addEventListener("click", async () => {
+    const email = $("authEmail").value.trim();
+    if (!email || !$("authEmail").checkValidity()) {
+      setAuthMessage("Enter a valid account email address in the Sign In form first.", "error");
+      return;
+    }
+    const button = $("forgotPasswordBtn");
+    button.disabled = true;
+    try {
+      await window.OpsFusionCloud.requestPasswordReset(email);
+      setAuthMessage("If that address has an account, a reset email will be sent. Open it on this device.", "success");
+    } catch (error) {
+      setAuthMessage(error.message || "Unable to send password reset email.", "error");
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $("resetPasswordForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const password = $("recoveryPassword").value;
+    if (password.length < 12 || password !== $("recoveryPasswordConfirm").value) {
+      setAuthMessage("Use 12 or more characters and ensure both passwords match.", "error");
+      return;
+    }
+    try {
+      await window.OpsFusionCloud.changePassword(password);
+      $("recoveryPassword").value = "";
+      $("recoveryPasswordConfirm").value = "";
+      window.OpsFusionCloud.completePasswordRecovery();
+      setAuthMessage("Password updated. Loading your cloud workspace...", "success");
+      await bootstrapCloud();
+    } catch (error) {
+      setAuthMessage(error.message || "Unable to update the password.", "error");
+    }
+  });
 
   $("signInForm").addEventListener("submit", async (event) => {
     event.preventDefault();

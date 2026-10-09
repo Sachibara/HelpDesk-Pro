@@ -13,10 +13,25 @@ OpsFusion has its own Supabase project in Sachibara's Org, **OpsFusion** (`qyizw
 - Anonymous clients have no table access; authenticated clients have role-appropriate privileges. Workspace owner identifiers cannot be edited through the browser.
 - Reproducible first-time database setup: [`supabase/opsfusion_schema.sql`](supabase/opsfusion_schema.sql).
 - The public **Portfolio Demo** still works with browser-local demo data; it deliberately simulates remote endpoint activity rather than claiming to control production infrastructure.
-- The dedicated project initially has zero users and workspace data; create an account in Cloud Workspace to begin using its persistent backend. Supabase email confirmation may be required depending on Auth settings.
+- Cloud Workspace requires a confirmed Supabase Auth account. New accounts begin with an empty private workspace; email confirmation may be required depending on Auth settings.
 - **Do not rerun** the first-time SQL file on the already provisioned database because policy and table creation is not intended as an idempotent migration. Future database changes should use versioned migrations.
 
 Existing OmniShare and NetOps projects were not modified by this migration.
+
+## Production functionality and remaining integrations
+
+OpsFusion is being hardened as a **working cloud-based IT service desk and inventory/documentation workspace**, not falsely represented as a complete endpoint-management platform.
+
+- **Implemented:** Supabase email/password authentication, email recovery and signed-in password change, private RLS-protected workspace, ticket and incident management, device and asset record management, user records, IP/VLAN documentation, knowledge articles, record audit events, import/export for the isolated demo, and cloud refresh.
+- **Cloud save reliability:** Saves are queued and version-checked against the last database `updated_at` value. A conflicting edit from another browser or device is blocked and reported; it is not silently overwritten. The interface shows the server save state and waits for pending changes before sign-out.
+- **Browser privacy:** Ending an authenticated session hides and clears private workspace data from the interface. Browsers that block requests to Supabase can still fail to connect; users should review their tracking protection settings.
+- **Not integrated:** Windows/macOS/Linux agent deployment, authenticated device pairing, verified CPU/RAM/OS/patch/AV heartbeats, real ping/traceroute/DNS probes, privileged service control, genuine Active Directory/identity-provider provisioning, cloud job scheduler, and infrastructure alerts. These depend on separately authorized systems and cannot be made real by hardcoded browser data.
+- **Recovery email setup:** The dedicated Supabase project's **Authentication > URL Configuration** must whitelist `https://opsfusion-it.vercel.app/**` and set its Site URL to `https://opsfusion-it.vercel.app`. Supabase's default email service has sending restrictions; a suitable SMTP provider may be required for unrestricted public registrations.
+- **Verification:** Source-code syntax checks and a mocked two-device save-conflict test passed. Vercel production deployments are checked separately. Full interactive account workflows and remote-agent functions require actual device/browser tests before being called production-verified.
+
+### Real-agent completion criteria
+
+A future agent release must use per-device identity, enrollment approval, scoped permissions, signed updates, encrypted transport, heartbeat freshness, explicit action authorization, immutable audit trails, and a way to revoke access. Until then, Cloud Workspace labels monitoring as **not connected**, not online/offline.
 
 ## Cloud Workspace: server-backed records only
 

@@ -1799,6 +1799,10 @@
   $("auditModuleFilter").addEventListener("change", renderAudit);
 
   $("clearAuditBtn").addEventListener("click", () => {
+    if (!demoMode) {
+      toast("Audit history protected", "Cloud audit entries are append-only and cannot be cleared from the browser.");
+      return;
+    }
     if (!confirm("Clear the demo audit history in this browser?")) return;
     state.audit = [{ id: uid("AUD"), module: "System", action: "Audit reset", target: state.meta.workspaceName, detail: "Demo audit history cleared by the portfolio user.", createdAt: now() }];
     saveState();
@@ -1978,7 +1982,7 @@
     qsa("[data-remote-action],[data-remediate]").forEach((el) => {
       if (readOnly) el.disabled = true;
     });
-    adminOnlyIds.forEach((id) => { if ($(id)) $(id).disabled = cloudRole !== "admin" && cloudRole !== "demo"; });
+    adminOnlyIds.forEach((id) => { if ($(id)) $(id).disabled = !demoMode || readOnly; });
     qsa("#modalBody .btn.primary,#modalBody .btn.danger").forEach((el) => {
       if (readOnly) el.disabled = true;
     });
@@ -2005,6 +2009,9 @@
       ? "Signed-in data comes from this account's Supabase workspace. Live endpoint probes require a separate authorized agent."
       : "Portfolio Demo uses browser-local sample data and simulated endpoint actions.";
     if ($("refreshCloudBtn")) $("refreshCloudBtn").hidden = !cloud;
+    if ($("importInput")) $("importInput").disabled = cloud;
+    const controlSignal = document.querySelector(".system-strip .signal-dot");
+    if (controlSignal) controlSignal.classList.toggle("live", !cloud);
   }
 
   function showCloudIdentity(user, role) {

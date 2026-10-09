@@ -24,6 +24,8 @@
   let role = "demo";
   let workspaceUpdatedAt = null;
   let saveQueue = Promise.resolve();
+  // Supabase implicit password-recovery links include "type=recovery" in the fragment.
+  let passwordRecovery = /(?:^|[&#])type=recovery(?:&|$)/.test(window.location?.hash || "");
 
   async function init() {
     const { data, error } = await client.auth.getSession();
@@ -54,6 +56,21 @@
     session = data.session || null;
     return data;
   }
+
+  async function requestPasswordReset(email) {
+    const normalizedEmail = String(email || "").trim();
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      throw new Error("Enter your account email address first.");
+    }
+    const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: "https://opsfusion-it.vercel.app/"
+    });
+    if (error) throw error;
+    return true;
+  }
+
+  function isPasswordRecovery() { return passwordRecovery; }
+  function completePasswordRecovery() { passwordRecovery = false; }
 
   async function changePassword(nextPassword) {
     if (!session) throw new Error("Sign in before changing your password.");
@@ -193,7 +210,7 @@
         .update({
           name: snapshot?.meta?.workspaceName || "OpsFusion Unified",
           state: snapshot,
-          updated_at: new Date().toISOString()
+          updated_at: new Date(Math.max(Date.now(), Date.parse(workspaceUpdatedAt) + 1)).toISOString()
         })
         .eq("id", targetId)
         .eq("updated_at", workspaceUpdatedAt)
@@ -263,8 +280,12 @@
   function getUser() { return session?.user || null; }
   function getWorkspaceId() { return workspaceId; }
 
-  client.auth.onAuthStateChange((_event, nextSession) => {
+  client.auth.onAuthStateChange((event, nextSession) => {
     session = nextSession || null;
+    if (event === "PASSWORD_RECOVERY") {
+      passwordRecovery = true;
+      window.dispatchEvent(new Event("opsfusion-password-recovery"));
+    }
     if (!session) {
       workspaceId = null;
       workspaceOwnerId = null;
@@ -279,6 +300,9 @@
     init,
     signIn,
     signUp,
+    requestPasswordReset,
+    isPasswordRecovery,
+    completePasswordRecovery,
     changePassword,
     signOut,
     bootstrap,

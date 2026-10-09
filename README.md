@@ -2,6 +2,10 @@
 
 **Canonical IT-operations flagship for the Sachibara portfolio.**
 
+**Live demo:** https://opsfusion-it.vercel.app/
+
+**Portfolio:** https://jimcamus.vercel.app/
+
 OpsFusion consolidates the strongest workflows from:
 
 - HelpDesk Pro

@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const SUPABASE_URL = "https://taizmxigaeyrxtvnnzbw.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EmCXMq9_SNjG-ISf6_9v7Q_iHZsLz29";
+  const SUPABASE_URL = "https://qyizwyvgbywkextsekpj.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_lfqzmccDSsdjlHbMD2MJ2w_r8g3sYni";
 
   if (!window.supabase || !window.supabase.createClient) {
     console.error("Supabase client library failed to load.");

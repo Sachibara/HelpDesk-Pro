@@ -8,8 +8,8 @@
   <title>OpsFusion Unified IT Operations Platform</title>
   <link rel="stylesheet" href="./styles.css?v=20260924-service-workspace">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
-  <script src="./cloud.js?v=20261010-cloud-only" defer></script>
-  <script src="./app.js?v=20261010-cloud-only" defer></script>
+  <script src="./cloud.js?v=20261010-cloud-hardening" defer></script>
+  <script src="./app.js?v=20261010-cloud-hardening" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -71,6 +71,7 @@
         <div class="cloud-user" id="cloudUser" hidden>
           <span id="cloudUserLabel">Cloud user</span>
           <b id="cloudRoleLabel">admin</b>
+          <button class="mini-btn" id="cloudChangePasswordBtn" type="button">Change Password</button>
           <button class="mini-btn" id="cloudSignOutBtn">Sign Out</button>
         </div>
       </div>
@@ -78,7 +79,7 @@
 
     <div class="system-strip">
       <div><span class="signal-dot live"></span><b>CONTROL FABRIC</b><small id="workspaceModeLabel">PORTFOLIO DEMO</small></div>
-      <div><span class="strip-key">SYNC</span><b id="persistenceModeLabel">LOCAL</b><small>workspace state</small></div>
+      <div><span class="strip-key">SYNC</span><b id="persistenceModeLabel">LOCAL</b><small id="cloudSaveStatus" role="status" aria-live="polite">Demo records only</small></div>
       <div><span class="strip-key">ACCESS</span><b id="accessModeLabel">DEMO</b><small>role boundary</small></div>
       <div><span class="strip-key">AGENT</span><b id="agentStatusLabel">DEMO MODE</b><small id="agentStatusDetail">simulation only</small></div>
     </div>
@@ -603,7 +604,7 @@
       </div>
 
       <article class="panel danger-panel">
-        <div><h3>Reset unified workspace</h3><p>Restore seeded portfolio data and erase local changes in this browser.</p></div>
+        <div><h3>Reset Portfolio Demo</h3><p>Resets browser-local sample records only. This action is disabled when signed in to Cloud Workspace.</p></div>
         <button class="btn danger" id="resetWorkspaceBtn">Reset Workspace</button>
       </article>
     </section>

@@ -2158,6 +2158,44 @@
     toast("Demo Mode", "Sample data is browser-local and never copied into the cloud.");
   });
 
+  $("cloudChangePasswordBtn").addEventListener("click", () => {
+    if (!window.OpsFusionCloud?.isCloudActive?.()) {
+      toast("Sign in required", "Open your cloud workspace before changing your password.");
+      return;
+    }
+    showModal("Change your OpsFusion password",
+      '<div class="form-grid">' +
+      '<label class="field"><span>New password (12 or more characters)</span><input id="mPassNew" type="password" autocomplete="new-password" minlength="12" required></label>' +
+      '<label class="field"><span>Confirm new password</span><input id="mPassConfirm" type="password" autocomplete="new-password" minlength="12" required></label>' +
+      '</div>' +
+      '<p class="auth-footnote">Your password is managed by Supabase Auth, not stored in OpsFusion workspace data.</p>' +
+      '<div class="modal-actions"><button type="button" class="btn secondary" id="mPassCancel">Cancel</button>' +
+      '<button type="button" class="btn secondary" id="mPassSave">Update Password</button></div>',
+      () => {
+        $("mPassCancel").onclick = closeModal;
+        $("mPassSave").onclick = async () => {
+          const next = $("mPassNew").value;
+          const confirmNext = $("mPassConfirm").value;
+          if (next.length < 12) { toast("Password too short", "Use at least 12 characters."); return; }
+          if (next !== confirmNext) { toast("Passwords differ", "Please enter the same password twice."); return; }
+          const button = $("mPassSave");
+          button.disabled = true;
+          try {
+            await window.OpsFusionCloud.changePassword(next);
+            $("mPassNew").value = "";
+            $("mPassConfirm").value = "";
+            closeModal();
+            toast("Password updated", "Your OpsFusion account password has been changed.");
+          } catch (error) {
+            toast("Password update failed", error.message || "Please try again.");
+          } finally {
+            button.disabled = false;
+          }
+        };
+      }
+    );
+  });
+
   $("cloudSignOutBtn").addEventListener("click", async () => {
     const button = $("cloudSignOutBtn");
     button.disabled = true;

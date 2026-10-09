@@ -519,13 +519,13 @@
   function renderOverview() {
     const stats = fleetStats();
     $("kpiEndpoints").textContent = state.endpoints.length;
-    $("kpiOnline").textContent = stats.online;
-    $("kpiCompliance").textContent = stats.complianceRate + "%";
+    $("kpiOnline").textContent = demoMode ? stats.online : "—";
+    $("kpiCompliance").textContent = demoMode ? stats.complianceRate + "%" : "N/A";
     $("kpiIncidents").textContent = stats.openIncidents;
     $("kpiDiagnostics").textContent = state.diagnostics.length;
-    $("healthScoreHero").textContent = stats.health + "%";
-    $("healthLabelHero").textContent = stats.health >= 90 ? "Healthy operations" : stats.health >= 75 ? "Attention required" : "Operational risk";
-    $("healthBar").style.width = stats.health + "%";
+    $("healthScoreHero").textContent = demoMode ? stats.health + "%" : "—";
+    $("healthLabelHero").textContent = demoMode ? (stats.health >= 90 ? "Healthy operations" : stats.health >= 75 ? "Attention required" : "Operational risk") : "No connected endpoint telemetry";
+    $("healthBar").style.width = demoMode ? stats.health + "%" : "0%";
 
     const attention = state.endpoints
       .map((endpoint) => ({ endpoint, compliance: evaluateEndpoint(endpoint) }))
@@ -556,6 +556,27 @@
 
   function renderOpsVisuals(stats) {
     if (!$("healthTrendChart")) return;
+    if (!demoMode) {
+      // A user-entered inventory record is not an agent heartbeat. Never
+      // manufacture telemetry, historical measurements or risk indices.
+      $("healthTrendLine").setAttribute("points", "");
+      $("healthTrendArea").setAttribute("d", "");
+      $("healthTrendPoints").innerHTML = "";
+      $("healthTrendDates").innerHTML = '<text x="50" y="108">No verified telemetry — connect an authorized agent</text>';
+      $("riskScoreValue").textContent = "—";
+      $("riskKey").innerHTML = '<div class="empty">No measured risk signals.</div>';
+      $("riskDonut").style.background = "none";
+      if ($("fabricTickets")) $("fabricTickets").textContent = stats.openIncidents + " recorded";
+      if ($("fabricAssets")) $("fabricAssets").textContent = state.assets.length + " recorded";
+      if ($("fabricUsers")) $("fabricUsers").textContent = state.identities.length + " recorded";
+      if ($("fabricEndpoints")) $("fabricEndpoints").textContent = state.endpoints.length + " registered";
+      if ($("fabricDiagnostics")) $("fabricDiagnostics").textContent = "No live probes";
+      if ($("fabricCompliance")) $("fabricCompliance").textContent = "Not measured";
+      $("siteVisual").innerHTML = state.endpoints.length
+        ? '<div class="empty">Registered inventory only; no live device status is available.</div>'
+        : '<div class="empty">No endpoints registered. Add inventory records to begin.</div>';
+      return;
+    }
 
     const noncompliant = stats.managed.length - stats.compliant;
     const offline = state.endpoints.filter((e) => e.agent !== "online").length;
@@ -774,10 +795,14 @@
           const endpoint = {
             id: uid(managed ? "EP" : "NET"), hostname, ip, mac: "—", site, type,
             os: $("mOs").value.trim() || "Unknown", model: $("mModel").value.trim() || "Unknown",
-            owner: $("mOwner").value.trim() || "Unassigned", agent: $("mAgent").value,
-            lastSeen: now(), gateway: "", dns: "", updatesMissing: 0, av: managed ? "healthy" : "n/a",
-            firewall: true, bitlocker: true, rebootAge: 0, cpu: 0, memory: 0, disk: 0,
-            complianceManaged: managed, issue: "healthy"
+            owner: $("mOwner").value.trim() || "Unassigned",
+            agent: demoMode ? $("mAgent").value : "unverified",
+            lastSeen: demoMode ? now() : null, gateway: "", dns: "",
+            updatesMissing: demoMode ? 0 : null, av: demoMode && managed ? "healthy" : "unknown",
+            firewall: demoMode ? true : null, bitlocker: demoMode ? true : null,
+            rebootAge: demoMode ? 0 : null,
+            cpu: demoMode ? 0 : null, memory: demoMode ? 0 : null, disk: demoMode ? 0 : null,
+            complianceManaged: demoMode && managed, issue: demoMode ? "healthy" : "unknown"
           };
           state.endpoints.push(endpoint);
           currentEndpointId = endpoint.id;
@@ -1019,6 +1044,9 @@
   });
 
   function renderTroubleshooting() {
+    if (!demoMode) {
+      $("diagTerminal").textContent = "Live diagnostics unavailable: no authorized endpoint agent is connected. Saved inventory is not proof of network reachability.";
+    }
     fillEndpointSelect($("diagEndpoint"), currentEndpointId, true);
     if ($("diagEndpoint").value) currentEndpointId = $("diagEndpoint").value;
     renderDiagnosticSummary();
@@ -1062,6 +1090,11 @@
   }
 
   function runDiagnostic() {
+    if (!demoMode) {
+      $("diagTerminal").textContent = "No live diagnostic agent is connected. This cloud workspace does not generate simulated ping, DNS, port or route results.";
+      toast("Diagnostics unavailable", "Connect an authorized backend before running real probes.");
+      return;
+    }
     const endpoint = endpointById($("diagEndpoint").value);
     if (!endpoint) return;
     currentEndpointId = endpoint.id;
@@ -1225,6 +1258,14 @@
 
   function renderRemoteEndpointCard() {
     const endpoint = endpointById($("remoteEndpoint").value);
+    if (!demoMode) {
+      $("remoteEndpointCard").innerHTML = endpoint
+        ? '<h3>' + esc(endpoint.hostname) + '</h3><p>' + esc(endpoint.ip + " · " + endpoint.site) + '</p><div class="empty">No authorized agent connected. Live CPU, memory, disk, heartbeat and remote-action results are unavailable.</div>'
+        : '<div class="empty">No endpoint selected. Remote support requires a connected agent.</div>';
+      qsa("[data-remote-action]").forEach((button) => { button.disabled = true; });
+      $("remoteConsole").textContent = "Real remote-support functions require a connected, authenticated endpoint agent. No simulated results are available in Cloud Workspace.";
+      return;
+    }
     if (!endpoint) {
       $("remoteEndpointCard").innerHTML = '<div class="empty">No endpoint selected.</div>';
       return;
@@ -1292,6 +1333,10 @@
   }
 
   qsa("[data-remote-action]").forEach((button) => button.addEventListener("click", () => {
+    if (!demoMode) {
+      toast("Agent required", "Live remote support is not available without a connected endpoint agent.");
+      return;
+    }
     const endpoint = endpointById($("remoteEndpoint").value);
     if (!endpoint) return;
     const action = button.dataset.remoteAction;
@@ -1317,6 +1362,10 @@
   }));
 
   function showServiceRestartModal(endpoint) {
+    if (!demoMode) {
+      toast("Agent required", "A real service restart requires a connected and authorized agent.");
+      return;
+    }
     showModal("Restart Approved Service",
       '<label class="field"><span>Service</span><select id="mService"><option>Print Spooler</option><option>Windows Update</option><option>DNS Client</option></select></label>' +
       '<label class="field"><span>Ticket / change reference</span><input id="mReference" placeholder="INC-1001 or CHG-204"></label>' +
@@ -1377,11 +1426,11 @@
       if (!grouped[e.site]) grouped[e.site] = [];
       grouped[e.site].push(e);
     });
-    $("topology").innerHTML = Object.keys(grouped).sort().map((site) =>
+    $("topology").innerHTML = Object.keys(grouped).length ? Object.keys(grouped).sort().map((site) =>
       '<div class="topology-site"><strong>' + esc(site) + '</strong><div class="topology-nodes">' +
       grouped[site].map((e) => '<div class="topology-node"><b>' + esc(e.hostname) + '</b><span>' + esc(e.type + " · " + e.ip) + "</span></div>").join("") +
       "</div></div>"
-    ).join("");
+    ).join("") : '<div class="empty">No documented sites or devices.</div>';
 
     $("vlanRows").innerHTML = state.vlans.length ? state.vlans.map((v) =>
       '<div class="stack-row"><div><strong>' + esc(v.site + " · VLAN " + v.vlan + " · " + v.name) +
@@ -1389,10 +1438,10 @@
       '</small></div><button class="mini-btn danger" data-remove-vlan="' + esc(v.id) + '">Remove</button></div>'
     ).join("") : '<div class="empty">No VLAN plans documented.</div>';
 
-    $("docDeviceRows").innerHTML = state.endpoints.map((e) =>
+    $("docDeviceRows").innerHTML = state.endpoints.length ? state.endpoints.map((e) =>
       "<tr><td>" + esc(e.hostname) + "</td><td>" + esc(e.type) + "</td><td>" + esc(e.ip) + "</td><td>" + esc(e.site) +
       "</td><td>" + esc(e.model + " · " + e.os) + "</td><td>" + esc(e.owner) + "</td></tr>"
-    ).join("");
+    ).join("") : '<tr><td colspan="6" class="empty">No devices documented.</td></tr>';
 
     $("portRows").innerHTML = state.ports.length ? state.ports.map((p) => {
       const e = endpointById(p.endpointId);
@@ -1514,6 +1563,12 @@
   });
 
   function renderCompliance() {
+    if (!demoMode) {
+      $("complianceScore").textContent = "N/A";
+      $("complianceBreakdown").innerHTML = '<div class="empty">No authenticated endpoint compliance feed is connected.</div>';
+      $("complianceRows").innerHTML = '<tr><td colspan="8" class="empty">No verified compliance readings available. Inventory entries alone cannot establish device compliance.</td></tr>';
+      return;
+    }
     const managed = state.endpoints.filter((e) => e.complianceManaged !== false);
     const rows = managed.map((e) => ({ endpoint: e, result: evaluateEndpoint(e) }));
     const compliant = rows.filter((r) => r.result.status === "compliant").length;
@@ -1556,6 +1611,10 @@
   }
 
   function evaluateFleet(recordAudit = true) {
+    if (!demoMode) {
+      toast("Compliance feed unavailable", "Connect verified endpoint telemetry to evaluate live compliance.");
+      return;
+    }
     const failing = state.endpoints.filter((e) => evaluateEndpoint(e).status === "noncompliant");
     if (state.settings.autoTicketCompliance) {
       failing.forEach((e) => {
@@ -1664,7 +1723,7 @@
     });
     qsa("[data-open-ticket]").forEach((b)=>b.onclick=()=>openTicketModal(b.dataset.openTicket));
 
-    $("knowledgeRows").innerHTML=state.knowledge.map((k)=>'<button class="knowledge-row" data-kb="'+esc(k.id)+'"><strong>'+esc(k.title)+'</strong><span>'+esc(k.category+" · "+k.summary)+'</span></button>').join("");
+    $("knowledgeRows").innerHTML=state.knowledge.length ? state.knowledge.map((k)=>'<button class="knowledge-row" data-kb="'+esc(k.id)+'"><strong>'+esc(k.title)+'</strong><span>'+esc(k.category+" · "+k.summary)+'</span></button>').join("") : '<div class="empty">No knowledge articles saved.</div>';
     qsa("[data-kb]").forEach((b)=>b.onclick=()=>{const k=state.knowledge.find((x)=>x.id===b.dataset.kb);if(k)showModal(k.title,'<p style="font-size:.62rem;color:var(--muted);line-height:1.7">'+esc(k.summary)+'</p><div class="modal-actions"><button class="btn primary" id="mKbClose">Close</button></div>',()=>{$("mKbClose").onclick=closeModal;});});
     $("technicianRows").innerHTML=state.technicians.map((tech)=>{const load=open.filter((t)=>t.assigneeId===tech.id).length;return '<div class="stack-row"><div><strong>'+esc(tech.name+" · "+tech.role)+'</strong><small>'+esc(tech.specialty)+'</small></div>'+badge(load+" open",load>3?"amber":"blue")+'</div>';}).join("");
     // Rendering is read-only. In particular, do not overwrite a remote cloud
@@ -1912,6 +1971,13 @@
     qsa("#modalBody .btn.primary,#modalBody .btn.danger").forEach((el) => {
       if (readOnly) el.disabled = true;
     });
+    // Unconnected cloud workspaces cannot execute simulated diagnostics or
+    // remote actions, regardless of their database role.
+    if (!demoMode) {
+      if ($("runDiagBtn")) $("runDiagBtn").disabled = true;
+      if ($("evaluateComplianceBtn")) $("evaluateComplianceBtn").disabled = true;
+      qsa("[data-remote-action]").forEach((el) => { el.disabled = true; });
+    }
   }
 
   function updateModeUI(mode, role = "demo") {

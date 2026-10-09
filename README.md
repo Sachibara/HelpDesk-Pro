@@ -4,6 +4,21 @@
 
 **Live demo:** https://opsfusion-it.vercel.app/
 
+## Dedicated Supabase backend (OpsFusion only)
+
+OpsFusion has its own Supabase project in Sachibara's Org, **OpsFusion** (`qyizwyvgbywkextsekpj`, Singapore). The browser frontend connects to this project using its own URL and publishable key in `cloud.js`. It does **not** connect to the older shared OmniShare/NetOps database.
+
+- Project Auth manages OpsFusion user accounts independently.
+- `opsfusion_profiles`, `opsfusion_workspaces`, `opsfusion_memberships`, and `opsfusion_audit_events` have Row Level Security enabled.
+- Anonymous clients have no table access; authenticated clients have role-appropriate privileges. Workspace owner identifiers cannot be edited through the browser.
+- Reproducible first-time database setup: [`supabase/opsfusion_schema.sql`](supabase/opsfusion_schema.sql).
+- The public **Portfolio Demo** still works with browser-local demo data; it deliberately simulates remote endpoint activity rather than claiming to control production infrastructure.
+- The dedicated project initially has zero users and workspace data; create an account in Cloud Workspace to begin using its persistent backend. Supabase email confirmation may be required depending on Auth settings.
+- **Do not rerun** the first-time SQL file on the already provisioned database because policy and table creation is not intended as an idempotent migration. Future database changes should use versioned migrations.
+
+Existing OmniShare and NetOps projects were not modified by this migration.
+
+
 **Portfolio:** https://jimcamus.vercel.app/
 
 OpsFusion consolidates the strongest workflows from:

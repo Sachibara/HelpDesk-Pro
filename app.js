@@ -185,6 +185,21 @@
     };
   }
 
+  // Empty, independent Supabase workspace. Sample data exists only in seedState()
+  // and must never be copied into an authenticated user's database.
+  function emptyCloudState() {
+    const stamp = now();
+    return {
+      meta: { version: 2, workspaceName: "OpsFusion Unified", createdAt: stamp, updatedAt: stamp },
+      settings: { autoTicketCompliance: false, autoTicketDiagnostic: false },
+      complianceRules: { maxMissingUpdates: 0, maxRebootAge: 14, requireFirewall: true, requireBitlocker: true, requireAv: true },
+      endpoints: [], vlans: [], ports: [], docChanges: [], diagnostics: [],
+      remoteActions: [], identities: [], groups: [], templates: [],
+      technicians: [], assets: [], maintenance: [], software: [],
+      knowledge: [], incidents: [], audit: []
+    };
+  }
+
   function loadState() {
     const base = seedState();
     try {
@@ -227,8 +242,8 @@
   let cloudSaveTimer = null;
 
   function migrateUnifiedState() {
-    const base = seedState();
-    ["identities","groups","templates","technicians","assets","maintenance","software","knowledge"].forEach((key) => {
+    const base = demoMode ? seedState() : emptyCloudState();
+    ["identities","groups","templates","technicians","assets","maintenance","software","knowledge","endpoints","vlans","ports","docChanges","diagnostics","remoteActions","incidents","audit"].forEach((key) => {
       if (!Array.isArray(state[key])) state[key] = base[key];
     });
     state.incidents = (state.incidents || []).map(normalizeTicket);
@@ -244,13 +259,18 @@
 
   function saveState() {
     state.meta.updatedAt = now();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // The browser's localStorage is exclusively for explicitly selected demo mode.
+    // Cloud users must not see or silently write demo/local fallback records.
+    if (demoMode) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return;
+    }
     if (window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
       clearTimeout(cloudSaveTimer);
       cloudSaveTimer = setTimeout(() => {
         window.OpsFusionCloud.saveWorkspace(state).catch((error) => {
           console.error("Cloud save failed:", error);
-          toast("Cloud save failed", error.message || "Workspace remains saved in this browser.");
+          toast("Cloud save failed", error.message || "Your change was NOT saved to Supabase. Please retry.");
         });
       }, 350);
     }
@@ -1647,7 +1667,8 @@
     $("knowledgeRows").innerHTML=state.knowledge.map((k)=>'<button class="knowledge-row" data-kb="'+esc(k.id)+'"><strong>'+esc(k.title)+'</strong><span>'+esc(k.category+" · "+k.summary)+'</span></button>').join("");
     qsa("[data-kb]").forEach((b)=>b.onclick=()=>{const k=state.knowledge.find((x)=>x.id===b.dataset.kb);if(k)showModal(k.title,'<p style="font-size:.62rem;color:var(--muted);line-height:1.7">'+esc(k.summary)+'</p><div class="modal-actions"><button class="btn primary" id="mKbClose">Close</button></div>',()=>{$("mKbClose").onclick=closeModal;});});
     $("technicianRows").innerHTML=state.technicians.map((tech)=>{const load=open.filter((t)=>t.assigneeId===tech.id).length;return '<div class="stack-row"><div><strong>'+esc(tech.name+" · "+tech.role)+'</strong><small>'+esc(tech.specialty)+'</small></div>'+badge(load+" open",load>3?"amber":"blue")+'</div>';}).join("");
-    saveState();
+    // Rendering is read-only. In particular, do not overwrite a remote cloud
+    // workspace merely because a user opened the Service Desk page.
   }
 
   $("ticketSearch").addEventListener("input",renderIncidents);
@@ -1750,9 +1771,13 @@
   });
 
   $("resetWorkspaceBtn").addEventListener("click", () => {
-    if (!confirm("Reset OpsFusion to the seeded unified workspace? All browser-local changes will be removed.")) return;
+    if (!demoMode) {
+      toast("Reset unavailable", "Cloud workspaces cannot be replaced by sample data.");
+      return;
+    }
+    if (!confirm("Reset the local Portfolio Demo to sample records?")) return;
     state = seedState();
-    currentEndpointId = state.endpoints[0].id;
+    currentEndpointId = state.endpoints[0]?.id || null;
     selectedDiagnosticId = null;
     saveState();
     renderAll();
@@ -1783,13 +1808,17 @@
       if (!imported || !Array.isArray(imported.endpoints) || !Array.isArray(imported.incidents)) {
         throw new Error("This file is not a valid OpsFusion workspace.");
       }
-      if (!confirm("Replace the current browser workspace with " + file.name + "?")) return;
+      if (!demoMode) {
+        throw new Error("Cloud import is disabled: only Supabase-backed records may appear in a signed-in workspace.");
+      }
+      if (!confirm("Replace the current local demo workspace with " + file.name + "?")) return;
+      const base = seedState();
       state = {
-        ...seedState(),
+        ...base,
         ...imported,
-        meta: { ...seedState().meta, ...(imported.meta || {}) },
-        settings: { ...seedState().settings, ...(imported.settings || {}) },
-        complianceRules: { ...seedState().complianceRules, ...(imported.complianceRules || {}) }
+        meta: { ...base.meta, ...(imported.meta || {}) },
+        settings: { ...base.settings, ...(imported.settings || {}) },
+        complianceRules: { ...base.complianceRules, ...(imported.complianceRules || {}) }
       };
       migrateUnifiedState();
       audit("System", "Workspace imported", file.name, "Unified state restored from JSON.");
@@ -1904,14 +1933,13 @@
 
   async function bootstrapCloud(displayName = "") {
     if (!window.OpsFusionCloud?.available) throw new Error("Supabase client is unavailable.");
-    const result = await window.OpsFusionCloud.bootstrap(state, displayName);
-    if (result.state) state = result.state;
+    const result = await window.OpsFusionCloud.bootstrap(emptyCloudState(), displayName);
+    demoMode = false;
+    state = result.state && typeof result.state === "object" ? result.state : emptyCloudState();
     if (result.audit?.length) state.audit = result.audit;
     migrateUnifiedState();
     currentEndpointId = state.endpoints[0] ? state.endpoints[0].id : null;
     selectedDiagnosticId = null;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    demoMode = false;
     $("authGate").hidden = true;
     showCloudIdentity(result.user, result.role);
     renderAll();
@@ -1920,7 +1948,7 @@
 
   async function initCloudAuth() {
     if (!window.OpsFusionCloud?.available) {
-      setAuthMessage("Cloud client could not load. Demo Mode is still available.", "error");
+      setAuthMessage("Cloud client could not load. Check your connection or choose the separate Portfolio Demo.", "error");
       return;
     }
     try {
@@ -1976,11 +2004,17 @@
 
   $("continueDemoBtn").addEventListener("click", () => {
     demoMode = true;
+    state = loadState();
+    migrateUnifiedState();
+    currentEndpointId = state.endpoints[0]?.id || null;
+    selectedDiagnosticId = null;
     cloudRole = "demo";
     $("authGate").hidden = true;
     $("cloudUser").hidden = true;
+    updateModeUI("demo", "demo");
+    renderAll();
     applyRoleAccess();
-    toast("Demo Mode", "Using browser-local portfolio data. Sign in later for cloud persistence.");
+    toast("Demo Mode", "Sample data is browser-local and never copied into the cloud.");
   });
 
   $("cloudSignOutBtn").addEventListener("click", async () => {
@@ -1989,6 +2023,9 @@
     } catch (error) {
       console.error(error);
     }
+    clearTimeout(cloudSaveTimer);
+    demoMode = false;
+    state = emptyCloudState();
     cloudRole = "demo";
     $("cloudUser").hidden = true;
     $("authGate").hidden = false;

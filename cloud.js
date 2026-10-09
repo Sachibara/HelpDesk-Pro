@@ -70,7 +70,13 @@
   }
 
   function isPasswordRecovery() { return passwordRecovery; }
-  function completePasswordRecovery() { passwordRecovery = false; }
+  function completePasswordRecovery() {
+    passwordRecovery = false;
+    // Drop recovery tokens and stale recovery markers from the address bar.
+    if (window.history?.replaceState && window.location) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }
 
   async function changePassword(nextPassword) {
     if (!session) throw new Error("Sign in before changing your password.");

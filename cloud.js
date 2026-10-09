@@ -41,7 +41,12 @@
     const { data, error } = await client.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName || "OpsFusion User" } }
+      options: {
+        data: { display_name: displayName || "OpsFusion User" },
+        // This is a public domain, not a secret. Also whitelist it in
+        // Supabase Authentication > URL Configuration.
+        emailRedirectTo: "https://opsfusion-it.vercel.app/"
+      }
     });
     if (error) throw error;
     session = data.session || null;

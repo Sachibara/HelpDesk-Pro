@@ -1980,7 +1980,11 @@
   function setAuthMessage(message, tone = "") {
     const box = $("authMessage");
     if (!box) return;
-    box.textContent = message;
+    const original = String(message || "");
+    const userMessage = /failed to fetch|networkerror|load failed/i.test(original)
+      ? "Cannot reach Supabase. Check your mobile connection and, in Brave, disable Shields for this trusted site before retrying."
+      : original;
+    box.textContent = userMessage;
     box.className = "auth-message" + (tone ? " " + tone : "");
   }
 
@@ -2097,6 +2101,21 @@
   }
 
   window.addEventListener("opsfusion-password-recovery", showRecoveryPasswordForm);
+
+  window.addEventListener("opsfusion-session-ended", () => {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+    cloudSavePending = false;
+    cloudSavePromise = Promise.resolve();
+    demoMode = false;
+    state = emptyCloudState();
+    cloudRole = "demo";
+    if ($("cloudUser")) $("cloudUser").hidden = true;
+    if ($("authGate")) $("authGate").hidden = false;
+    updateModeUI("demo", "demo");
+    setAuthMessage("Your cloud session has ended. Sign in to access your saved records.");
+    renderAll();
+  });
 
   async function initCloudAuth() {
     if (!window.OpsFusionCloud?.available) {

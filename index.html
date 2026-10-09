@@ -8,8 +8,8 @@
   <title>OpsFusion Unified IT Operations Platform</title>
   <link rel="stylesheet" href="./styles.css?v=20260924-service-workspace">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
-  <script src="./cloud.js?v=20261010-cloud-hardening" defer></script>
-  <script src="./app.js?v=20261010-cloud-hardening" defer></script>
+  <script src="./cloud.js?v=20261010-cloud-auth-and-sync" defer></script>
+  <script src="./app.js?v=20261010-cloud-auth-and-sync" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -664,12 +664,19 @@
           <label class="field"><span>Email</span><input id="authEmail" type="email" autocomplete="email" required placeholder="operator@company.com"></label>
           <label class="field"><span>Password</span><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="••••••••"></label>
           <button class="btn primary wide" type="submit">Connect Cloud Workspace</button>
+          <button class="btn secondary wide" type="button" id="forgotPasswordBtn">Forgot Password?</button>
         </form>
         <form id="signUpForm" class="auth-form" hidden>
           <label class="field"><span>Display name</span><input id="authDisplayName" autocomplete="name" required placeholder="IT Operator"></label>
           <label class="field"><span>Email</span><input id="authSignupEmail" type="email" autocomplete="email" required placeholder="operator@company.com"></label>
           <label class="field"><span>Password</span><input id="authSignupPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="8+ characters"></label>
           <button class="btn primary wide" type="submit">Create Cloud Workspace</button>
+        </form>
+        <form id="resetPasswordForm" class="auth-form" hidden>
+          <p class="auth-copy">Set a new password for your verified OpsFusion account.</p>
+          <label class="field"><span>New password (12+ characters)</span><input id="recoveryPassword" type="password" autocomplete="new-password" minlength="12" required></label>
+          <label class="field"><span>Confirm password</span><input id="recoveryPasswordConfirm" type="password" autocomplete="new-password" minlength="12" required></label>
+          <button class="btn primary wide" type="submit">Save New Password</button>
         </form>
         <div id="authMessage" class="auth-message">Cloud data is protected with Supabase Auth, RLS, and role-based access control.</div>
         <div class="auth-divider"><span>OR</span></div>

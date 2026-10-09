@@ -47,7 +47,7 @@
 
     <div class="sidebar-note">
       <strong>Portfolio mode</strong>
-      <p>Operational actions are safely simulated in-browser. Real probes and endpoint control require an authorized local agent/backend.</p>
+      <p id="opsAccessDisclosure">Demo mode simulates endpoint operations. Cloud Workspace displays Supabase records; live endpoint probes require an authorized agent.</p>
     </div>
   </aside>
 
@@ -65,6 +65,7 @@
           <input id="globalSearch" type="search" placeholder="Search endpoint, IP, ticket, site...">
           <div id="searchResults" class="search-results" hidden></div>
         </div>
+        <button class="btn secondary" id="refreshCloudBtn" type="button" hidden>Refresh Cloud Data</button>
         <button class="btn secondary" id="exportBtn">Export Workspace</button>
         <label class="btn secondary file-label">Import<input id="importInput" type="file" accept="application/json"></label>
         <div class="cloud-user" id="cloudUser" hidden>
@@ -79,7 +80,7 @@
       <div><span class="signal-dot live"></span><b>CONTROL FABRIC</b><small id="workspaceModeLabel">PORTFOLIO DEMO</small></div>
       <div><span class="strip-key">SYNC</span><b id="persistenceModeLabel">LOCAL</b><small>workspace state</small></div>
       <div><span class="strip-key">ACCESS</span><b id="accessModeLabel">DEMO</b><small>role boundary</small></div>
-      <div><span class="strip-key">AGENT</span><b>SAFE MODE</b><small>simulated actions</small></div>
+      <div><span class="strip-key">AGENT</span><b id="agentStatusLabel">DEMO MODE</b><small id="agentStatusDetail">simulation only</small></div>
     </div>
 
     <section class="page active" data-panel="overview">
@@ -100,7 +101,7 @@
           </div>
         </div>
         <div class="hero-status signal-board">
-          <div class="signal-board-head"><span>LIVE OPERATIONS SIGNAL</span><b>OPS-FABRIC</b></div>
+          <div class="signal-board-head"><span id="signalTitle">DEMO OPERATIONS SIGNAL</span><b>OPS-FABRIC</b></div>
           <div class="signal-core">
             <div class="signal-ring ring-a"></div>
             <div class="signal-ring ring-b"></div>
@@ -114,7 +115,7 @@
           <div class="health-bar"><i id="healthBar"></i></div>
           <div class="hero-status-row"><span>Data plane</span><b id="heroPersistenceLabel">Local demo</b></div>
           <div class="hero-status-row"><span>Control boundary</span><b>RLS / RBAC</b></div>
-          <div class="hero-status-row"><span>Action model</span><b>Safe simulation</b></div>
+          <div class="hero-status-row"><span>Action model</span><b id="actionModelLabel">Demo simulation</b></div>
         </div>
       </div>
 
@@ -307,11 +308,11 @@
     <section class="page" data-panel="identity">
       <div class="section-head">
         <div>
-          <p class="eyebrow">AD provisioning integration</p>
+          <p class="eyebrow">Workspace identity records</p>
           <h2>Identity & Access</h2>
-          <p>Manage joiner/mover/leaver workflows, role templates, groups, account state, password-reset flags, and asset relationships.</p>
+          <p>Manage recorded joiner/mover/leaver workflows, role templates, groups, and asset relationships. Live Active Directory synchronization requires a connected provider.</p>
         </div>
-        <button class="btn primary" id="provisionUserBtn">Provision User</button>
+        <button class="btn primary" id="provisionUserBtn">Add Identity Record</button>
       </div>
 
       <div class="identity-kpis">
@@ -638,7 +639,7 @@
           <span><b>11</b> control modules</span>
           <span><b>01</b> shared data fabric</span>
           <span><b>03</b> access roles</span>
-          <span><b>24/7</b> portfolio demo</span>
+          <span><b>01</b> private cloud workspace</span>
         </div>
       </div>
     </section>

@@ -22,6 +22,8 @@
   let workspaceId = null;
   let workspaceOwnerId = null;
   let role = "demo";
+  let workspaceUpdatedAt = null;
+  let saveQueue = Promise.resolve();
 
   async function init() {
     const { data, error } = await client.auth.getSession();
@@ -59,6 +61,7 @@
     session = null;
     workspaceId = null;
     workspaceOwnerId = null;
+    workspaceUpdatedAt = null;
     role = "demo";
   }
 
@@ -126,6 +129,7 @@
 
     workspaceId = workspace.id;
     workspaceOwnerId = workspace.owner_id;
+    workspaceUpdatedAt = workspace.updated_at;
 
     const { data: membership, error: membershipReadError } = await client
       .from("opsfusion_memberships")
@@ -163,17 +167,38 @@
   }
 
   async function saveWorkspace(nextState) {
-    if (!session || !workspaceId) return;
-    if (role === "viewer") return;
-    const { error } = await client
-      .from("opsfusion_workspaces")
-      .update({
-        name: nextState?.meta?.workspaceName || "OpsFusion Unified",
-        state: nextState,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", workspaceId);
-    if (error) throw error;
+    if (!session || !workspaceId) throw new Error("Cloud session expired. Sign in again before saving.");
+    if (role === "viewer") throw new Error("Your workspace role is read-only.");
+    if (!workspaceUpdatedAt) throw new Error("No workspace revision found. Reload your cloud workspace.");
+    const targetId = workspaceId;
+    const targetUserId = session.user.id;
+    // Capture the content now, so later UI edits cannot mutate an in-flight save.
+    const snapshot = JSON.parse(JSON.stringify(nextState));
+    const performSave = async () => {
+      if (!session || session.user.id !== targetUserId || workspaceId !== targetId) {
+        throw new Error("Account or workspace changed during save; the changes were not written.");
+      }
+      const { data, error } = await client
+        .from("opsfusion_workspaces")
+        .update({
+          name: snapshot?.meta?.workspaceName || "OpsFusion Unified",
+          state: snapshot,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", targetId)
+        .eq("updated_at", workspaceUpdatedAt)
+        .select("updated_at")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        throw new Error("Save conflict: this workspace changed on another device. Export your unsaved work before refreshing.");
+      }
+      workspaceUpdatedAt = data.updated_at;
+      return data;
+    };
+    // Serialize multiple edits and protect against lost updates across devices.
+    saveQueue = saveQueue.then(performSave, performSave);
+    return saveQueue;
   }
 
   async function pushAudit(event) {
@@ -202,6 +227,7 @@
       .eq("id", workspaceId)
       .single();
     if (workspaceError) throw workspaceError;
+    workspaceUpdatedAt = workspace.updated_at;
     const { data: audit, error: auditError } = await client
       .from("opsfusion_audit_events")
       .select("id, module, action, target, detail, created_at")
@@ -232,6 +258,7 @@
     if (!session) {
       workspaceId = null;
       workspaceOwnerId = null;
+      workspaceUpdatedAt = null;
       role = "demo";
     }
   });

@@ -243,6 +243,15 @@
   let cloudSavePending = false;
   let cloudSavePromise = Promise.resolve();
 
+  function showSaveStatus(message, problem = false) {
+    const el = $("cloudSaveStatus");
+    if (el) {
+      el.textContent = message;
+      el.setAttribute("aria-label", problem ? "Cloud save error: " + message : message);
+      el.style.color = problem ? "var(--coral)" : "";
+    }
+  }
+
   function migrateUnifiedState() {
     const base = demoMode ? seedState() : emptyCloudState();
     ["identities","groups","templates","technicians","assets","maintenance","software","knowledge","endpoints","vlans","ports","docChanges","diagnostics","remoteActions","incidents","audit"].forEach((key) => {
@@ -270,15 +279,21 @@
     if (window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
       clearTimeout(cloudSaveTimer);
       cloudSavePending = true;
+      showSaveStatus("Unsaved changes");
       cloudSaveTimer = setTimeout(() => {
         cloudSavePending = false;
         cloudSaveTimer = null;
-        cloudSavePromise = window.OpsFusionCloud.saveWorkspace(state).catch((error) => {
+        const snapshot = JSON.parse(JSON.stringify(state));
+        showSaveStatus("Saving to Supabase...");
+        cloudSavePromise = window.OpsFusionCloud.saveWorkspace(snapshot).then(() => {
+          if (!cloudSavePending) showSaveStatus("Saved to Supabase");
+        }).catch((error) => {
           console.error("Cloud save failed:", error);
+          showSaveStatus("Not saved — " + (error.message || "connection error"), true);
           toast("Cloud save failed", error.message || "Your change was NOT saved to Supabase. Please retry.");
           throw error;
         });
-        // A failed save must be visible but not produce an unhandled rejection.
+        // Failure remains observable to Refresh/Sign Out without an unhandled promise.
         cloudSavePromise.catch(() => {});
       }, 350);
     }
@@ -1999,6 +2014,7 @@
     const cloud = mode === "cloud";
     if ($("workspaceModeLabel")) $("workspaceModeLabel").textContent = cloud ? "CLOUD WORKSPACE" : "PORTFOLIO DEMO";
     if ($("persistenceModeLabel")) $("persistenceModeLabel").textContent = cloud ? "SUPABASE" : "LOCAL";
+    showSaveStatus(cloud ? "Loaded from Supabase" : "Demo records only");
     if ($("accessModeLabel")) $("accessModeLabel").textContent = String(role || "demo").toUpperCase();
     if ($("heroPersistenceLabel")) $("heroPersistenceLabel").textContent = cloud ? "Supabase records" : "Local demo";
     if ($("agentStatusLabel")) $("agentStatusLabel").textContent = cloud ? "NOT CONNECTED" : "DEMO ONLY";
@@ -2028,7 +2044,7 @@
     const result = await window.OpsFusionCloud.bootstrap(emptyCloudState(), displayName);
     demoMode = false;
     state = result.state && typeof result.state === "object" ? result.state : emptyCloudState();
-    if (result.audit?.length) state.audit = result.audit;
+    state.audit = result.audit || [];
     migrateUnifiedState();
     currentEndpointId = state.endpoints[0] ? state.endpoints[0].id : null;
     selectedDiagnosticId = null;
@@ -2143,11 +2159,28 @@
   });
 
   $("cloudSignOutBtn").addEventListener("click", async () => {
+    const button = $("cloudSignOutBtn");
+    button.disabled = true;
     try {
+      if (cloudSavePending) {
+        clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = null;
+        cloudSavePending = false;
+        await cloudSavePromise;
+        await window.OpsFusionCloud.saveWorkspace(state);
+        showSaveStatus("Saved to Supabase");
+      } else {
+        await cloudSavePromise;
+      }
       await window.OpsFusionCloud.signOut();
     } catch (error) {
       console.error(error);
+      toast("Sign out paused", "Save or sign-out failed. Your current workspace stays open: " + (error.message || "unknown error"));
+      showSaveStatus("Save/sign-out failed — retry", true);
+      button.disabled = false;
+      return;
     }
+    button.disabled = false;
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = null;
     cloudSavePending = false;

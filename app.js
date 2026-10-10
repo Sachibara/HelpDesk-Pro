@@ -794,7 +794,7 @@
     showModal("Add Endpoint",
       '<div class="form-grid">' +
       '<label class="field"><span>Hostname</span><input id="mHostname" required placeholder="HQ-WS-05"></label>' +
-      '<label class="field"><span>IPv4 address</span><input id="mIp" required placeholder="10.20.10.50"></label>' +
+      '<label class="field"><span>IPv4 address</span><input id="mIp" type="text" inputmode="decimal" required autocomplete="off" spellcheck="false" aria-describedby="mIpHint" placeholder="10.20.10.50"><small id="mIpHint" aria-live="polite">Enter an assignable IPv4 address, e.g. 192.168.1.50.</small></label>' +
       '<label class="field"><span>Site</span><input id="mSite" list="siteList" required placeholder="HQ"><datalist id="siteList">' + sites.map((s) => '<option value="' + esc(s) + '"></option>').join("") + '</datalist></label>' +
       '<label class="field"><span>Type</span><select id="mType"><option>Workstation</option><option>Laptop</option><option>Server</option><option>Router</option><option>Switch</option><option>Access Point</option></select></label>' +
       '<label class="field"><span>Owner</span><input id="mOwner" placeholder="Department / user"></label>' +
@@ -804,12 +804,27 @@
       '</div><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Endpoint</button></div>',
       (root) => {
         $("mCancel").onclick = closeModal;
-        $("mSave").onclick = () => {
+        const updateIpValidity = () => {
+          const value = $("mIp").value.trim();
+          const valid = validEndpointIp(value);
+          $("mIp").setCustomValidity(valid ? "" : "An assignable, canonical IPv4 address is required.");
+          $("mIp").setAttribute("aria-invalid", value && !valid ? "true" : "false");
+          $("mIpHint").textContent = !value
+            ? "Enter an assignable IPv4 address, e.g. 192.168.1.50."
+            : valid
+              ? "Valid endpoint IPv4 format."
+              : "Invalid or non-assignable IPv4 address. Check range, octets and leading zeros.";
+          $("mSave").disabled = !valid || !$("mHostname").value.trim() || !$("mSite").value.trim() || (!demoMode && cloudRole === "viewer");
+        };
+        ["mIp","mHostname","mSite"].forEach((id) => $(id).addEventListener("input", updateIpValidity));
+        updateIpValidity();
+        $("mSave").onclick = async () => {
           const hostname = $("mHostname").value.trim();
           const ip = $("mIp").value.trim();
           const site = $("mSite").value.trim();
           if (!hostname || !validEndpointIp(ip) || !site) {
-            toast("Invalid endpoint", "Hostname, site, and a canonical unicast IPv4 address are required (no leading zeros, loopback, broadcast, multicast, or reserved ranges).");
+            toast("Invalid endpoint", "Hostname, site, and a canonical assignable IPv4 address are required.");
+            updateIpValidity();
             return;
           }
           if (state.endpoints.some((e) => e.hostname.toLowerCase() === hostname.toLowerCase() || e.ip === ip)) {
@@ -830,7 +845,35 @@
             cpu: demoMode ? 0 : null, memory: demoMode ? 0 : null, disk: demoMode ? 0 : null,
             complianceManaged: demoMode && managed, issue: demoMode ? "healthy" : "unknown"
           };
-          state.endpoints.push(endpoint);
+          const button = $("mSave");
+          button.disabled = true;
+          if (!demoMode) {
+            // Only show "Endpoint added" once Supabase has accepted the record.
+            try {
+              showSaveStatus("Validating endpoint in Supabase...");
+              if (cloudSavePending) {
+                clearTimeout(cloudSaveTimer);
+                cloudSavePending = false;
+                cloudSaveTimer = null;
+                await cloudSavePromise;
+                await window.OpsFusionCloud.saveWorkspace(state);
+              } else {
+                await cloudSavePromise;
+              }
+              const proposed = { ...state, endpoints: [...state.endpoints, endpoint],
+                meta: { ...state.meta, updatedAt: now() } };
+              await window.OpsFusionCloud.saveWorkspace(proposed);
+              state = proposed;
+              showSaveStatus("Saved to Supabase");
+            } catch (error) {
+              showSaveStatus("Endpoint rejected or not saved", true);
+              toast("Endpoint not saved", error.message || "Supabase rejected this endpoint. Check the IPv4 address.");
+              updateIpValidity();
+              return;
+            }
+          } else {
+            state.endpoints.push(endpoint);
+          }
           currentEndpointId = endpoint.id;
           audit("Inventory", "Endpoint added", endpoint.hostname, endpoint.ip + " · " + endpoint.site);
           saveState();
@@ -1238,11 +1281,18 @@
   function validEndpointIp(ip) {
     if (!validIp(ip)) return false;
     const parts = String(ip).split(".");
-    // Avoid alternate spellings which defeat exact-string duplicate detection.
+    // Exact string matching and canonicalization agree with the database.
     if (parts.some((part) => part.length > 1 && part[0] === "0")) return false;
-    const first = Number(parts[0]);
-    // Exclude 0/8, loopback 127/8, multicast 224/4, and reserved 240/4.
-    return first >= 1 && first <= 223 && first !== 127;
+    const [a, b, c] = parts.map(Number);
+    // No unspecified, loopback, CGNAT, link-local, test, documentation,
+    // multicast or reserved ranges for a managed endpoint record.
+    if (a === 0 || a === 127 || a >= 224) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 192 && ((b === 0 && (c === 0 || c === 2)) || (b === 88 && c === 99))) return false;
+    if (a === 198 && ((b === 18 || b === 19) || (b === 51 && c === 100))) return false;
+    if (a === 203 && b === 0 && c === 113) return false;
+    return true;
   }
 
   function calculateCidr(value) {

@@ -18,6 +18,16 @@ OpsFusion has its own Supabase project in Sachibara's Org, **OpsFusion** (`qyizw
 
 Existing OmniShare and NetOps projects were not modified by this migration.
 
+## Endpoint IPv4 protection — browser and database
+
+Managed endpoint registration checks canonical, assignable IPv4 input while typing, and the Add Endpoint button stays disabled until the required fields are valid. The frontend waits for Supabase to accept the new endpoint before showing a success message. Production static responses request no browser caching so outdated form code is not silently reused.
+
+A dedicated `opsfusion_enforce_endpoint_integrity` trigger on `public.opsfusion_workspaces` independently rejects newly entered invalid or non-assignable endpoint addresses and duplicate hostnames or IPs, including writes from older clients. This includes invalid octets, alternate leading-zero spellings, unspecified/loopback/link-local, shared CGNAT, multicast, reserved, documentation and benchmarking ranges. The CIDR documentation calculator remains separate and can describe reserved networks without registering them as endpoints.
+
+**Legacy test evidence:** The pre-fix `TEST-IP-VALIDATION` record using `0.0.0.0` was confirmed in Supabase. The database guard tolerates this specific existing invalid record only while its identifier, hostname, and address remain unchanged; it cannot be used to add further invalid endpoints. The owner plans to remove all test data and accounts in the **explicitly approved final interview reset**, not during active testing.
+
+**Scope:** A host's subnet network and directed broadcast address cannot be inferred reliably from an IPv4 address alone; reliable enforcement for those requires a known subnet/prefix. IPv4 validation also does not establish ownership of public IP addresses or verify actual network connectivity.
+
 ## Production functionality and remaining integrations
 
 OpsFusion is being hardened as a **working cloud-based IT service desk and inventory/documentation workspace**, not falsely represented as a complete endpoint-management platform.

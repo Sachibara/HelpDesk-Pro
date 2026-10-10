@@ -1,0 +1,27 @@
+name: OpsFusion regression tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate shipped JavaScript syntax
+        run: |
+          node --check app.js
+          node --check cloud.js
+      - name: Run endpoint and cloud-isolation regressions
+        run: node --test tests/*.test.mjs

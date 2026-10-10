@@ -56,8 +56,8 @@ test("Canonical endpoint host rule remains separate from the CIDR/planning IP pa
   assert.equal(validEndpointIp("127.0.0.1"), false);
 });
 test("Endpoint registration must call strict IP validator", () => {
-  assert.match(source, /if \\(!hostname \\|\\| !validEndpointIp\\(ip\\) \\|\\| !site\\)/);
+  assert.ok(source.includes("if (!hostname || !validEndpointIp(ip) || !site)"));
 });
 test("Cloud bootstrap starts with empty records, never seeded demo records", () => {
-  assert.match(source, /OpsFusionCloud\\.bootstrap\\(emptyCloudState\\(\\), displayName\\)/);
+  assert.ok(source.includes("OpsFusionCloud.bootstrap(emptyCloudState(), displayName)"));
 });

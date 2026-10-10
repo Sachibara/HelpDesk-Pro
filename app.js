@@ -808,8 +808,8 @@
           const hostname = $("mHostname").value.trim();
           const ip = $("mIp").value.trim();
           const site = $("mSite").value.trim();
-          if (!hostname || !validIp(ip) || !site) {
-            toast("Invalid endpoint", "Hostname, valid IPv4 address, and site are required.");
+          if (!hostname || !validEndpointIp(ip) || !site) {
+            toast("Invalid endpoint", "Hostname, site, and a canonical unicast IPv4 address are required (no leading zeros, loopback, broadcast, multicast, or reserved ranges).");
             return;
           }
           if (state.endpoints.some((e) => e.hostname.toLowerCase() === hostname.toLowerCase() || e.ip === ip)) {
@@ -1231,6 +1231,18 @@
   function validIp(ip) {
     const parts = String(ip || "").split(".");
     return parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) >= 0 && Number(part) <= 255);
+  }
+
+  // A documented CIDR network may contain reserved addresses; a managed endpoint
+  // must instead have a canonical unicast host address. Keep these distinct.
+  function validEndpointIp(ip) {
+    if (!validIp(ip)) return false;
+    const parts = String(ip).split(".");
+    // Avoid alternate spellings which defeat exact-string duplicate detection.
+    if (parts.some((part) => part.length > 1 && part[0] === "0")) return false;
+    const first = Number(parts[0]);
+    // Exclude 0/8, loopback 127/8, multicast 224/4, and reserved 240/4.
+    return first >= 1 && first <= 223 && first !== 127;
   }
 
   function calculateCidr(value) {

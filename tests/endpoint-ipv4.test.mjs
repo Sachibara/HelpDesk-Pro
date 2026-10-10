@@ -36,7 +36,15 @@ const invalid = [
   "239.255.255.255",
   "240.0.0.1",
   "255.255.255.255",
-  "00.1.2.3"
+  "00.1.2.3",
+  "169.254.1.1",
+  "100.64.0.1",
+  "192.0.0.9",
+  "192.0.2.15",
+  "192.88.99.1",
+  "198.18.0.1",
+  "198.51.100.4",
+  "203.0.113.1"
 ];
 
 for (const address of invalid) {
@@ -44,7 +52,7 @@ for (const address of invalid) {
     assert.equal(validEndpointIp(address), false);
   });
 }
-for (const address of ["192.168.100.11", "10.0.10.20", "172.16.0.5", "169.254.1.1", "192.0.2.15"]) {
+for (const address of ["192.168.100.11", "10.0.10.20", "172.16.0.5", "8.8.8.8", "1.1.1.1"]) {
   test("Accept a syntactically valid unicast endpoint IP: " + address, () => {
     assert.equal(validEndpointIp(address), true);
   });
@@ -57,6 +65,14 @@ test("Canonical endpoint host rule remains separate from the CIDR/planning IP pa
 });
 test("Endpoint registration must call strict IP validator", () => {
   assert.ok(source.includes("if (!hostname || !validEndpointIp(ip) || !site)"));
+});
+test("Endpoint creation awaits server confirmation before showing success", () => {
+  assert.ok(source.includes("await window.OpsFusionCloud.saveWorkspace(proposed)"));
+  assert.ok(source.includes('toast("Endpoint not saved",'));
+});
+test("Endpoint modal has inline real-time IP feedback", () => {
+  assert.ok(source.includes('id="mIpHint"'));
+  assert.ok(source.includes('mIp").setCustomValidity'));
 });
 test("Cloud bootstrap starts with empty records, never seeded demo records", () => {
   assert.ok(source.includes("OpsFusionCloud.bootstrap(emptyCloudState(), displayName)"));

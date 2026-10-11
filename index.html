@@ -8,8 +8,8 @@
   <title>OpsFusion Unified IT Operations Platform</title>
   <link rel="stylesheet" href="./styles.css?v=20260924-service-workspace">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
-  <script src="./cloud.js?v=20261010-cloud-auth-and-sync" defer></script>
-  <script src="./app.js?v=20261010-endpoint-db-guard-v3" defer></script>
+  <script src="./cloud.js?v=20261011-automation-center" defer></script>
+  <script src="./app.js?v=20261011-automation-center" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -41,6 +41,7 @@
       <button class="nav-link" data-page="remote"><span class="nav-code">RS</span><span>Remote Support</span></button>
       <button class="nav-link" data-page="documentation"><span class="nav-code">ND</span><span>Knowledge Base</span></button>
       <button class="nav-link" data-page="compliance"><span class="nav-code">PC</span><span>Compliance</span></button>
+      <button class="nav-link" data-page="automation"><span class="nav-code">AT</span><span>Automation</span></button>
       <button class="nav-link" data-page="audit"><span class="nav-code">AU</span><span>Audit Log</span></button>
       <button class="nav-link" data-page="settings"><span class="nav-code">ST</span><span>Settings</span></button>
     </nav>
@@ -268,7 +269,7 @@
           <h2>Asset Lifecycle Management</h2>
           <p>Track ownership, lifecycle state, warranty exposure, endpoint relationships, maintenance, and assignment history from one asset register.</p>
         </div>
-        <button class="btn primary" id="addAssetBtn">Add Asset</button>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary" id="addMaintenanceTaskBtn">New Maintenance</button><button class="btn primary" id="addAssetBtn">Add Asset</button></div>
       </div>
 
       <div class="asset-kpis">
@@ -572,6 +573,55 @@
       <article class="panel">
         <div id="auditRows" class="audit-list full"></div>
       </article>
+    </section>
+
+
+    <section class="page" data-panel="automation">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Real cloud schedules · Supabase PostgreSQL</p>
+          <h2>Automation Center</h2>
+          <p>Hourly server-side checks detect overdue SLA deadlines, expiring warranties and maintenance work. Alerts are based on your saved workspace records, not fabricated endpoint telemetry.</p>
+        </div>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn secondary" id="automationRefreshBtn">Refresh Results</button>
+          <button class="btn primary" id="automationRunBtn">Run Checks Now</button>
+        </div>
+      </div>
+
+      <div class="asset-kpis">
+        <article><span>Open alerts</span><strong id="automationOpenCount">0</strong></article>
+        <article><span>New alerts (latest run)</span><strong id="automationNewCount">0</strong></article>
+        <article><span>Last run source</span><strong id="automationSourceLabel">—</strong></article>
+        <article><span>Total recorded runs</span><strong id="automationRunCount">0</strong></article>
+      </div>
+      <article class="panel">
+        <div class="panel-head"><div><h3>Cloud Automation Rules</h3><p>Persisted independently in Supabase; scheduler runs every hour (UTC). Rule changes require the workspace owner.</p></div></div>
+        <p id="automationStatus" class="empty" role="status" aria-live="polite">Sign in to Cloud Workspace to view real automation status.</p>
+        <div class="grid two">
+          <div>
+            <label class="check-row"><input id="automationSlaEnabled" type="checkbox" checked><span>Monitor overdue Service Desk response and resolution SLAs</span></label>
+            <label class="check-row"><input id="automationWarrantyEnabled" type="checkbox" checked><span>Monitor asset warranty expiration</span></label>
+            <label class="field"><span>Warranty warning window (days)</span><input id="automationWarrantyDays" type="number" min="1" max="365" value="45"></label>
+          </div>
+          <div>
+            <label class="check-row"><input id="automationMaintenanceEnabled" type="checkbox" checked><span>Monitor scheduled maintenance tasks</span></label>
+            <label class="field"><span>Maintenance warning window (days)</span><input id="automationMaintenanceDays" type="number" min="0" max="90" value="7"></label>
+            <button class="btn primary" id="automationSaveRulesBtn">Save Automation Rules</button>
+          </div>
+        </div>
+        <p class="cell-sub">Automation produces in-app alerts and server-side run history. It does not send email, execute remote commands, or claim live monitoring without an authorized agent.</p>
+      </article>
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head"><div><h3>Detected Alerts</h3><p>Acknowledge an alert without erasing its evidence. Cleared source conditions automatically close open alerts on the next scan.</p></div></div>
+          <div id="automationAlertRows" class="stack"><div class="empty">No automation alerts loaded.</div></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h3>Execution History</h3><p>Timestamped results from scheduled and manual database scans.</p></div></div>
+          <div id="automationRunRows" class="stack"><div class="empty">No automation runs yet.</div></div>
+        </article>
+      </div>
     </section>
 
     <section class="page" data-panel="settings">

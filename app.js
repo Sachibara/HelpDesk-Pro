@@ -334,7 +334,7 @@
     };
     state.audit.unshift(event);
     state.audit = state.audit.slice(0, 500);
-    if (window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
+    if (!demoMode && window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
       window.OpsFusionCloud.pushAudit(event).catch((error) => console.error("Server audit write failed:", error));
     }
   }

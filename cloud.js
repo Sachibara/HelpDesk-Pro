@@ -334,6 +334,7 @@
     return !!session && !!workspaceId;
   }
 
+  function isWorkspaceOwner() { return !!session && !!workspaceId && workspaceOwnerId === session.user?.id; }
   function getRole() { return role; }
   function getUser() { return session?.user || null; }
   function getWorkspaceId() { return workspaceId; }
@@ -374,6 +375,7 @@
     pushAudit,
     isCloudActive,
     getRole,
+    isWorkspaceOwner,
     getUser,
     getWorkspaceId
   };

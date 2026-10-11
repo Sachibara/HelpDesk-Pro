@@ -967,3 +967,10 @@ tbody tr:hover{background:#f7faff}
   .hero-copy{padding:28px 22px}
   .hero-copy h2{font-size:2.3rem}
 }
+
+/* Dropdown reliability: keep long option labels within the existing modal grid. */
+.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.form-grid .field{min-width:0}
+.form-grid select,.toolbar select,.incident-actions select{min-width:0;max-width:100%}
+select:disabled{cursor:not-allowed}
+@media(max-width:720px){.form-grid{grid-template-columns:minmax(0,1fr)}}

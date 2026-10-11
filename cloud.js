@@ -278,6 +278,58 @@
     };
   }
 
+  async function loadAutomations() {
+    if (!session || !workspaceId) throw new Error("Sign in to load automation records.");
+    const [settings, alerts, runs] = await Promise.all([
+      client.from("opsfusion_automation_settings").select("*").eq("workspace_id", workspaceId).maybeSingle(),
+      client.from("opsfusion_automation_alerts").select("*").eq("workspace_id",workspaceId)
+        .order("last_detected",{ascending:false}).limit(100),
+      client.from("opsfusion_automation_runs").select("*").eq("workspace_id",workspaceId)
+        .order("executed_at",{ascending:false}).limit(30)
+    ]);
+    for (const response of [settings,alerts,runs]) if(response.error) throw response.error;
+    return {settings:settings.data,alerts:alerts.data||[],runs:runs.data||[]};
+  }
+
+  async function saveAutomationRules(input) {
+    if (!session || !workspaceId || workspaceOwnerId !== session.user.id) {
+      throw new Error("Only the workspace owner can change automation rules.");
+    }
+    const days = Number(input.warranty_days),maintenance = Number(input.maintenance_days);
+    if(!Number.isInteger(days)||days<1||days>365||!Number.isInteger(maintenance)||maintenance<0||maintenance>90) {
+      throw new Error("Warranty days must be 1–365; maintenance days must be 0–90.");
+    }
+    const update = {
+      ticket_sla_enabled:input.ticket_sla_enabled === true,
+      warranty_enabled:input.warranty_enabled === true,
+      maintenance_enabled:input.maintenance_enabled === true,
+      warranty_days:days,maintenance_days:maintenance
+    };
+    const {data,error} = await client.from("opsfusion_automation_settings")
+      .update(update).eq("workspace_id",workspaceId).select("*").single();
+    if(error) throw error;
+    return data;
+  }
+
+  async function runAutomations() {
+    if (!session || !workspaceId || role === "viewer") throw new Error("Automation requires an authorized account.");
+    const {data,error}=await client.rpc("opsfusion_run_automations",{p_workspace_id:workspaceId});
+    if(error) throw error;
+    return data;
+  }
+
+  async function acknowledgeAutomation(eventKey) {
+    if (!session || !workspaceId || workspaceOwnerId !== session.user.id) {
+      throw new Error("Only a workspace owner can acknowledge automation alerts.");
+    }
+    const {data,error}=await client.from("opsfusion_automation_alerts")
+      .update({status:"acknowledged"})
+      .eq("workspace_id",workspaceId).eq("event_key",eventKey).eq("status","open")
+      .select("event_key").maybeSingle();
+    if(error) throw error;
+    return !!data;
+  }
+
   function isCloudActive() {
     return !!session && !!workspaceId;
   }
@@ -315,6 +367,10 @@
     bootstrap,
     saveWorkspace,
     refreshWorkspace,
+    loadAutomations,
+    saveAutomationRules,
+    runAutomations,
+    acknowledgeAutomation,
     pushAudit,
     isCloudActive,
     getRole,

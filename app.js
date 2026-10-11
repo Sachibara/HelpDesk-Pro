@@ -1851,13 +1851,20 @@
     const switches = state.endpoints.filter((e) => /switch/i.test(e.type));
     showModal("Add Switch Port Mapping",
       '<div class="form-grid">' +
-      '<label class="field"><span>Switch</span><select id="mPortSwitch">' + switches.map((e) => '<option value="' + esc(e.hostname) + '">' + esc(e.hostname) + "</option>").join("") + '</select></label>' +
+      '<label class="field"><span>Switch</span><select id="mPortSwitch">' +
+      (switches.length ? switches.map((e) => '<option value="' + esc(e.hostname) + '">' + esc(e.hostname) + "</option>").join("") :
+        '<option value="">No switches — add a Switch endpoint first</option>') + '</select></label>' +
       '<label class="field"><span>Port</span><input id="mPortName" placeholder="Gi1/0/12"></label>' +
-      '<label class="field"><span>Endpoint</span><select id="mPortEndpoint">' + state.endpoints.map((e) => '<option value="' + esc(e.id) + '">' + esc(e.hostname) + "</option>").join("") + '</select></label>' +
+      '<label class="field"><span>Endpoint</span><select id="mPortEndpoint">' +
+      (state.endpoints.length ? state.endpoints.map((e) => '<option value="' + esc(e.id) + '">' + esc(e.hostname) + "</option>").join("") :
+        '<option value="">No endpoints — add an endpoint first</option>') + '</select></label>' +
       '<label class="field"><span>VLAN</span><input id="mPortVlan" type="number" min="1" max="4094"></label>' +
       '</div><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Mapping</button></div>',
       () => {
         $("mCancel").onclick = closeModal;
+        $("mPortSwitch").disabled = !switches.length;
+        $("mPortEndpoint").disabled = !state.endpoints.length;
+        $("mSave").disabled = !switches.length || !state.endpoints.length || cloudRole === "viewer";
         $("mSave").onclick = () => {
           const sw = $("mPortSwitch").value;
           const port = $("mPortName").value.trim();
@@ -2045,11 +2052,29 @@
         '<div class="incident-actions"><select data-incident-status="'+esc(i.id)+'">'+["New","Assigned","Active","In Progress","Pending","Resolved","Closed"].map((s)=>'<option'+(s===i.status?" selected":"")+'>'+s+'</option>').join("")+'</select><button class="mini-btn" data-open-ticket="'+esc(i.id)+'">Details</button></div></div>';
     }).join(""):'<div class="empty">No tickets match the current filters.</div>';
 
-    qsa("[data-incident-status]").forEach((select)=>select.onchange=()=>{
-      const t=incidentById(select.dataset.incidentStatus);if(!t)return;const previous=t.status;t.status=select.value;t.updatedAt=now();
-      if(["Resolved","Closed"].includes(t.status)&&!t.resolvedAt)t.resolvedAt=now();
-      t.activities.push({at:now(),actor:"Service Desk",action:"Status changed",note:previous+" → "+t.status});
-      audit("Service Desk","Ticket status changed",t.id,previous+" → "+t.status);saveState();renderIncidents();renderOverview();
+    qsa("[data-incident-status]").forEach((select)=>select.onchange=async()=>{
+      const id=select.dataset.incidentStatus;
+      const ticket=incidentById(id);
+      if(!ticket || cloudRole==="viewer")return;
+      const previous=ticket.status;
+      const updated=select.value;
+      if(previous===updated)return;
+      select.disabled=true;
+      try {
+        await commitWorkspaceChange((draft)=>{
+          const item=draft.incidents.find((i)=>i.id===id);
+          if(!item)throw new Error("Ticket no longer exists.");
+          item.status=updated;item.updatedAt=now();
+          if(["Resolved","Closed"].includes(updated) && !item.resolvedAt)item.resolvedAt=now();
+          item.activities = Array.isArray(item.activities) ? item.activities : [];
+          item.activities.push({at:now(),actor:"Service Desk",action:"Status changed",note:previous+" → "+updated});
+        });
+        audit("Service Desk","Ticket status changed",id,previous+" → "+updated);
+        renderIncidents();renderOverview();
+      } catch(error) {
+        select.value=previous;select.disabled=false;
+        toast("Ticket not saved",error.message||"Unable to update ticket status.");
+      }
     });
     qsa("[data-open-ticket]").forEach((b)=>b.onclick=()=>openTicketModal(b.dataset.openTicket));
 

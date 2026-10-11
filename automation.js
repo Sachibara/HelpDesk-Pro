@@ -15,7 +15,7 @@
   const cloud = () => window.OpsFusionCloud;
   const connected = () => !!cloud()?.isCloudActive?.()
     && $("workspaceModeLabel")?.textContent?.trim() === "CLOUD WORKSPACE";
-  const owner = () => connected() && cloud()?.getRole?.() === "admin";
+  const owner = () => connected() && cloud()?.isWorkspaceOwner?.() === true;
   const status = (message) => { if ($("automationStatus")) $("automationStatus").textContent = message; };
 
   function render() {

@@ -997,15 +997,27 @@
     }).join("") : '<div class="empty">No software inventory records.</div>';
 
     qsa("[data-open-asset]").forEach((b) => b.onclick = () => openAssetModal(b.dataset.openAsset));
-    qsa("[data-maint-complete]").forEach((b) => b.onclick = () => {
-      const task = state.maintenance.find((m) => m.id === b.dataset.maintComplete);
+    qsa("[data-maint-complete]").forEach((b) => b.onclick = async () => {
+      const taskId = b.dataset.maintComplete;
+      const task = state.maintenance.find((m) => m.id === taskId);
       if (!task || cloudRole === "viewer") return;
-      task.status = "Completed";
-      task.completedAt = now();
-      audit("Assets", "Maintenance completed", task.id, task.detail);
-      saveState();
-      renderAssets();
-      toast("Maintenance completed", task.type);
+      b.disabled = true;
+      try {
+        await commitWorkspaceChange((draft) => {
+          const next = draft.maintenance.find((m) => m.id === taskId);
+          if (!next || ["Completed","Closed","Cancelled"].includes(next.status)) {
+            throw new Error("Maintenance task is already closed or missing.");
+          }
+          next.status = "Completed";
+          next.completedAt = now();
+        });
+        audit("Assets","Maintenance completed",task.id,task.detail);
+        renderAssets();
+        toast("Maintenance completed",task.type);
+      } catch(error) {
+        toast("Maintenance not saved",error.message || "Cloud save failed.");
+        b.disabled = false;
+      }
     });
   }
 
@@ -1142,7 +1154,7 @@
       '</div><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Schedule Maintenance</button></div>',
       () => {
         $("mCancel").onclick=closeModal;
-        $("mSave").onclick=()=>{
+        $("mSave").onclick = async () => {
           const assetId=$("mMaintAsset").value;
           const dueDate=$("mMaintDue").value;
           const detail=$("mMaintDetail").value.trim();
@@ -1153,10 +1165,22 @@
           const task={id:uid("MNT"),assetId,type:$("mMaintType").value,
             detail,owner:$("mMaintOwner").value.trim()||"IT Support",dueDate,
             status:"Open",createdAt:now()};
-          state.maintenance.unshift(task);
-          audit("Assets","Maintenance scheduled",task.id,assetId+" · "+detail);
-          saveState();closeModal();renderAssets();
-          toast("Maintenance scheduled",task.id);
+          const button=$("mSave");
+          button.disabled=true;
+          try {
+            await commitWorkspaceChange((draft) => {
+              if (!draft.assets.some((a) => a.id === assetId)) {
+                throw new Error("Linked asset is no longer available.");
+              }
+              draft.maintenance.unshift(task);
+            });
+            audit("Assets","Maintenance scheduled",task.id,assetId+" · "+detail);
+            closeModal();renderAssets();
+            toast("Maintenance scheduled",task.id);
+          } catch(error) {
+            toast("Maintenance not saved",error.message || "Unable to schedule maintenance.");
+            button.disabled=false;
+          }
         };
       });
   });
@@ -1242,7 +1266,7 @@
   $("identityDepartmentFilter").addEventListener("change",renderIdentity);
 
   $("provisionUserBtn").addEventListener("click",()=>{
-    showModal("Provision User",
+    showModal("Add Identity Record (workspace only)",
       '<div class="form-grid"><label class="field"><span>First name</span><input id="mIdFirst"></label><label class="field"><span>Last name</span><input id="mIdLast"></label>'+
       '<label class="field"><span>Role template</span><select id="mIdTemplate">'+state.templates.map((t)=>'<option value="'+esc(t.id)+'">'+esc(t.name+" · "+t.department)+'</option>').join("")+'</select></label>'+
       '<label class="field"><span>Job title</span><input id="mIdTitle" placeholder="Analyst"></label><label class="field"><span>Manager</span><input id="mIdManager"></label>'+
@@ -1250,14 +1274,26 @@
       '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Provision</button></div>',
       ()=>{
         $("mCancel").onclick=closeModal;
-        $("mSave").onclick=()=>{
+        $("mSave").onclick=async()=>{
           const first=$("mIdFirst").value.trim(),last=$("mIdLast").value.trim(),tpl=templateById($("mIdTemplate").value);
           if(!first||!last||!tpl){toast("Missing details","First name, last name, and template are required.");return;}
           const username=usernameFor(first,last);
           const user={id:uid("USR"),firstName:first,lastName:last,displayName:first+" "+last,username,upn:username+"@corp.local",department:tpl.department==="Corporate"?"General":tpl.department,title:$("mIdTitle").value.trim()||"Employee",manager:$("mIdManager").value.trim()||"Unassigned",status:"Active",enabled:true,templateId:tpl.id,groups:[...tpl.groups],expiry:$("mIdExpiry").value,mustResetPassword:true,createdAt:now()};
-          state.identities.push(user);audit("Identity","User provisioned",user.username,user.displayName+" · "+tpl.name);
-          createIncident({type:"Service Request",requesterId:user.id,title:"New starter provisioning validation: "+user.displayName,category:"Onboarding",impact:"Low",urgency:"Medium",source:"Identity",description:"Validate access, endpoint assignment, and first-login requirements."},true);
-          saveState();closeModal();renderIdentity();renderIncidents();renderOverview();toast("User provisioned",user.upn);
+          const button=$("mSave");
+          button.disabled=true;
+          try {
+            await commitWorkspaceChange((draft) => {
+              draft.identities.push(user);
+            });
+            audit("Identity","Identity record created",user.username,user.displayName+" · "+tpl.name);
+            // Create a real workspace ticket for review, not an external AD action.
+            createIncident({type:"Service Request",requesterId:user.id,title:"Review new identity record: "+user.displayName,category:"Onboarding",impact:"Low",urgency:"Medium",source:"Identity",description:"Confirm organizational approvals and any external directory actions separately."},true);
+            closeModal();renderIdentity();renderIncidents();renderOverview();
+            toast("Identity record saved",user.upn+" · External directory is not connected.");
+          } catch(error) {
+            toast("Identity not saved",error.message||"Unable to save identity record.");
+            button.disabled=false;
+          }
         };
       }
     );

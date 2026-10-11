@@ -28,6 +28,12 @@ A dedicated `opsfusion_enforce_endpoint_integrity` trigger on `public.opsfusion_
 
 **Scope:** A host's subnet network and directed broadcast address cannot be inferred reliably from an IPv4 address alone; reliable enforcement for those requires a known subnet/prefix. IPv4 validation also does not establish ownership of public IP addresses or verify actual network connectivity.
 
+## Real cloud automation (October 2026)
+
+OpsFusion's **Automation Center** is a live Supabase feature, separate from the Portfolio Demo. PostgreSQL `pg_cron` runs an hourly scanner independently of browser sessions. It detects active tickets with overdue first-response or resolution SLAs, expiring/expired asset warranties, and upcoming/overdue scheduled maintenance tasks. Automation alerts and timestamped run history are stored in separate workspace-scoped, RLS-protected tables, and the in-app **Run Checks Now** button executes the same server-side scan. Alerts are deduplicated and automatically clear when their source conditions disappear; owners can acknowledge an alert and edit due-date lookahead rules. The Assets tab lets operators create and complete maintenance tasks.
+
+This automation does **not** send emails or SMS, make AI decisions, run remote commands, or measure real endpoint telemetry. Those require separately configured integrations. See [presentation rehearsal](docs/AUTOMATION_PRESENTATION_20261014.md) for a live Oct 14–15 workflow and exact values.
+
 ## Production functionality and remaining integrations
 
 OpsFusion is being hardened as a **working cloud-based IT service desk and inventory/documentation workspace**, not falsely represented as a complete endpoint-management platform.

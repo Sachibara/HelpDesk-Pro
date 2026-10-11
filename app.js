@@ -1065,10 +1065,22 @@
       '<div><span>Warranty</span><strong>' + esc(w.label) + '</strong></div><div><span>Specs</span><strong>' + esc(asset.specs) + '</strong></div></div></div>' +
       '<div class="form-grid"><label class="field"><span>Lifecycle status</span><select id="mAssetStatus">' +
       ["Assigned","Available","In Repair","Retired","Lost"].map((s) => '<option' + (s===asset.status ? " selected" : "") + '>' + s + '</option>').join("") +
-      '</select></label><label class="field"><span>Assigned user</span><select id="mAssetUser"><option value="">Unassigned</option>' +
+      '</select></label><label class="field"><span>Assigned user</span><select id="mAssetUser"><option value="">' +
+      (state.identities.some((u)=>u.status==="Active") ? "Choose an active identity" : "No active identities — add one in Identity & Access") +
+      '</option>' +
       state.identities.filter((u) => u.status === "Active").map((u) => '<option value="' + esc(u.id) + '"' + (u.id===asset.assignedUserId ? " selected" : "") + '>' + esc(u.displayName) + '</option>').join("") +
-      '</select></label></div><div class="modal-actions"><button class="btn secondary" id="mAssetTicket">Create Ticket</button><button class="btn primary" id="mAssetSave">Save Asset</button></div>',
+      '</select><small id="mAssetAssigneeHint">Only Assigned assets require a user.</small></label></div><div class="modal-actions"><button class="btn secondary" id="mAssetTicket">Create Ticket</button><button class="btn primary" id="mAssetSave">Save Asset</button></div>',
       () => {
+        const updateAssignment = () => {
+          const assigning = $("mAssetStatus").value === "Assigned";
+          const hasActive = state.identities.some((u) => u.status === "Active");
+          $("mAssetUser").disabled = !assigning || !hasActive;
+          $("mAssetAssigneeHint").textContent = assigning
+            ? (hasActive ? "Select the identity receiving this asset." : "Create an active identity first.")
+            : "Only Assigned assets require an identity.";
+        };
+        $("mAssetStatus").addEventListener("change", updateAssignment);
+        updateAssignment();
         $("mAssetSave").onclick = async () => {
           const selectedStatus = $("mAssetStatus").value;
           const selectedUser = selectedStatus === "Assigned" ? $("mAssetUser").value : "";
@@ -2043,7 +2055,7 @@
 
     $("knowledgeRows").innerHTML=state.knowledge.length ? state.knowledge.map((k)=>'<button class="knowledge-row" data-kb="'+esc(k.id)+'"><strong>'+esc(k.title)+'</strong><span>'+esc(k.category+" · "+k.summary)+'</span></button>').join("") : '<div class="empty">No knowledge articles saved.</div>';
     qsa("[data-kb]").forEach((b)=>b.onclick=()=>{const k=state.knowledge.find((x)=>x.id===b.dataset.kb);if(k)showModal(k.title,'<p style="font-size:.62rem;color:var(--muted);line-height:1.7">'+esc(k.summary)+'</p><div class="modal-actions"><button class="btn primary" id="mKbClose">Close</button></div>',()=>{$("mKbClose").onclick=closeModal;});});
-    $("technicianRows").innerHTML=state.technicians.map((tech)=>{const load=open.filter((t)=>t.assigneeId===tech.id).length;return '<div class="stack-row"><div><strong>'+esc(tech.name+" · "+tech.role)+'</strong><small>'+esc(tech.specialty)+'</small></div>'+badge(load+" open",load>3?"amber":"blue")+'</div>';}).join("");
+    $("technicianRows").innerHTML=availableTechnicians().map((tech)=>{const load=open.filter((t)=>t.assigneeId===tech.id).length;return '<div class="stack-row"><div><strong>'+esc(tech.name+" · "+tech.role)+'</strong><small>'+esc(tech.specialty)+'</small></div>'+badge(load+" open",load>3?"amber":"blue")+'</div>';}).join("");
     // Rendering is read-only. In particular, do not overwrite a remote cloud
     // workspace merely because a user opened the Service Desk page.
   }
@@ -2061,7 +2073,8 @@
       '<label class="field"><span>Asset</span><select id="mTicketAsset"><option value="">No asset</option>'+state.assets.map((a)=>'<option value="'+esc(a.id)+'">'+esc(a.tag+" · "+a.hostname)+'</option>').join("")+'</select></label>'+
       '<label class="field"><span>Impact</span><select id="mTicketImpact"><option>Low</option><option selected>Medium</option><option>High</option></select></label>'+
       '<label class="field"><span>Urgency</span><select id="mTicketUrgency"><option>Low</option><option selected>Medium</option><option>High</option></select></label>'+
-      '<label class="field"><span>Assignee</span><select id="mTicketAssignee"><option value="">Unassigned</option>'+state.technicians.map((t)=>'<option value="'+esc(t.id)+'">'+esc(t.name+" · "+t.role)+'</option>').join("")+'</select></label>'+
+      '<label class="field"><span>Assignee</span><select id="mTicketAssignee"><option value="">Unassigned (add an active IT identity to assign)</option>'+
+      availableTechnicians().map((t)=>'<option value="'+esc(t.id)+'">'+esc(t.name+" · "+t.role)+'</option>').join("")+'</select></label>'+
       '<label class="field"><span>Source</span><select id="mIncidentSource"><option>Manual</option><option>Troubleshooting</option><option>Remote Support</option><option>Compliance</option><option>Monitoring</option><option>Identity</option><option>Asset Management</option></select></label>'+
       '<label class="field span-2"><span>Description</span><textarea id="mTicketDescription" placeholder="Provide symptoms, request details, business impact, or troubleshooting context"></textarea></label></div>'+
       '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Create Ticket</button></div>',

@@ -2153,8 +2153,34 @@
       '<label class="field" style="margin-top:12px"><span>Work note</span><textarea id="mTicketNote" placeholder="Add troubleshooting or resolution note"></textarea></label>'+
       '<div class="modal-actions">'+(!ticket.firstResponseAt?'<button class="btn secondary" id="mTicketRespond">Record First Response</button>':"")+'<button class="btn primary" id="mTicketNoteSave">Add Work Note</button></div>',
       ()=>{
-        if($("mTicketRespond"))$("mTicketRespond").onclick=()=>{t.firstResponseAt=now();t.updatedAt=now();t.activities.push({at:now(),actor:"Service Desk",action:"First response",note:"First-response timestamp recorded."});audit("Service Desk","First response recorded",t.id,t.title);saveState();closeModal();renderIncidents();toast("First response recorded",t.id);};
-        $("mTicketNoteSave").onclick=()=>{const note=$("mTicketNote").value.trim();if(!note)return;t.updatedAt=now();t.activities.push({at:now(),actor:"Service Desk",action:"Work note",note});audit("Service Desk","Work note added",t.id,note);saveState();closeModal();renderIncidents();toast("Work note added",t.id);};
+        if($("mTicketRespond"))$("mTicketRespond").onclick=async()=>{
+          const button=$("mTicketRespond");button.disabled=true;
+          try{
+            await commitWorkspaceChange((draft)=>{
+              const record=draft.incidents.find((row)=>row.id===id);
+              if(!record || record.firstResponseAt)throw new Error("First response already recorded or ticket missing.");
+              record.firstResponseAt=now();record.updatedAt=now();
+              record.activities=Array.isArray(record.activities)?record.activities:[];
+              record.activities.push({at:now(),actor:"Service Desk",action:"First response",note:"First-response timestamp recorded."});
+            });
+            audit("Service Desk","First response recorded",id,t.title);
+            closeModal();renderIncidents();toast("First response recorded",id);
+          }catch(error){button.disabled=false;toast("First response not saved",error.message||"Cloud update failed.");}
+        };
+        $("mTicketNoteSave").onclick=async()=>{
+          const note=$("mTicketNote").value.trim();if(!note)return;
+          const button=$("mTicketNoteSave");button.disabled=true;
+          try{
+            await commitWorkspaceChange((draft)=>{
+              const record=draft.incidents.find((row)=>row.id===id);
+              if(!record)throw new Error("Ticket was not found.");
+              record.updatedAt=now();record.activities=Array.isArray(record.activities)?record.activities:[];
+              record.activities.push({at:now(),actor:"Service Desk",action:"Work note",note});
+            });
+            audit("Service Desk","Work note added",id,note);
+            closeModal();renderIncidents();toast("Work note added",id);
+          }catch(error){button.disabled=false;toast("Work note not saved",error.message||"Cloud update failed.");}
+        };
       }
     );
   }

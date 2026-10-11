@@ -23,5 +23,6 @@ jobs:
         run: |
           node --check app.js
           node --check cloud.js
-      - name: Run endpoint and cloud-isolation regressions
+          node --check automation.js
+      - name: Run IPv4, automation and production-hardening regressions
         run: node --test tests/*.test.mjs

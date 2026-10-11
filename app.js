@@ -188,6 +188,16 @@
 
   // Empty, independent Supabase workspace. Sample data exists only in seedState()
   // and must never be copied into an authenticated user's database.
+  // Role templates are configuration definitions, never synthetic employees.
+  // Cloud workspaces start with no people or memberships.
+  function cloudRoleTemplates() {
+    return [
+      {id:"TPL-STD",name:"Standard Employee",department:"Corporate",groups:[],description:"Record-only standard user profile"},
+      {id:"TPL-IT",name:"IT Support",department:"IT",groups:[],description:"Record-only IT support profile"},
+      {id:"TPL-ADMIN",name:"IT Administrator",department:"IT",groups:[],description:"Record-only administrator profile"}
+    ];
+  }
+
   function emptyCloudState() {
     const stamp = now();
     return {
@@ -195,7 +205,7 @@
       settings: { autoTicketCompliance: false, autoTicketDiagnostic: false },
       complianceRules: { maxMissingUpdates: 0, maxRebootAge: 14, requireFirewall: true, requireBitlocker: true, requireAv: true },
       endpoints: [], vlans: [], ports: [], docChanges: [], diagnostics: [],
-      remoteActions: [], identities: [], groups: [], templates: [],
+      remoteActions: [], identities: [], groups: [], templates: cloudRoleTemplates(),
       technicians: [], assets: [], maintenance: [], software: [],
       knowledge: [], incidents: [], audit: []
     };
@@ -258,6 +268,8 @@
     ["identities","groups","templates","technicians","assets","maintenance","software","knowledge","endpoints","vlans","ports","docChanges","diagnostics","remoteActions","incidents","audit"].forEach((key) => {
       if (!Array.isArray(state[key])) state[key] = base[key];
     });
+    // Upgrade older empty cloud workspaces without importing demo identities.
+    if (!demoMode && !state.templates.length) state.templates = cloudRoleTemplates();
     state.incidents = (state.incidents || []).map(normalizeTicket);
     state.assets.forEach((asset) => {
       const endpoint = endpointById(asset.endpointId);
@@ -298,6 +310,42 @@
         cloudSavePromise.catch(() => {});
       }, 350);
     }
+  }
+
+  // Commit a validated change before changing the visible Cloud Workspace.
+  // A rejected/conflicted Supabase write cannot masquerade as a saved asset.
+  async function commitWorkspaceChange(buildNext) {
+    if (!demoMode) {
+      if (!window.OpsFusionCloud?.isCloudActive?.() || cloudRole === "viewer") {
+        throw new Error("An editor cloud session is required.");
+      }
+      if (cloudSavePending) {
+        clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = null;
+        cloudSavePending = false;
+        await cloudSavePromise;
+        await window.OpsFusionCloud.saveWorkspace(state);
+        showSaveStatus("Saved to Supabase");
+      } else {
+        await cloudSavePromise;
+      }
+    }
+    const proposed = JSON.parse(JSON.stringify(state));
+    buildNext(proposed);
+    proposed.meta.updatedAt = now();
+    if (!demoMode) {
+      showSaveStatus("Saving to Supabase...");
+      try {
+        await window.OpsFusionCloud.saveWorkspace(proposed);
+      } catch (error) {
+        showSaveStatus("Not saved — " + (error.message || "database rejected change"), true);
+        throw error;
+      }
+    }
+    state = proposed;
+    if (demoMode) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    else showSaveStatus("Saved to Supabase");
+    return state;
   }
 
   function esc(value) {
@@ -979,20 +1027,34 @@
       state.identities.filter((u) => u.status === "Active").map((u) => '<option value="' + esc(u.id) + '"' + (u.id===asset.assignedUserId ? " selected" : "") + '>' + esc(u.displayName) + '</option>').join("") +
       '</select></label></div><div class="modal-actions"><button class="btn secondary" id="mAssetTicket">Create Ticket</button><button class="btn primary" id="mAssetSave">Save Asset</button></div>',
       () => {
-        $("mAssetSave").onclick = () => {
-          const oldStatus = asset.status;
-          asset.status = $("mAssetStatus").value;
-          asset.assignedUserId = $("mAssetUser").value;
-          if (asset.status !== "Assigned") asset.assignedUserId = "";
-          if (asset.status === "Assigned" && !asset.assignedUserId) {
-            toast("Assignment required","Choose an active user or select another lifecycle state."); return;
+        $("mAssetSave").onclick = async () => {
+          const selectedStatus = $("mAssetStatus").value;
+          const selectedUser = selectedStatus === "Assigned" ? $("mAssetUser").value : "";
+          const owner = selectedUser ? identityById(selectedUser) : null;
+          if (selectedStatus === "Assigned" && (!owner || owner.status !== "Active")) {
+            toast("Assignment required", "Choose an active identity record before assigning the asset.");
+            return;
           }
-          const assigned = identityById(asset.assignedUserId);
-          const ep = endpointById(asset.endpointId);
-          if (ep) ep.owner = assigned ? assigned.displayName : "Unassigned";
-          audit("Assets","Asset updated",asset.tag,oldStatus + " → " + asset.status + (assigned ? " · " + assigned.displayName : ""));
-          saveState(); closeModal(); renderAssets(); renderEndpoints(); renderIdentity(); renderOverview();
-          toast("Asset updated",asset.tag);
+          const oldStatus = asset.status;
+          const button = $("mAssetSave");
+          button.disabled = true;
+          try {
+            await commitWorkspaceChange((draft) => {
+              const item = draft.assets.find((a) => a.id === id);
+              if (!item) throw new Error("Asset was not found. Refresh Cloud Data.");
+              item.status = selectedStatus;
+              item.assignedUserId = selectedUser;
+              const endpoint = draft.endpoints.find((e) => e.id === item.endpointId);
+              if (endpoint) endpoint.owner = owner ? owner.displayName : "Unassigned";
+            });
+            audit("Assets", "Asset updated", asset.tag, oldStatus + " → " + selectedStatus +
+              (owner ? " · " + owner.displayName : ""));
+            closeModal(); renderAssets(); renderEndpoints(); renderIdentity(); renderOverview();
+            toast("Asset updated", asset.tag);
+          } catch (error) {
+            toast("Asset not saved", error.message || "Unable to save asset lifecycle change.");
+            button.disabled = false;
+          }
         };
         $("mAssetTicket").onclick = () => {
           createIncident({
@@ -1023,15 +1085,40 @@
       '</div><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Asset</button></div>',
       () => {
         $("mCancel").onclick=closeModal;
-        $("mSave").onclick=() => {
-          const tag=$("mAssetTag").value.trim(), host=$("mAssetHost").value.trim();
-          if(!tag||!host){toast("Missing details","Asset tag and hostname/name are required.");return;}
-          if(state.assets.some((a)=>a.tag.toLowerCase()===tag.toLowerCase())){toast("Duplicate tag",tag);return;}
-          const endpointId=$("mAssetEndpoint").value;
-          const ep=endpointById(endpointId);
-          state.assets.push({id:tag,tag,hostname:host,type:$("mAssetType").value,serial:$("mAssetSerial").value.trim()||"—",status:"Available",assignedUserId:"",endpointId,department:$("mAssetDepartment").value.trim()||"IT",location:$("mAssetLocation").value.trim()||"Unspecified",purchaseDate:new Date().toISOString().slice(0,10),warrantyExpiry:$("mAssetWarranty").value,specs:ep ? ep.model+" · "+ep.os : "Portfolio asset record"});
-          audit("Assets","Asset added",tag,host + (ep ? " · linked to "+ep.hostname : ""));
-          saveState();closeModal();renderAssets();renderOverview();toast("Asset added",tag);
+        $("mSave").onclick = async () => {
+          const tag = $("mAssetTag").value.trim();
+          const host = $("mAssetHost").value.trim();
+          if (!tag || !host) { toast("Missing details", "Asset tag and hostname/name are required."); return; }
+          if (state.assets.some((a) => String(a.tag).toLowerCase() === tag.toLowerCase())) {
+            toast("Duplicate tag", tag);
+            return;
+          }
+          const endpointId = $("mAssetEndpoint").value;
+          const ep = endpointById(endpointId);
+          if (endpointId && !ep) { toast("Invalid endpoint", "Choose a saved endpoint or No endpoint."); return; }
+          const record = {id:tag,tag,hostname:host,type:$("mAssetType").value,
+            serial:$("mAssetSerial").value.trim()||"—",status:"Available",assignedUserId:"",endpointId,
+            department:$("mAssetDepartment").value.trim()||"IT",
+            location:$("mAssetLocation").value.trim()||"Unspecified",
+            purchaseDate:new Date().toISOString().slice(0,10),
+            warrantyExpiry:$("mAssetWarranty").value,
+            specs:ep ? ep.model+" · "+ep.os : "User-managed asset inventory"};
+          const button = $("mSave");
+          button.disabled = true;
+          try {
+            await commitWorkspaceChange((draft) => {
+              if (draft.assets.some((a) => String(a.tag).toLowerCase() === tag.toLowerCase())) {
+                throw new Error("Asset tag already exists.");
+              }
+              draft.assets.push(record);
+            });
+            audit("Assets", "Asset added", tag, host + (ep ? " · linked to "+ep.hostname : ""));
+            closeModal(); renderAssets(); renderOverview();
+            toast("Asset added", tag);
+          } catch (error) {
+            toast("Asset not saved", error.message || "Unable to save asset.");
+            button.disabled = false;
+          }
         };
       }
     );

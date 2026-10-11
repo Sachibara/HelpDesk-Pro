@@ -1059,7 +1059,7 @@
           const assetId=$("mMaintAsset").value;
           const dueDate=$("mMaintDue").value;
           const detail=$("mMaintDetail").value.trim();
-          if (!assetById(assetId) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate) || !detail) {
+          if (!assetById(assetId) || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate) || !detail) {
             toast("Missing maintenance details","Choose an asset, a due date and work details.");
             return;
           }

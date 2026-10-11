@@ -885,7 +885,10 @@
       '<label class="field"><span>Owner</span><input id="mOwner" placeholder="Department / user"></label>' +
       '<label class="field"><span>OS / platform</span><input id="mOs" placeholder="Windows 11 24H2"></label>' +
       '<label class="field"><span>Model</span><input id="mModel" placeholder="Dell OptiPlex"></label>' +
-      '<label class="field"><span>Agent</span><select id="mAgent"><option value="online">Online</option><option value="offline">Offline</option></select></label>' +
+      '<label class="field"><span>Agent</span><select id="mAgent"'+(demoMode?'':' disabled')+'>'+
+      (demoMode?'<option value="online">Online (demo)</option><option value="offline">Offline (demo)</option>':
+       '<option value="unverified">Not connected — requires an authorized endpoint agent</option>')+
+      '</select></label>' +
       '</div><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Endpoint</button></div>',
       (root) => {
         $("mCancel").onclick = closeModal;
@@ -2125,11 +2128,8 @@
   }
 
   function renderAudit() {
-    const modules = Array.from(new Set(state.audit.map((row) => row.module))).sort();
     const select = $("auditModuleFilter");
-    const current = select.value;
-    select.innerHTML = '<option value="">All modules</option>' + modules.map((m) => '<option value="' + esc(m) + '">' + esc(m) + "</option>").join("");
-    if (modules.includes(current)) select.value = current;
+    setFilterOptions(select, "All modules", state.audit.map((row) => row.module));
 
     const query = $("auditSearch").value.trim().toLowerCase();
     const module = select.value;

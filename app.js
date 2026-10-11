@@ -317,11 +317,15 @@
   // Commit a validated change before changing the visible Cloud Workspace.
   // A rejected/conflicted Supabase write cannot masquerade as a saved asset.
   async function commitWorkspaceChange(buildNext) {
+    // Capture session identity when the user clicks, not when a queued edit starts.
+    const epoch = workspaceSessionEpoch;
+    const targetWorkspace = window.OpsFusionCloud?.getWorkspaceId?.();
     // Serialize state-building, not just HTTP requests. Two quick edits must
     // never copy the same older snapshot and erase each other's changes.
     const operation = workspaceCommitQueue.then(async () => {
-      const epoch = workspaceSessionEpoch;
-      const targetWorkspace = window.OpsFusionCloud?.getWorkspaceId?.();
+      if (epoch !== workspaceSessionEpoch) {
+        throw new Error("Workspace session changed during this action.");
+      }
       if (!demoMode) {
         if (!window.OpsFusionCloud?.isCloudActive?.() || cloudRole === "viewer") {
           throw new Error("An editor cloud session is required.");

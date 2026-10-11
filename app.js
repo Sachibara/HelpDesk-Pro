@@ -1295,12 +1295,25 @@
   $("provisionUserBtn").addEventListener("click",()=>{
     showModal("Add Identity Record (workspace only)",
       '<div class="form-grid"><label class="field"><span>First name</span><input id="mIdFirst"></label><label class="field"><span>Last name</span><input id="mIdLast"></label>'+
-      '<label class="field"><span>Role template</span><select id="mIdTemplate">'+state.templates.map((t)=>'<option value="'+esc(t.id)+'">'+esc(t.name+" · "+t.department)+'</option>').join("")+'</select></label>'+
+      '<label class="field"><span>Role template</span><select id="mIdTemplate" required><option value="" selected disabled>Select a role template</option>'+
+      availableRoleTemplates().map((t)=>'<option value="'+esc(t.id)+'">'+esc(t.name+" · "+t.department)+'</option>').join("")+
+      '</select><small id="mTemplateHint">Choose a workspace-only role. This does not create an external directory account.</small></label>'+
       '<label class="field"><span>Job title</span><input id="mIdTitle" placeholder="Analyst"></label><label class="field"><span>Manager</span><input id="mIdManager"></label>'+
       '<label class="field"><span>Expiry (optional)</span><input id="mIdExpiry" type="date"></label></div>'+
       '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Provision</button></div>',
       ()=>{
         $("mCancel").onclick=closeModal;
+        const updateIdentityForm = () => {
+          const tpl = templateById($("mIdTemplate").value);
+          $("mTemplateHint").textContent = tpl
+            ? "Selected: " + tpl.name + " · " + tpl.department + " (workspace record only)."
+            : "Select Standard Employee, IT Support, or IT Administrator before saving.";
+          $("mSave").disabled = cloudRole === "viewer" || !tpl ||
+            !$("mIdFirst").value.trim() || !$("mIdLast").value.trim();
+        };
+        ["mIdFirst","mIdLast","mIdTemplate"].forEach((key) =>
+          $(key).addEventListener(key === "mIdTemplate" ? "change" : "input", updateIdentityForm));
+        updateIdentityForm();
         $("mSave").onclick=async()=>{
           const first=$("mIdFirst").value.trim(),last=$("mIdLast").value.trim(),tpl=templateById($("mIdTemplate").value);
           if(!first||!last||!tpl){toast("Missing details","First name, last name, and template are required.");return;}
@@ -1310,6 +1323,9 @@
           button.disabled=true;
           try {
             await commitWorkspaceChange((draft) => {
+              if (!demoMode) draft.templates = availableRoleTemplates().map((t) => ({
+                ...t, groups: Array.isArray(t.groups) ? t.groups : []
+              }));
               draft.identities.push(user);
             });
             audit("Identity","Identity record created",user.username,user.displayName+" · "+tpl.name);

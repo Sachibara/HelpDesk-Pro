@@ -99,18 +99,22 @@
     await refresh();
     status("Cloud check complete: "+result.checked+" matching conditions, "+result.created+" new alerts, "+result.active+" open.");
   }));
-  $("automationSaveRulesBtn").addEventListener("click",()=>doTask($("automationSaveRulesBtn"),async()=>{
-    if(!owner())throw new Error("Only the workspace owner can change automation settings.");
-    await cloud().saveAutomationRules({
+  $("automationSaveRulesBtn").addEventListener("click",()=>{
+    // Snapshot form input before rendering disables or restores the controls.
+    const input={
       ticket_sla_enabled:$("automationSlaEnabled").checked,
       warranty_enabled:$("automationWarrantyEnabled").checked,
       maintenance_enabled:$("automationMaintenanceEnabled").checked,
       warranty_days:Number($("automationWarrantyDays").value),
       maintenance_days:Number($("automationMaintenanceDays").value)
+    };
+    return doTask($("automationSaveRulesBtn"),async()=>{
+      if(!owner())throw new Error("Only the workspace owner can change automation settings.");
+      await cloud().saveAutomationRules(input);
+      await refresh();
+      status("Cloud automation rules saved. Future hourly and manual scans will use them.");
     });
-    await refresh();
-    status("Cloud automation rules saved. Future hourly and manual scans will use them.");
-  }));
+  });
 
   const link=document.querySelector('[data-page="automation"]');
   if(link)link.addEventListener("click",()=>refresh());

@@ -253,6 +253,8 @@
   let cloudSaveTimer = null;
   let cloudSavePending = false;
   let cloudSavePromise = Promise.resolve();
+  let workspaceCommitQueue = Promise.resolve();
+  let workspaceSessionEpoch = 0;
 
   function showSaveStatus(message, problem = false) {
     const el = $("cloudSaveStatus");
@@ -315,37 +317,50 @@
   // Commit a validated change before changing the visible Cloud Workspace.
   // A rejected/conflicted Supabase write cannot masquerade as a saved asset.
   async function commitWorkspaceChange(buildNext) {
-    if (!demoMode) {
-      if (!window.OpsFusionCloud?.isCloudActive?.() || cloudRole === "viewer") {
-        throw new Error("An editor cloud session is required.");
+    // Serialize state-building, not just HTTP requests. Two quick edits must
+    // never copy the same older snapshot and erase each other's changes.
+    const operation = workspaceCommitQueue.then(async () => {
+      const epoch = workspaceSessionEpoch;
+      const targetWorkspace = window.OpsFusionCloud?.getWorkspaceId?.();
+      if (!demoMode) {
+        if (!window.OpsFusionCloud?.isCloudActive?.() || cloudRole === "viewer") {
+          throw new Error("An editor cloud session is required.");
+        }
+        if (cloudSavePending) {
+          clearTimeout(cloudSaveTimer);
+          cloudSaveTimer = null;
+          cloudSavePending = false;
+          await cloudSavePromise;
+          await window.OpsFusionCloud.saveWorkspace(state);
+          showSaveStatus("Saved to Supabase");
+        } else {
+          await cloudSavePromise;
+        }
       }
-      if (cloudSavePending) {
-        clearTimeout(cloudSaveTimer);
-        cloudSaveTimer = null;
-        cloudSavePending = false;
-        await cloudSavePromise;
-        await window.OpsFusionCloud.saveWorkspace(state);
-        showSaveStatus("Saved to Supabase");
-      } else {
-        await cloudSavePromise;
+      if (epoch !== workspaceSessionEpoch) throw new Error("Workspace session changed during this action.");
+      const proposed = JSON.parse(JSON.stringify(state));
+      buildNext(proposed);
+      proposed.meta.updatedAt = now();
+      if (!demoMode) {
+        showSaveStatus("Saving to Supabase...");
+        try {
+          await window.OpsFusionCloud.saveWorkspace(proposed);
+        } catch (error) {
+          showSaveStatus("Not saved — " + (error.message || "database rejected change"), true);
+          throw error;
+        }
       }
-    }
-    const proposed = JSON.parse(JSON.stringify(state));
-    buildNext(proposed);
-    proposed.meta.updatedAt = now();
-    if (!demoMode) {
-      showSaveStatus("Saving to Supabase...");
-      try {
-        await window.OpsFusionCloud.saveWorkspace(proposed);
-      } catch (error) {
-        showSaveStatus("Not saved — " + (error.message || "database rejected change"), true);
-        throw error;
+      if (epoch !== workspaceSessionEpoch || 
+          (!demoMode && window.OpsFusionCloud?.getWorkspaceId?.() !== targetWorkspace)) {
+        throw new Error("Workspace changed while saving; refresh the current account.");
       }
-    }
-    state = proposed;
-    if (demoMode) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    else showSaveStatus("Saved to Supabase");
-    return state;
+      state = proposed;
+      if (demoMode) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      else showSaveStatus("Saved to Supabase");
+      return state;
+    });
+    workspaceCommitQueue = operation.then(() => undefined, () => undefined);
+    return operation;
   }
 
   function esc(value) {
@@ -2538,6 +2553,7 @@
   async function bootstrapCloud(displayName = "") {
     if (!window.OpsFusionCloud?.available) throw new Error("Supabase client is unavailable.");
     const result = await window.OpsFusionCloud.bootstrap(emptyCloudState(), displayName);
+    workspaceSessionEpoch += 1;
     demoMode = false;
     state = result.state && typeof result.state === "object" ? result.state : emptyCloudState();
     state.audit = result.audit || [];
@@ -2558,6 +2574,7 @@
     const button = $("refreshCloudBtn");
     button.disabled = true;
     try {
+      await workspaceCommitQueue;
       if (cloudSavePending) {
         clearTimeout(cloudSaveTimer);
         cloudSaveTimer = null;
@@ -2595,6 +2612,7 @@
   window.addEventListener("opsfusion-password-recovery", showRecoveryPasswordForm);
 
   window.addEventListener("opsfusion-session-ended", () => {
+    workspaceSessionEpoch += 1;
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = null;
     cloudSavePending = false;
@@ -2709,6 +2727,7 @@
   });
 
   $("continueDemoBtn").addEventListener("click", () => {
+    workspaceSessionEpoch += 1;
     demoMode = true;
     state = loadState();
     migrateUnifiedState();
@@ -2765,6 +2784,7 @@
     const button = $("cloudSignOutBtn");
     button.disabled = true;
     try {
+      await workspaceCommitQueue;
       if (cloudSavePending) {
         clearTimeout(cloudSaveTimer);
         cloudSaveTimer = null;

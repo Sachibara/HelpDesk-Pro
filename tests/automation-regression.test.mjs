@@ -61,3 +61,11 @@ test("Fix covers JSON operator precedence and UTC date comparisons",()=>{
   assert.match(patchedScanner,/\|\|\(x->>'id'\)/);
   assert.doesNotMatch(patchedScanner,/pg_catalog\.current_date/);
 });
+
+test("Automation rule editing requires the actual workspace owner",()=>{
+  assert.match(cloud,/function isWorkspaceOwner\(\)/);
+  assert.match(ui,/cloud\(\)\?\.isWorkspaceOwner\?\.\(\) === true/);
+});
+test("Separate Portfolio Demo cannot submit cloud audit records",()=>{
+  assert.match(app,/if \(!demoMode && window\.OpsFusionCloud\?\.isCloudActive\?\.\(\) && cloudRole !== "viewer"\)/);
+});

@@ -1113,13 +1113,21 @@
             button.disabled = false;
           }
         };
-        $("mAssetTicket").onclick = () => {
-          createIncident({
-            type:"Incident", assetId:asset.id, endpointId:asset.endpointId,
-            requesterId:asset.assignedUserId, title:"Asset support required: " + asset.tag + " · " + asset.hostname,
-            category:"Hardware / Asset", impact:"Medium", urgency:"Medium", source:"Asset Management"
-          });
-          closeModal(); toast("Ticket created",asset.tag);
+        $("mAssetTicket").onclick = async () => {
+          const button=$("mAssetTicket");
+          const input={type:"Incident",assetId:asset.id,endpointId:asset.endpointId,
+            requesterId:asset.assignedUserId,title:"Asset support required: " + asset.tag + " · " + asset.hostname,
+            category:"Hardware / Asset",impact:"Medium",urgency:"Medium",source:"Asset Management"};
+          button.disabled=true;
+          try {
+            if (demoMode) createIncident(input);
+            else await commitNewTicket(input);
+            closeModal();
+            toast("Ticket created",asset.tag);
+          } catch(error) {
+            button.disabled=false;
+            toast("Ticket not saved",error.message||"Unable to save ticket.");
+          }
         };
       }
     );
@@ -2165,12 +2173,20 @@
       '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Create Ticket</button></div>',
       ()=>{
         $("mCancel").onclick=closeModal;
-        $("mSave").onclick=()=>{
+        $("mSave").onclick=async()=>{
           const title=$("mIncidentTitle").value.trim();if(!title){toast("Title required","Enter a ticket title.");return;}
           const assetId=$("mTicketAsset").value,asset=assetById(assetId);
           const requesterId=$("mTicketRequester").value||(asset?asset.assignedUserId:"");
-          createIncident({type:$("mTicketType").value,assetId,endpointId:asset?asset.endpointId:"",requesterId,assigneeId:$("mTicketAssignee").value,title,category:$("mTicketCategory").value,impact:$("mTicketImpact").value,urgency:$("mTicketUrgency").value,source:$("mIncidentSource").value,description:$("mTicketDescription").value.trim()});
-          closeModal();toast("Ticket created",title);
+          const input={type:$("mTicketType").value,assetId,endpointId:asset?asset.endpointId:"",
+            requesterId,assigneeId:$("mTicketAssignee").value,title,category:$("mTicketCategory").value,
+            impact:$("mTicketImpact").value,urgency:$("mTicketUrgency").value,
+            source:$("mIncidentSource").value,description:$("mTicketDescription").value.trim()};
+          const button=$("mSave");button.disabled=true;
+          try {
+            if(demoMode)createIncident(input);
+            else await commitNewTicket(input);
+            closeModal();toast("Ticket created",title);
+          }catch(error){button.disabled=false;toast("Ticket not saved",error.message||"Unable to save the Service Desk record.");}
         };
       }
     );

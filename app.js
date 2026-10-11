@@ -1990,6 +1990,63 @@
     return "INC-" + String(max + 1);
   }
 
+  // Build a ticket against an isolated draft. Shared by cloud-confirmed create paths.
+  function buildTicketForDraft(draft, input) {
+    const createdAt = now();
+    const impact = input.impact || "Medium";
+    const urgency = input.urgency || "Medium";
+    const priority = input.priority || priorityFromImpactUrgency(impact, urgency);
+    const sla = SLA[priority] || SLA.P3;
+    const asset = (draft.assets || []).find((a) => a.id === input.assetId);
+    const requesterId = input.requesterId || "";
+    if (input.assetId && !asset) throw new Error("The selected asset is no longer available.");
+    if (requesterId && !(draft.identities || []).some((u) => u.id === requesterId && u.status === "Active")) {
+      throw new Error("Select an active requester.");
+    }
+    const assigneeId = input.assigneeId || "";
+    if (assigneeId) {
+      const techIds = new Set((draft.technicians || []).map((t) => t.id));
+      const activeIT = (draft.identities || []).some((u) => {
+        const t = (draft.templates || []).find((tpl) => tpl.id === u.templateId);
+        return u.id === assigneeId && u.status === "Active" && (t?.department === "IT" || u.department === "IT");
+      });
+      if (!techIds.has(assigneeId) && !activeIT) throw new Error("Select a valid active technician.");
+    }
+    const id = (() => {
+      let next = 1001;
+      for (const item of draft.incidents || []) {
+        const match = /^INC-(\d+)$/.exec(String(item.id || ""));
+        if (match) next = Math.max(next, Number(match[1]) + 1);
+      }
+      while ((draft.incidents || []).some((item) => item.id === "INC-" + next)) next += 1;
+      return "INC-" + next;
+    })();
+    return normalizeTicket({
+      id,type:input.type || "Incident",
+      endpointId:input.endpointId || (asset ? asset.endpointId : ""),
+      assetId:input.assetId || "",requesterId,assigneeId,
+      category:input.category || input.source || "General",
+      title:String(input.title || "New service desk ticket").trim(),
+      description:input.description || "",impact,urgency,priority,
+      status:input.status || "New",source:input.source || "Manual",
+      createdAt,responseDue:addHours(createdAt,sla.response),
+      resolutionDue:addHours(createdAt,sla.resolution),
+      activities:[{at:createdAt,actor:"OpsFusion",action:"Ticket created",
+        note:input.description || input.source || "Service Desk intake"}]
+    });
+  }
+
+  async function commitNewTicket(input) {
+    let created;
+    await commitWorkspaceChange((draft) => {
+      created = buildTicketForDraft(draft,input);
+      draft.incidents.unshift(created);
+    });
+    audit("Service Desk","Ticket created",created.id,created.title);
+    renderIncidents();renderOverview();
+    return created;
+  }
+
   function createIncident(input, silent = false) {
     const createdAt=now();
     const impact=input.impact||"Medium",urgency=input.urgency||"Medium";

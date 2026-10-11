@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="./cloud.js?v=20261011-automation-center" defer></script>
   <script src="./app.js?v=20261011-automation-center" defer></script>
+  <script src="./automation.js?v=20261011-cloud-automation" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -593,7 +594,7 @@
         <article><span>Open alerts</span><strong id="automationOpenCount">0</strong></article>
         <article><span>New alerts (latest run)</span><strong id="automationNewCount">0</strong></article>
         <article><span>Last run source</span><strong id="automationSourceLabel">—</strong></article>
-        <article><span>Total recorded runs</span><strong id="automationRunCount">0</strong></article>
+        <article><span>Recent runs (max 30)</span><strong id="automationRunCount">0</strong></article>
       </div>
       <article class="panel">
         <div class="panel-head"><div><h3>Cloud Automation Rules</h3><p>Persisted independently in Supabase; scheduler runs every hour (UTC). Rule changes require the workspace owner.</p></div></div>

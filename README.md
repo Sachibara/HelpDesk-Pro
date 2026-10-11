@@ -41,7 +41,7 @@ OpsFusion is being hardened as a **working cloud-based IT service desk and inven
 - **Implemented:** Supabase email/password authentication, email recovery and signed-in password change, private RLS-protected workspace, ticket and incident management, device and asset record management, user records, IP/VLAN documentation, knowledge articles, record audit events, import/export for the isolated demo, and cloud refresh.
 - **Cloud save reliability:** Saves are queued and version-checked against the last database `updated_at` value. A conflicting edit from another browser or device is blocked and reported; it is not silently overwritten. The interface shows the server save state and waits for pending changes before sign-out.
 - **Browser privacy:** Ending an authenticated session hides and clears private workspace data from the interface. Browsers that block requests to Supabase can still fail to connect; users should review their tracking protection settings.
-- **Not integrated:** Windows/macOS/Linux agent deployment, authenticated device pairing, verified CPU/RAM/OS/patch/AV heartbeats, real ping/traceroute/DNS probes, privileged service control, genuine Active Directory/identity-provider provisioning, cloud job scheduler, and infrastructure alerts. These depend on separately authorized systems and cannot be made real by hardcoded browser data.
+- **Not integrated:** Windows/macOS/Linux agent deployment, authenticated device pairing, verified CPU/RAM/OS/patch/AV heartbeats, real ping/traceroute/DNS probes, privileged service control, genuine Active Directory/identity-provider provisioning, external email delivery, and agent-driven infrastructure alerts. These depend on separately authorized systems and cannot be made real by hardcoded browser data.
 - **Recovery email setup:** The dedicated Supabase project's **Authentication > URL Configuration** must whitelist `https://opsfusion-it.vercel.app/**` and set its Site URL to `https://opsfusion-it.vercel.app`. Supabase's default email service has sending restrictions; a suitable SMTP provider may be required for unrestricted public registrations.
 - **Verification:** Source-code syntax checks and a mocked two-device save-conflict test passed. Vercel production deployments are checked separately. Full interactive account workflows and remote-agent functions require actual device/browser tests before being called production-verified.
 
@@ -53,7 +53,8 @@ A future agent release must use per-device identity, enrollment approval, scoped
 
 The **authenticated live site** never initializes a cloud workspace from portfolio demo data or from browser localStorage.
 
-- Newly registered cloud accounts start with empty, private records in the dedicated OpsFusion Supabase project.
+- Newly registered cloud accounts start with empty, private user, asset, endpoint and ticket records in the dedicated OpsFusion Supabase project. Three **configuration-only** role templates are available to create genuine workspace identity records (not AD accounts).
+- Asset and maintenance edits wait for Supabase confirmation, reject duplicate asset tags, and require valid active identity references. Database triggers enforce endpoint/asset integrity even against outdated clients.
 - A previously initialized workspace containing only the original demo records was safely archived in `public.opsfusion_legacy_demo_backups` (administrator-only) and reset to an empty inventory. Account/authentication and workspace identity were retained.
 - Cloud inventory, tickets, assets, identity records, documentation and knowledge-base entries are **user-managed records**, stored in Supabase and restored on sign-in. They are not automatically discovered infrastructure.
 - The **Refresh Cloud Data** button loads the latest saved server workspace and audit history; browser-local data does not override cloud records.
@@ -124,3 +125,11 @@ HTML5 · CSS3 · JavaScript · Supabase · Python · FastAPI · SQLite
 **Jim Rodmark Camus**  
 BSIT — Network Technology  
 GitHub: [@Sachibara](https://github.com/Sachibara)
+
+## October 14–15 release qualification
+
+Tested: endpoint IPv4 rejection (browser and database), duplicate prevention, Cloud Workspace persistence, asset and maintenance integrity, real hourly SLA/warranty/maintenance alerting, clearing and reactivation, and server execution history. The automated regression suite covers 59 cases and is run by GitHub Actions on `main`.
+
+Still requiring on-device acceptance: **new external-email signup and password recovery**, account isolation in separate browser profiles, cloud asset/identity lifecycle through the deployed UI, simultaneous-save conflict behavior, and scheduled job recovery after a normal overnight cycle. Before open interviewer registration, configure a custom verified SMTP provider, production Auth redirect URLs and password security in Supabase.
+
+**Out of scope until integrated:** a real signed endpoint agent, OS/service control, network probes, real AD account creation, external alert delivery and AI inference. No sample demo telemetry is evidence for these capabilities. See [release checklist](docs/RELEASE_CHECKLIST_20261014.md).

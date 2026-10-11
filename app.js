@@ -410,12 +410,36 @@
     return (state.groups || []).find((item) => item.id === id) || null;
   }
 
+  function availableRoleTemplates() {
+    const existing = Array.isArray(state.templates)
+      ? state.templates.filter((t) => t && t.id && t.name) : [];
+    if (demoMode) return existing;
+    const merged = new Map(cloudRoleTemplates().map((t) => [t.id, t]));
+    existing.forEach((t) => merged.set(t.id, {
+      ...t, groups: Array.isArray(t.groups) ? t.groups : []
+    }));
+    return [...merged.values()];
+  }
+
   function templateById(id) {
-    return (state.templates || []).find((item) => item.id === id) || null;
+    return availableRoleTemplates().find((t) => t.id === id) || null;
+  }
+
+  function availableTechnicians() {
+    const known = Array.isArray(state.technicians) ? state.technicians : [];
+    const ids = new Set(known.map((t) => t.id));
+    const identityTechs = (state.identities || []).filter((u) => {
+      const template = templateById(u.templateId);
+      return u.status === "Active" && (template?.department === "IT" || u.department === "IT");
+    }).filter((u) => !ids.has(u.id)).map((u) => ({
+      id: u.id, name: u.displayName, role: u.title || "IT Support",
+      specialty: "Workspace identity record; no external directory connection"
+    }));
+    return [...known, ...identityTechs];
   }
 
   function technicianById(id) {
-    return (state.technicians || []).find((item) => item.id === id) || null;
+    return availableTechnicians().find((t) => t.id === id) || null;
   }
 
   const SLA = {
@@ -731,20 +755,32 @@
     return Array.from(new Set(state.endpoints.map((e) => e.site).filter(Boolean))).sort();
   }
 
+  function setFilterOptions(select, label, values) {
+    const previous = select.value;
+    const items = [...new Set(values.filter((v) => typeof v === "string" && v.trim()))].sort();
+    select.innerHTML = '<option value="">' + esc(label) + '</option>' +
+      items.map((v) => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join("");
+    select.value = items.includes(previous) ? previous : "";
+  }
+
   function fillEndpointSelect(select, selectedId, includeNetwork = true) {
     if (!select) return;
     const current = selectedId || select.value || currentEndpointId;
     const list = includeNetwork ? state.endpoints : state.endpoints.filter((e) => e.complianceManaged !== false);
-    select.innerHTML = list.map((e) => '<option value="' + esc(e.id) + '">' + esc(e.hostname + " · " + e.ip) + "</option>").join("");
+    select.innerHTML = list.length
+      ? list.map((e) => '<option value="' + esc(e.id) + '">' + esc(e.hostname + " · " + e.ip) + "</option>").join("")
+      : '<option value="">No endpoints — add an endpoint first</option>';
     if (list.some((e) => e.id === current)) select.value = current;
-    else if (list[0]) select.value = list[0].id;
+    else if (list.length) select.value = list[0].id;
+    select.disabled = !list.length;
   }
 
   function renderEndpoints() {
     const siteFilter = $("endpointSiteFilter");
-    const previousSite = siteFilter.value;
-    siteFilter.innerHTML = '<option value="">All sites</option>' + uniqueSites().map((site) => '<option value="' + esc(site) + '">' + esc(site) + "</option>").join("");
-    siteFilter.value = uniqueSites().includes(previousSite) ? previousSite : "";
+    setFilterOptions(siteFilter, "All sites", uniqueSites());
+    const agentFilter = $("endpointStateFilter");
+    const agents = state.endpoints.map((e) => e.agent).filter(Boolean);
+    if (agentFilter.value && !agents.includes(agentFilter.value)) agentFilter.value = "";
 
     const search = $("endpointSearch").value.trim().toLowerCase();
     const site = siteFilter.value;
@@ -936,16 +972,10 @@
 
 
   function renderAssets() {
-    const statuses = Array.from(new Set(state.assets.map((a) => a.status))).sort();
-    const types = Array.from(new Set(state.assets.map((a) => a.type))).sort();
     const statusFilter = $("assetStatusFilter");
     const typeFilter = $("assetTypeFilter");
-    const prevStatus = statusFilter.value;
-    const prevType = typeFilter.value;
-    statusFilter.innerHTML = '<option value="">All lifecycle states</option>' + statuses.map((s) => '<option value="' + esc(s) + '">' + esc(s) + '</option>').join("");
-    typeFilter.innerHTML = '<option value="">All asset types</option>' + types.map((s) => '<option value="' + esc(s) + '">' + esc(s) + '</option>').join("");
-    if (statuses.includes(prevStatus)) statusFilter.value = prevStatus;
-    if (types.includes(prevType)) typeFilter.value = prevType;
+    setFilterOptions(statusFilter, "All lifecycle states", state.assets.map((a) => a.status));
+    setFilterOptions(typeFilter, "All asset types", state.assets.map((a) => a.type));
 
     const search = $("assetSearch").value.trim().toLowerCase();
     const rows = state.assets.filter((a) => {
@@ -1200,12 +1230,9 @@
   };
 
   function renderIdentity() {
-    const statuses=Array.from(new Set(state.identities.map((u)=>u.status))).sort();
-    const departments=Array.from(new Set(state.identities.map((u)=>u.department))).sort();
-    const sf=$("identityStatusFilter"), df=$("identityDepartmentFilter"), ps=sf.value, pd=df.value;
-    sf.innerHTML='<option value="">All identity states</option>'+statuses.map((s)=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("");
-    df.innerHTML='<option value="">All departments</option>'+departments.map((s)=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("");
-    if(statuses.includes(ps))sf.value=ps;if(departments.includes(pd))df.value=pd;
+    const sf=$("identityStatusFilter"), df=$("identityDepartmentFilter");
+    setFilterOptions(sf,"All identity states",state.identities.map((u)=>u.status));
+    setFilterOptions(df,"All departments",state.identities.map((u)=>u.department));
     const q=$("identitySearch").value.trim().toLowerCase();
     const rows=state.identities.filter((u)=>{
       const hay=[u.displayName,u.username,u.upn,u.department,u.title,u.manager].join(" ").toLowerCase();
@@ -1303,7 +1330,7 @@
     if (!demoMode) {
       $("diagTerminal").textContent = "Live diagnostics unavailable: no authorized endpoint agent is connected. Saved inventory is not proof of network reachability.";
     }
-    fillEndpointSelect($("diagEndpoint"), currentEndpointId, true);
+    fillEndpointSelect($("diagEndpoint"), null, true);
     if ($("diagEndpoint").value) currentEndpointId = $("diagEndpoint").value;
     renderDiagnosticSummary();
   }
@@ -1519,7 +1546,7 @@
   });
 
   function renderRemote() {
-    fillEndpointSelect($("remoteEndpoint"), currentEndpointId, true);
+    fillEndpointSelect($("remoteEndpoint"), null, true);
     const endpoint = endpointById($("remoteEndpoint").value);
     if (endpoint) currentEndpointId = endpoint.id;
     renderRemoteEndpointCard();
@@ -1974,8 +2001,8 @@
     const breached=open.filter((i)=>ticketSlaState(i).level==="bad").length;
     $("incNew").textContent=open.length;$("incActive").textContent=risk;$("incPending").textContent=breached;$("incResolved").textContent=state.incidents.length-open.length;
 
-    const statuses=Array.from(new Set(state.incidents.map((i)=>i.status))).sort(),sf=$("ticketStatusFilter"),prev=sf.value;
-    sf.innerHTML='<option value="">All statuses</option>'+statuses.map((s)=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("");if(statuses.includes(prev))sf.value=prev;
+    const sf=$("ticketStatusFilter");
+    setFilterOptions(sf,"All statuses",state.incidents.map((i)=>i.status));
     const q=$("ticketSearch").value.trim().toLowerCase(),pf=$("ticketPriorityFilter").value;
     const incidents=state.incidents.filter((i)=>{
       const ep=endpointById(i.endpointId),asset=assetById(i.assetId),req=identityById(i.requesterId),tech=technicianById(i.assigneeId);

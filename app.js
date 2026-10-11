@@ -18,6 +18,7 @@
     compliance: ["Endpoint posture", "Compliance"],
     incidents: ["IT service management", "Service Desk"],
     audit: ["Governance", "Audit Log"],
+    automation: ["Cloud workflow engine", "Automation Center"],
     settings: ["Configuration", "Settings"]
   };
 
@@ -925,11 +926,13 @@
         '<td><button class="mini-btn" data-open-asset="' + esc(a.id) + '">Open</button></td></tr>';
     }).join("") : '<tr><td colspan="8" class="empty">No assets match the current filters.</td></tr>';
 
-    $("maintenanceRows").innerHTML = state.maintenance.length ? state.maintenance.map((m) => {
+    const openMaintenance = state.maintenance.filter((m) => !["Completed","Closed","Cancelled"].includes(m.status));
+    $("maintenanceRows").innerHTML = openMaintenance.length ? openMaintenance.map((m) => {
       const asset = assetById(m.assetId);
       return '<div class="stack-row"><div><strong>' + esc(m.type + " · " + (asset ? asset.tag : m.assetId)) +
         '</strong><small>' + esc(m.detail + " · Owner " + m.owner + " · Due " + m.dueDate) +
-        '</small></div>' + badge(m.status,m.status === "In Progress" ? "amber" : "blue") + '</div>';
+        '</small></div><div>' + badge(m.status,m.status === "In Progress" ? "amber" : "blue") +
+        ' <button class="mini-btn" data-maint-complete="' + esc(m.id) + '">Complete</button></div></div>';
     }).join("") : '<div class="empty">No open maintenance records.</div>';
 
     const softwareByAsset = {};
@@ -946,6 +949,16 @@
     }).join("") : '<div class="empty">No software inventory records.</div>';
 
     qsa("[data-open-asset]").forEach((b) => b.onclick = () => openAssetModal(b.dataset.openAsset));
+    qsa("[data-maint-complete]").forEach((b) => b.onclick = () => {
+      const task = state.maintenance.find((m) => m.id === b.dataset.maintComplete);
+      if (!task || cloudRole === "viewer") return;
+      task.status = "Completed";
+      task.completedAt = now();
+      audit("Assets", "Maintenance completed", task.id, task.detail);
+      saveState();
+      renderAssets();
+      toast("Maintenance completed", task.type);
+    });
   }
 
   function openAssetModal(id) {
@@ -1023,6 +1036,57 @@
       }
     );
   });
+
+  $("addMaintenanceTaskBtn").addEventListener("click", () => {
+    if (cloudRole === "viewer") return;
+    if (!state.assets.length) {
+      toast("Asset required", "Add an asset before scheduling maintenance.");
+      return;
+    }
+    showModal("Schedule Asset Maintenance",
+      '<div class="form-grid">'+
+      '<label class="field"><span>Asset</span><select id="mMaintAsset">' +
+      state.assets.map((a)=>'<option value="'+esc(a.id)+'">'+esc(a.tag+" · "+a.hostname)+'</option>').join("")+
+      '</select></label>'+
+      '<label class="field"><span>Maintenance type</span><select id="mMaintType"><option>Routine Inspection</option><option>Hardware Repair</option><option>Patch Review</option><option>Warranty Claim</option></select></label>'+
+      '<label class="field"><span>Due date</span><input id="mMaintDue" type="date" required></label>'+
+      '<label class="field"><span>Owner / Technician</span><input id="mMaintOwner" placeholder="IT Support"></label>'+
+      '<label class="field span-2"><span>Work details</span><textarea id="mMaintDetail" placeholder="Explain the scheduled maintenance task"></textarea></label>'+
+      '</div><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Schedule Maintenance</button></div>',
+      () => {
+        $("mCancel").onclick=closeModal;
+        $("mSave").onclick=()=>{
+          const assetId=$("mMaintAsset").value;
+          const dueDate=$("mMaintDue").value;
+          const detail=$("mMaintDetail").value.trim();
+          if (!assetById(assetId) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate) || !detail) {
+            toast("Missing maintenance details","Choose an asset, a due date and work details.");
+            return;
+          }
+          const task={id:uid("MNT"),assetId,type:$("mMaintType").value,
+            detail,owner:$("mMaintOwner").value.trim()||"IT Support",dueDate,
+            status:"Open",createdAt:now()};
+          state.maintenance.unshift(task);
+          audit("Assets","Maintenance scheduled",task.id,assetId+" · "+detail);
+          saveState();closeModal();renderAssets();
+          toast("Maintenance scheduled",task.id);
+        };
+      });
+  });
+
+  window.OpsFusionFlushSaves = async () => {
+    if (demoMode || !window.OpsFusionCloud?.isCloudActive?.()) throw new Error("Sign in to Cloud Workspace.");
+    if (cloudSavePending) {
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer=null;
+      cloudSavePending=false;
+      await cloudSavePromise;
+      await window.OpsFusionCloud.saveWorkspace(state);
+      showSaveStatus("Saved to Supabase");
+    } else {
+      await cloudSavePromise;
+    }
+  };
 
   function renderIdentity() {
     const statuses=Array.from(new Set(state.identities.map((u)=>u.status))).sort();
@@ -2057,7 +2121,7 @@
     const mutatingIds = [
       "addEndpointBtn","addAssetBtn","provisionUserBtn","runDiagBtn","diagCreateIncidentBtn",
       "addVlanBtn","addPortBtn","addChangeNoteBtn","evaluateComplianceBtn","newIncidentBtn",
-      "saveRulesBtn","saveWorkflowSettingsBtn"
+      "saveRulesBtn","saveWorkflowSettingsBtn","addMaintenanceTaskBtn"
     ];
     mutatingIds.forEach((id) => { if ($(id)) $(id).disabled = readOnly; });
     qsa("[data-remote-action],[data-remediate]").forEach((el) => {

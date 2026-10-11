@@ -1282,33 +1282,92 @@
     qsa("[data-open-identity]").forEach((b)=>b.onclick=()=>openIdentityModal(b.dataset.openIdentity));
   }
 
+  function releaseIdentityAssets(draft, identityId) {
+    let count=0;
+    draft.assets.forEach((asset)=>{
+      if(asset.assignedUserId!==identityId)return;
+      asset.assignedUserId="";
+      asset.status="Available";
+      const endpoint=draft.endpoints.find((e)=>e.id===asset.endpointId);
+      if(endpoint)endpoint.owner="Unassigned";
+      count++;
+    });
+    return count;
+  }
+
   function openIdentityModal(id) {
     const user=identityById(id);if(!user)return;
     const tpl=templateById(user.templateId);
-    const assets=state.assets.filter((a)=>a.assignedUserId===user.id);
+    const assets=state.assets.filter((item)=>item.assignedUserId===user.id);
     const groups=(user.groups||[]).map(groupById).filter(Boolean);
     showModal("Identity · "+user.displayName,
       '<div class="endpoint-card"><h3>'+esc(user.displayName)+'</h3><p>'+esc(user.upn+" · "+user.title)+'</p><div class="endpoint-meta">'+
       '<div><span>Status</span><strong>'+esc(user.status)+'</strong></div><div><span>Department</span><strong>'+esc(user.department)+'</strong></div>'+
       '<div><span>Template</span><strong>'+esc(tpl?tpl.name:"Custom")+'</strong></div><div><span>Manager</span><strong>'+esc(user.manager||"—")+'</strong></div>'+
       '<div><span>Groups</span><strong>'+esc(groups.map((g)=>g.name).join(", ")||"None")+'</strong></div><div><span>Assigned assets</span><strong>'+esc(assets.map((a)=>a.tag).join(", ")||"None")+'</strong></div></div></div>'+
-      '<div class="modal-actions"><button class="btn secondary" id="mIdPassword">Require Password Reset</button><button class="btn secondary" id="mIdToggle">'+(user.enabled?"Disable":"Enable")+' Account</button>'+(user.status!=="Offboarded"?'<button class="btn danger" id="mIdOffboard">Offboard</button>':"")+'</div>',
+      '<p class="cell-sub">These actions update this workspace identity record only. They do not disable a Supabase Auth account or reset an external password.</p>'+
+      '<div class="modal-actions"><button class="btn secondary" id="mIdPassword">Flag Credential Review</button>'+
+      '<button class="btn secondary" id="mIdToggle">'+(user.enabled?"Disable":"Enable")+' Workspace Identity</button>'+
+      (user.status!=="Offboarded"?'<button class="btn danger" id="mIdOffboard">Offboard Record</button>':"")+'</div>',
       ()=>{
-        $("mIdPassword").onclick=()=>{user.mustResetPassword=true;audit("Identity","Password reset required",user.username,"User must change temporary/reset password at next sign-in.");saveState();closeModal();renderIdentity();toast("Password reset flag set",user.displayName);};
-        $("mIdToggle").onclick=()=>{user.enabled=!user.enabled;user.status=user.enabled?"Active":"Disabled";audit("Identity",user.enabled?"Account enabled":"Account disabled",user.username,user.displayName);saveState();closeModal();renderIdentity();renderOverview();toast("Account updated",user.displayName+" · "+user.status);};
+        $("mIdPassword").onclick=async()=>{
+          const button=$("mIdPassword");button.disabled=true;
+          try{
+            await commitWorkspaceChange((draft)=>{
+              const record=draft.identities.find((u)=>u.id===id);
+              if(!record)throw new Error("Identity record not found.");
+              record.mustResetPassword=true;
+            });
+            audit("Identity","Credential review flagged",user.username,"Workspace reminder only; no real account password was changed.");
+            closeModal();renderIdentity();toast("Credential review flagged",user.displayName);
+          }catch(error){button.disabled=false;toast("Identity not saved",error.message);}
+        };
+        $("mIdToggle").onclick=async()=>{
+          const button=$("mIdToggle");button.disabled=true;
+          let released=0;
+          try{
+            await commitWorkspaceChange((draft)=>{
+              const record=draft.identities.find((u)=>u.id===id);
+              if(!record || record.status==="Offboarded")throw new Error("Offboarded identities cannot be reenabled.");
+              const enable=!record.enabled;
+              record.enabled=enable;
+              record.status=enable?"Active":"Disabled";
+              if(!enable) released=releaseIdentityAssets(draft,id);
+            });
+            audit("Identity",user.enabled?"Identity disabled":"Identity enabled",user.username,
+              user.displayName+" · "+released+" asset(s) released");
+            closeModal();renderIdentity();renderAssets();renderEndpoints();renderOverview();renderIncidents();
+            toast("Workspace identity updated",user.displayName+(released?" · "+released+" asset(s) released":""));
+          }catch(error){button.disabled=false;toast("Identity not saved",error.message);}
+        };
         if($("mIdOffboard"))$("mIdOffboard").onclick=()=>offboardIdentity(user);
       }
     );
   }
 
-  function offboardIdentity(user) {
-    if(!confirm("Offboard "+user.displayName+" and release assigned assets?"))return;
-    const released=state.assets.filter((a)=>a.assignedUserId===user.id);
-    user.enabled=false;user.status="Offboarded";user.groups=[];user.mustResetPassword=false;
-    released.forEach((a)=>{a.assignedUserId="";a.status="Available";const ep=endpointById(a.endpointId);if(ep)ep.owner="Unassigned";});
-    audit("Identity","User offboarded",user.username,user.displayName+" · "+released.length+" asset(s) released.");
-    if(released.length)createIncident({type:"Service Request",title:"Validate returned assets for "+user.displayName,category:"Offboarding",impact:"Low",urgency:"Medium",source:"Identity",description:"Review and validate "+released.length+" released asset(s) after offboarding."},true);
-    saveState();closeModal();renderIdentity();renderAssets();renderEndpoints();renderIncidents();renderOverview();toast("User offboarded",user.displayName);
+  async function offboardIdentity(user) {
+    if(!confirm("Offboard "+user.displayName+" in the workspace and release assigned assets? This does not disable an external login."))return;
+    const button=$("mIdOffboard");if(button)button.disabled=true;
+    let released=0;
+    try{
+      await commitWorkspaceChange((draft)=>{
+        const record=draft.identities.find((item)=>item.id===user.id);
+        if(!record || record.status==="Offboarded")throw new Error("Identity already offboarded or missing.");
+        released=releaseIdentityAssets(draft,user.id);
+        record.enabled=false;record.status="Offboarded";record.groups=[];record.mustResetPassword=false;
+        if(released){
+          const ticket=buildTicketForDraft(draft,{type:"Service Request",
+            title:"Validate returned assets for "+record.displayName,category:"Offboarding",
+            impact:"Low",urgency:"Medium",source:"Identity",
+            description:"Review "+released+" asset(s) released after workspace identity offboarding."});
+          draft.incidents.unshift(ticket);
+        }
+      });
+      audit("Identity","Identity record offboarded",user.username,
+        user.displayName+" · "+released+" asset(s) released. External directory not connected.");
+      closeModal();renderIdentity();renderAssets();renderEndpoints();renderIncidents();renderOverview();
+      toast("Workspace identity offboarded",user.displayName);
+    }catch(error){if(button)button.disabled=false;toast("Offboarding not saved",error.message);}
   }
 
   $("identitySearch").addEventListener("input",renderIdentity);
@@ -1350,10 +1409,13 @@
                 ...t, groups: Array.isArray(t.groups) ? t.groups : []
               }));
               draft.identities.push(user);
+              const review=buildTicketForDraft(draft,{type:"Service Request",requesterId:user.id,
+                title:"Review new identity record: "+user.displayName,category:"Onboarding",
+                impact:"Low",urgency:"Medium",source:"Identity",
+                description:"Confirm organizational approvals and external directory actions separately."});
+              draft.incidents.unshift(review);
             });
             audit("Identity","Identity record created",user.username,user.displayName+" · "+tpl.name);
-            // Create a real workspace ticket for review, not an external AD action.
-            createIncident({type:"Service Request",requesterId:user.id,title:"Review new identity record: "+user.displayName,category:"Onboarding",impact:"Low",urgency:"Medium",source:"Identity",description:"Confirm organizational approvals and any external directory actions separately."},true);
             closeModal();renderIdentity();renderIncidents();renderOverview();
             toast("Identity record saved",user.upn+" · External directory is not connected.");
           } catch(error) {

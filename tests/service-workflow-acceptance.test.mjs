@@ -106,3 +106,50 @@ test("Workspace identity actions do not impersonate Supabase account administrat
   assert.match(controls,/Workspace Identity/);
   assert.match(controls,/do not disable a Supabase Auth account/);
 });
+
+test("Concurrent workspace edits serialize state-building and avoid lost updates",async()=>{
+  const from=app.indexOf("  async function commitWorkspaceChange(");
+  const to=app.indexOf("\n  function esc(value)",from);
+  assert.ok(from>=0&&to>from);
+  const script=[
+    'let state={meta:{updatedAt:""},value:0};',
+    'let cloudSavePending=false,cloudSavePromise=Promise.resolve(),cloudSaveTimer=null;',
+    'let demoMode=true,cloudRole="demo",workspaceSessionEpoch=0,workspaceCommitQueue=Promise.resolve();',
+    'const window={OpsFusionCloud:null};',
+    'const localStorage={setItem(){}};',
+    'const STORAGE_KEY="test";',
+    'const now=()=>"2026-10-12T00:00:00.000Z";',
+    'const showSaveStatus=()=>{};',
+    app.slice(from,to),
+    '({commitWorkspaceChange,getState:()=>state,setEpoch:()=>workspaceSessionEpoch++})'
+  ].join("\n");
+  const sandbox=runInNewContext(script);
+  await Promise.all([
+    sandbox.commitWorkspaceChange((draft)=>{draft.value+=1;}),
+    sandbox.commitWorkspaceChange((draft)=>{draft.value+=1;})
+  ]);
+  assert.equal(sandbox.getState().value,2);
+});
+test("Session changes prevent stale queued edits from updating a different account's UI",async()=>{
+  const from=app.indexOf("  async function commitWorkspaceChange(");
+  const to=app.indexOf("\n  function esc(value)",from);
+  const script=[
+    'let state={meta:{updatedAt:""},value:0};',
+    'let cloudSavePending=false,cloudSavePromise=Promise.resolve(),cloudSaveTimer=null;',
+    'let demoMode=true,cloudRole="demo",workspaceSessionEpoch=0,workspaceCommitQueue=Promise.resolve();',
+    'const window={OpsFusionCloud:null}, localStorage={setItem(){}}, STORAGE_KEY="test";',
+    'const now=()=>"2026-10-12T00:00:00.000Z",showSaveStatus=()=>{};',
+    app.slice(from,to),
+    '({commitWorkspaceChange,getState:()=>state,setEpoch:()=>workspaceSessionEpoch++})'
+  ].join("\n");
+  const sandbox=runInNewContext(script);
+  const first=sandbox.commitWorkspaceChange((draft)=>{draft.value+=1;});
+  sandbox.setEpoch();
+  await assert.rejects(first,/Workspace session changed/);
+  assert.equal(sandbox.getState().value,0);
+});
+test("Refresh and sign-out wait for pending workspace commits",()=>{
+  assert.match(app,/await workspaceCommitQueue;/);
+  assert.ok(app.indexOf('await workspaceCommitQueue;',app.indexOf('  $("refreshCloudBtn")'))>=0);
+  assert.ok(app.indexOf('await workspaceCommitQueue;',app.indexOf('  $("cloudSignOutBtn")'))>=0);
+});

@@ -2493,8 +2493,9 @@
       if (readOnly) el.disabled = true;
     });
     adminOnlyIds.forEach((id) => { if ($(id)) $(id).disabled = !demoMode || readOnly; });
-    qsa("#modalBody .btn.primary,#modalBody .btn.danger").forEach((el) => {
-      if (readOnly) el.disabled = true;
+    // Viewers may close a modal but cannot activate any record-changing modal button.
+    qsa("#modalBody button").forEach((el) => {
+      if (readOnly && !["mCancel","mKbClose"].includes(el.id)) el.disabled = true;
     });
     // Unconnected cloud workspaces cannot execute simulated diagnostics or
     // remote actions, regardless of their database role.

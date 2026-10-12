@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ORIGIN = "https://opsfusion-it.vercel.app";
-const MODEL = "gemini-2.5-flash-lite";
+const MODEL = "gemini-3.1-flash-lite";
 const idPattern = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const ticketPattern = /^INC-[A-Za-z0-9-]{1,40}$/;
 const schema = {
@@ -129,19 +129,27 @@ Deno.serve(async (req) => {
       body:JSON.stringify({
         systemInstruction:{parts:[{text:system}]},
         contents:[{role:"user",parts:[{text:JSON.stringify(payload)}]}],
-        generationConfig:{responseMimeType:"application/json",responseSchema:schema,temperature:0.2,maxOutputTokens:1300}
+        generationConfig:{responseMimeType:"application/json",responseJsonSchema:schema,temperature:0.2,maxOutputTokens:2200}
       }),
       signal:AbortSignal.timeout(25000)
     });
     if (!ai.ok) {
-      const blocked=ai.status===401||ai.status===403;
-      const limited=ai.status===429;
-      return respond(limited?429:503,{
-        error:limited?"Gemini free-tier quota or rate limit reached. Try again later.":blocked
-          ?"Gemini rejected the API key or project access. Check GEMINI_API_KEY and your project tier in Google AI Studio."
-          :"Gemini request failed. Check the private API key, free-tier project and model access.",
-        code:limited?"AI_PROVIDER_RATE_LIMIT":"AI_PROVIDER_UNAVAILABLE"
+      // Never log credentials, request content, ticket data, or raw provider errors.
+      const providerStatus = Number(ai.status);
+      const status = providerStatus===429 ? 429 : 503;
+      const diagnostic = providerStatus===400
+        ? {code:"AI_REQUEST_INVALID",message:"Gemini rejected the request format (HTTP 400). Please contact the OpsFusion developer."}
+        : providerStatus===404
+        ? {code:"AI_MODEL_UNAVAILABLE",message:"Gemini model is unavailable to this API project (HTTP 404). Check the model's access in Google AI Studio."}
+        : providerStatus===401||providerStatus===403
+        ? {code:"AI_KEY_DENIED",message:"Gemini rejected the API key or project permissions (HTTP "+providerStatus+"). Check GEMINI_API_KEY in Supabase and Google AI Studio."}
+        : providerStatus===429
+        ? {code:"AI_PROVIDER_RATE_LIMIT",message:"Gemini free-tier quota or rate limit reached (HTTP 429). Try again later."}
+        : {code:"AI_PROVIDER_UNAVAILABLE",message:"Gemini API returned HTTP "+providerStatus+". Please retry later."};
+      console.warn("OpsFusion Gemini provider rejected request", {
+        model:MODEL,http_status:providerStatus,error_code:diagnostic.code
       });
+      return respond(status,{error:diagnostic.message,code:diagnostic.code});
     }
     const result = await ai.json();
     const first=Array.isArray(result.candidates)?result.candidates[0]:null;

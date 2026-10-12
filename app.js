@@ -2171,7 +2171,7 @@
       '<p style="font-size:.58rem;color:var(--muted);line-height:1.55">'+esc(ticket.description||"No additional description.")+'</p>'+
       '<div class="stack">'+ticket.activities.slice().reverse().map((a)=>'<div class="stack-row"><div><strong>'+esc(a.action+" · "+a.actor)+'</strong><small>'+esc(fmtDate(a.at)+" · "+a.note)+'</small></div></div>').join("")+'</div>'+
       '<label class="field" style="margin-top:12px"><span>Work note</span><textarea id="mTicketNote" placeholder="Add troubleshooting or resolution note"></textarea></label>'+
-      (canAnalyze?'<div class="ai-ticket-privacy">AI is optional: clicking Analyze sends this ticket\'s limited text and work notes to an external model. Do not include credentials or sensitive personal data. All suggestions require technician review.</div>'+
+      (canAnalyze?'<div class="ai-ticket-privacy">AI is optional: clicking Analyze sends this ticket\'s limited text and recent work notes to Google Gemini. Free-tier content may be used to improve Google products. Never analyze confidential data or credentials. Technician review is required.</div>'+
         '<section id="mTicketAiPanel" class="ai-ticket-panel" aria-live="polite" hidden></section>':"")+
       '<div class="modal-actions">'+(canAnalyze?'<button class="btn secondary" id="mTicketAiAnalyze">AI Analyze Ticket</button>':"")+
       (!ticket.firstResponseAt?'<button class="btn secondary" id="mTicketRespond">Record First Response</button>':"")+'<button class="btn primary" id="mTicketNoteSave">Add Work Note</button></div>',
@@ -2190,6 +2190,7 @@
               ? '<ol>'+values.map((value)=>'<li>'+esc(value)+'</li>').join("")+'</ol>'
               : '<p>Insufficient evidence available.</p>';
             panel.innerHTML='<h3>AI Service Desk Assistance · '+esc(result.ticket_id)+'</h3>'+
+              '<p><strong>Provider</strong> '+esc(result.provider||"Google Gemini")+' · '+esc(result.model||"Gemini")+'</p>'+
               '<p><strong>Summary</strong> '+esc(data.summary)+'</p>'+
               '<p><strong>Possible causes (not verified)</strong></p>'+items(data.likely_causes)+
               '<p><strong>Recommended checks for a technician</strong></p>'+items(data.recommended_checks)+

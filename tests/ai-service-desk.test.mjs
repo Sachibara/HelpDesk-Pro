@@ -44,7 +44,7 @@ function harness(config={}){
  SUPABASE_SERVICE_ROLE_KEY:"server-key",
  GEMINI_API_KEY:config.noKey?undefined:"private-gemini-api-key"})[key];
  const fakeFetch=async(url,options)=>{
-   assert.equal(url,"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent");
+   assert.equal(url,"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent");
    assert.equal(options.headers["x-goog-api-key"],"private-gemini-api-key");
    providerCalls++;lastProviderBody=JSON.parse(options.body);
    if(config.providerStatus) return {ok:false,status:config.providerStatus};
@@ -59,7 +59,7 @@ function harness(config={}){
    Deno:{env:{get:env},serve:(fn)=>{handler=fn;}},
    createClient:()=>fakeService,
    fetch:fakeFetch,
-   Response,AbortSignal
+   Response,AbortSignal,console:{warn:()=>{}}
  });
  assert.equal(typeof handler,"function");
  const invoke=async({method="POST",origin="https://opsfusion-it.vercel.app",
@@ -132,10 +132,10 @@ test("Authenticated owner obtains provider-generated suggestions without mutatin
  assert.equal(h.calls().providerCalls,1);
  assert.equal(h.calls().quotaCalls,1);
  assert.equal(h.calls().lastProviderBody.generationConfig.responseMimeType,"application/json");
- assert.equal(h.calls().lastProviderBody.generationConfig.responseSchema.properties.recommended_priority.type,"string");
+ assert.equal(h.calls().lastProviderBody.generationConfig.responseJsonSchema.properties.recommended_priority.type,"string");
  assert.equal(h.calls().lastProviderBody.contents[0].role,"user");
  assert.match(h.calls().lastProviderBody.systemInstruction.parts[0].text,/untrusted text/);
- assert.equal(out.body.model,"gemini-2.5-flash-lite");
+ assert.equal(out.body.model,"gemini-3.1-flash-lite");
  assert.equal(out.body.provider,"Google Gemini");
  assert.doesNotMatch(JSON.stringify(h.calls().lastProviderBody),/private-gemini-api-key/);
 });
@@ -146,11 +146,27 @@ test("Gemini free-tier quota errors produce an actionable response",async()=>{
  assert.equal(out.body.code,"AI_PROVIDER_RATE_LIMIT");
  assert.equal(h.calls().providerCalls,1);
 });
+test("Model access 404 shows an actionable and key-safe error",async()=>{
+ const h=harness({providerStatus:404});
+ const out=await h.invoke();
+ assert.equal(out.status,503);
+ assert.equal(out.body.code,"AI_MODEL_UNAVAILABLE");
+ assert.match(out.body.error,/Google AI Studio/);
+ assert.doesNotMatch(JSON.stringify(out.body),/private-gemini-api-key/);
+});
+test("Malformed Gemini request 400 is distinct from authentication and quota failures",async()=>{
+ const h=harness({providerStatus:400});
+ const out=await h.invoke();
+ assert.equal(out.status,503);
+ assert.equal(out.body.code,"AI_REQUEST_INVALID");
+ assert.match(out.body.error,/HTTP 400/);
+});
 test("Gemini invalid key does not expose credentials",async()=>{
  const h=harness({providerStatus:403});
  const out=await h.invoke();
  assert.equal(out.status,503);
  assert.match(out.body.error,/GEMINI_API_KEY/);
+ assert.equal(out.body.code,"AI_KEY_DENIED");
  assert.doesNotMatch(JSON.stringify(out.body),/private-gemini-api-key/);
 });
 test("Gemini safety refusal does not fabricate advice",async()=>{

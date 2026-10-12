@@ -1,6 +1,6 @@
 # OpsFusion Gemini AI Service Desk — Deployment and Acceptance
 
-Updated 2026-10-12. OpsFusion is configured to use **Google Gemini** as its only AI provider, replacing the OpenAI API integration. Free-tier-eligible model: `gemini-2.5-flash-lite`. Model access and per-project rate limits vary. See [official Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) and [billing tiers](https://ai.google.dev/gemini-api/docs/billing).
+Updated 2026-10-12. The initial Gemini 2.5 Flash-Lite endpoint was unsuitable for some newly created Google AI projects, as Google limits older model access. OpsFusion now uses the newer 3.1 Flash-Lite model and differentiated provider diagnostics. OpsFusion is configured to use **Google Gemini** as its only AI provider, replacing the OpenAI API integration. Free-tier-eligible model: `gemini-3.1-flash-lite`. Model access and per-project rate limits vary. See [official Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) and [billing tiers](https://ai.google.dev/gemini-api/docs/billing).
 
 ## Provider activation — private Google API key
 
@@ -12,7 +12,7 @@ Updated 2026-10-12. OpsFusion is configured to use **Google Gemini** as its only
 4. No OpenAI key is required. `OPENAI_API_KEY` is no longer read by this deployed Edge Function. Do not delete existing unrelated secrets without reviewing dependencies; no test data resets are authorized.
 5. Refresh [OpsFusion production](https://opsfusion-it.vercel.app/) (Ctrl+Shift+R), sign in as the owner of the populated workspace, and go to **Service Desk → INC-1003 → Details → AI Analyze Ticket**.
 6. Before sending a ticket to Google, read the disclosure. Free-tier prompts and responses **may be used to improve Google products**. Only submit nonsensitive demonstration tickets. Do not include confidential business content, personal details, passwords, tokens, internal secrets, or live production diagnostics.
-7. The response should identify provider **Google Gemini** and model **gemini-2.5-flash-lite**, and include a summary, tentative causes, recommended checks, suggested category/priority, limitations, and a *draft* work note.
+7. The response should identify provider **Google Gemini** and model **gemini-3.1-flash-lite**, and include a summary, tentative causes, recommended checks, suggested category/priority, limitations, and a *draft* work note.
 8. Clicking Analyze **does not modify tickets or endpoints**. You must select **Insert Draft Into Work Note**, review/edit the draft, and click **Add Work Note** to save. No automated resolutions, endpoint commands, or AI-verified diagnoses are performed.
 9. Check that the ticket timeline updates after saving and survives Refresh Cloud Data. Sign in to another account; it must only see its own workspace and never another workspace's AI data.
 
@@ -22,7 +22,7 @@ Updated 2026-10-12. OpsFusion is configured to use **Google Gemini** as its only
 
 - Supabase Edge Function: `opsfusion-ai-assistant` deployed with `verify_jwt: true`.
 - Browser sends only ticket ID and workspace UUID to the function. The function verifies the JWT and **workspace owner** before retrieving a ticket from Supabase.
-- Gemini text API: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent` with `x-goog-api-key` authorization and structured JSON generation.
+- Gemini text API: `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent` with `x-goog-api-key` authorization and structured JSON generation.
 - An atomic private Postgres quota restricts AI usage to **15 requests per user per hour**. The function reports rate-limit or provider errors; it never fabricates a successful response when the provider fails.
 - Ticket context is truncated; obvious email addresses and token-like strings are redacted on a **best-effort basis only**. This is not a guarantee that all sensitive information has been removed.
 - Only authenticated workspace owners can request AI; viewer accounts and unrelated workspaces cannot.
@@ -36,7 +36,10 @@ Updated 2026-10-12. OpsFusion is configured to use **Google Gemini** as its only
 - `AI_NOT_CONFIGURED`: `GEMINI_API_KEY` missing from Supabase Edge Functions Secrets.
 - `AUTH_REQUIRED` / `ACCESS_DENIED`: expired sign-in or ticket/workspace access failure.
 - `TICKET_NOT_FOUND`: selected ticket not in this owner's workspace.
-- `AI_PROVIDER_UNAVAILABLE`: Google API key invalid, model inaccessible, or project not eligible.
+- `AI_MODEL_UNAVAILABLE`: HTTP 404, selected model unavailable in your API project. Check Google AI Studio model access.
+- `AI_KEY_DENIED`: HTTP 401/403, Gemini key invalid or project permissions prevent access.
+- `AI_REQUEST_INVALID`: HTTP 400, Gemini rejected the request payload or schema. This is a developer-side integration error; inspect server-safe error status logs.
+- `AI_PROVIDER_UNAVAILABLE`: upstream 5xx or other Gemini API error; retry or check the provider's status.
 - `AI_PROVIDER_RATE_LIMIT`: Google free-tier rate limit exhausted; wait until reset.
 - `AI_RATE_LIMIT`: per-user OpsFusion limit of 15 requests in the same UTC hour.
 - `AI_INCOMPLETE`: no safe completed model response; no advice shown.

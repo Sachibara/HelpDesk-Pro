@@ -2,6 +2,8 @@
 
 **Canonical IT-operations flagship for the Sachibara portfolio.**
 
+OpsFusion is the product name; `Sachibara/HelpDesk-Pro` is its actively maintained source repository. [`Sachibara/opsfusion`](https://github.com/Sachibara/opsfusion) is an older September 2026 standalone snapshot and is not synchronized with this codebase.
+
 **Live demo:** https://opsfusion-it.vercel.app/
 
 ## Dedicated Supabase backend (OpsFusion only)
@@ -33,6 +35,16 @@ A dedicated `opsfusion_enforce_endpoint_integrity` trigger on `public.opsfusion_
 OpsFusion's **Automation Center** is a live Supabase feature, separate from the Portfolio Demo. PostgreSQL `pg_cron` runs an hourly scanner independently of browser sessions. It detects active tickets with overdue first-response or resolution SLAs, expiring/expired asset warranties, and upcoming/overdue scheduled maintenance tasks. Automation alerts and timestamped run history are stored in separate workspace-scoped, RLS-protected tables, and the in-app **Run Checks Now** button executes the same server-side scan. Alerts are deduplicated and automatically clear when their source conditions disappear; owners can acknowledge an alert and edit due-date lookahead rules. The Assets tab lets operators create and complete maintenance tasks.
 
 This automation does **not** send emails or SMS, make AI decisions, run remote commands, or measure real endpoint telemetry. Those require separately configured integrations. See [presentation rehearsal](docs/AUTOMATION_PRESENTATION_20261014.md) for a live Oct 14–15 workflow and exact values.
+
+## Gemini AI Service Desk Assistant
+
+The authenticated `opsfusion-ai-assistant` Edge Function provides ticket summaries, possible causes, recommended checks, priority/category suggestions, and draft work notes through Google Gemini. Limited ticket text is sent only when the workspace owner requests analysis. Provider secrets stay server-side; requests have quotas, bounded retries, and a fallback model. Live successful Gemini responses have been verified.
+
+Analysis does not modify tickets. **Insert Draft Into Work Note** fills the editor; the user must review it and separately click **Add Work Note** to save. Use nonsensitive demo tickets and review the provider disclosure. See [AI deployment evidence](docs/AI_SERVICE_DESK_DEPLOYMENT.md).
+
+## Password validation and security status
+
+Signup, password recovery, and password changes use a 12-character application minimum. Existing passwords and accounts were preserved. Server-side minimum enforcement remains unverified, and leaked-password protection remains an outstanding Auth setting. See [production security review](docs/OPS_FUSION_PRODUCTION_SECURITY_REVIEW.md).
 
 ## Production functionality and remaining integrations
 
@@ -118,7 +130,9 @@ This repository retains the original HelpDesk Pro `backend/` code for local/pers
 
 ## Stack
 
-HTML5 · CSS3 · JavaScript · Supabase · Python · FastAPI · SQLite
+Current cloud application: HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreSQL · Supabase Edge Functions (TypeScript/Deno) · Google Gemini API · Vercel.
+
+Preserved local backend: Python · FastAPI · SQLite.
 
 ## Developer
 
@@ -128,8 +142,10 @@ GitHub: [@Sachibara](https://github.com/Sachibara)
 
 ## October 14–15 release qualification
 
-Tested: endpoint IPv4 rejection (browser and database), duplicate prevention, Cloud Workspace persistence, asset and maintenance integrity, real hourly SLA/warranty/maintenance alerting, clearing and reactivation, and server execution history. The automated regression suite covers 59 cases and is run by GitHub Actions on `main`.
+As of October 13, 2026 (Philippines): **118 automated regression tests pass**. GitHub Actions checks passed for the password-validation release `c992e9b`, and the production alias serves that release. Tests include mocked integrations and do not replace a complete live browser rehearsal.
 
-Still requiring on-device acceptance: **new external-email signup and password recovery**, account isolation in separate browser profiles, cloud asset/identity lifecycle through the deployed UI, simultaneous-save conflict behavior, and scheduled job recovery after a normal overnight cycle. Before open interviewer registration, configure a custom verified SMTP provider, production Auth redirect URLs and password security in Supabase.
+Verified evidence includes cloud persistence, endpoint/asset validation, live hourly SLA/warranty/maintenance scans, alert clearing/reactivation, and successful Gemini responses. Custom SMTP signup/recovery delivery was verified in the earlier acceptance session.
 
-**Out of scope until integrated:** a real signed endpoint agent, OS/service control, network probes, real AD account creation, external alert delivery and AI inference. No sample demo telemetry is evidence for these capabilities. See [release checklist](docs/RELEASE_CHECKLIST_20261014.md).
+Before presenting, rehearse the exact deployed workflow: sign in, open a sample ticket and its linked asset, request AI analysis, review and save a work note, refresh to confirm persistence, and show scheduled automation history. Separate-account UI permissions and simultaneous-save conflicts remain part of the final browser acceptance checklist. See [production security review](docs/OPS_FUSION_PRODUCTION_SECURITY_REVIEW.md) for current evidence and outstanding controls.
+
+**Additional integrations:** Authenticated endpoint agents, OS/service control, live network probes, real AD provisioning, and external automation-alert delivery are not implemented. AI assistance is implemented; autonomous device diagnosis/remediation is not.

@@ -2,6 +2,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ORIGIN = "https://opsfusion-it.vercel.app";
 const MODEL = "gemini-3.1-flash-lite";
+const FALLBACK_MODEL = "gemini-3.5-flash-lite";
+const MAX_PROVIDER_ATTEMPTS = 3;
+const TRANSIENT_STATUSES = new Set([408, 500, 502, 503, 504]);
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const idPattern = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const ticketPattern = /^INC-[A-Za-z0-9-]{1,40}$/;
 const schema = {
@@ -122,34 +126,68 @@ Deno.serve(async (req) => {
     "Mention missing evidence and technician verification needs in limitations."
   ].join(" ");
   try {
-    // Use a free-tier-eligible model only; no paid-model fallback.
-    const ai = await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+MODEL+":generateContent",{
-      method:"POST",
-      headers:{"x-goog-api-key":key,"Content-Type":"application/json"},
-      body:JSON.stringify({
-        systemInstruction:{parts:[{text:system}]},
-        contents:[{role:"user",parts:[{text:JSON.stringify(payload)}]}],
-        generationConfig:{responseMimeType:"application/json",responseJsonSchema:schema,temperature:0.2,maxOutputTokens:2200}
-      }),
-      signal:AbortSignal.timeout(25000)
+    // Both Gemini Flash-Lite models have a Free Tier. No paid-only or OpenAI fallback.
+    const models = [MODEL, FALLBACK_MODEL, FALLBACK_MODEL];
+    const requestBody = JSON.stringify({
+      systemInstruction:{parts:[{text:system}]},
+      contents:[{role:"user",parts:[{text:JSON.stringify(payload)}]}],
+      generationConfig:{
+        responseMimeType:"application/json",
+        responseJsonSchema:schema,temperature:0.2,maxOutputTokens:2200
+      }
     });
-    if (!ai.ok) {
-      // Never log credentials, request content, ticket data, or raw provider errors.
-      const providerStatus = Number(ai.status);
-      const status = providerStatus===429 ? 429 : 503;
-      const diagnostic = providerStatus===400
+    let ai = null;
+    let successfulModel = "";
+    let upstreamStatus = 0;
+    let lastWasTimeout = false;
+    let attemptsUsed = 0;
+    for (let attempt=0;attempt<MAX_PROVIDER_ATTEMPTS;attempt++) {
+      const model = models[attempt];
+      attemptsUsed=attempt+1;
+      lastWasTimeout=false;
+      try {
+        ai = await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
+          method:"POST",
+          headers:{"x-goog-api-key":key,"Content-Type":"application/json"},
+          body:requestBody,
+          signal:AbortSignal.timeout(19000)
+        });
+      } catch (error) {
+        // Timeout/network failures are transient. Do not log request content or secrets.
+        lastWasTimeout=true;
+        ai=null;
+        console.warn("OpsFusion Gemini request unavailable",{model,attempt:attemptsUsed,reason:"network_or_timeout"});
+      }
+      if(ai?.ok) { successfulModel=model;break; }
+      upstreamStatus=ai?.status||0;
+      if(ai) {
+        console.warn("OpsFusion Gemini provider rejected request",{
+          model,attempt:attemptsUsed,http_status:upstreamStatus
+        });
+      }
+      if (attempt===MAX_PROVIDER_ATTEMPTS-1 || (ai && !TRANSIENT_STATUSES.has(upstreamStatus))) {
+        break;
+      }
+      // Backoff with jitter. Bounded to two retries (1s then 2s).
+      await delay((1000*Math.pow(2,attempt))+Math.floor(Math.random()*300));
+    }
+    if(!ai?.ok) {
+      if(lastWasTimeout || upstreamStatus===0) {
+        return respond(503,{
+          error:"Gemini timed out or could not be reached after "+attemptsUsed+" attempt(s). Please retry in a few minutes.",
+          code:"AI_UPSTREAM_TIMEOUT"
+        });
+      }
+      const diagnostic = upstreamStatus===400
         ? {code:"AI_REQUEST_INVALID",message:"Gemini rejected the request format (HTTP 400). Please contact the OpsFusion developer."}
-        : providerStatus===404
-        ? {code:"AI_MODEL_UNAVAILABLE",message:"Gemini model is unavailable to this API project (HTTP 404). Check the model's access in Google AI Studio."}
-        : providerStatus===401||providerStatus===403
-        ? {code:"AI_KEY_DENIED",message:"Gemini rejected the API key or project permissions (HTTP "+providerStatus+"). Check GEMINI_API_KEY in Supabase and Google AI Studio."}
-        : providerStatus===429
+        : upstreamStatus===404
+        ? {code:"AI_MODEL_UNAVAILABLE",message:"Gemini model is unavailable to this project (HTTP 404). Check model access in Google AI Studio."}
+        : upstreamStatus===401||upstreamStatus===403
+        ? {code:"AI_KEY_DENIED",message:"Gemini rejected the API key or project permissions (HTTP "+upstreamStatus+"). Check GEMINI_API_KEY in Supabase and Google AI Studio."}
+        : upstreamStatus===429
         ? {code:"AI_PROVIDER_RATE_LIMIT",message:"Gemini free-tier quota or rate limit reached (HTTP 429). Try again later."}
-        : {code:"AI_PROVIDER_UNAVAILABLE",message:"Gemini API returned HTTP "+providerStatus+". Please retry later."};
-      console.warn("OpsFusion Gemini provider rejected request", {
-        model:MODEL,http_status:providerStatus,error_code:diagnostic.code
-      });
-      return respond(status,{error:diagnostic.message,code:diagnostic.code});
+        : {code:"AI_PROVIDER_UNAVAILABLE",message:"Gemini servers returned HTTP "+upstreamStatus+" after "+attemptsUsed+" attempt(s), including the backup Flash-Lite model. This is a temporary upstream issue; retry later."};
+      return respond(upstreamStatus===429?429:503,{error:diagnostic.message,code:diagnostic.code});
     }
     const result = await ai.json();
     const first=Array.isArray(result.candidates)?result.candidates[0]:null;
@@ -163,7 +201,7 @@ Deno.serve(async (req) => {
     return respond(200,{
       ticket_id:ticketId,
       analysis,
-      model:MODEL,
+      model:successfulModel,
       provider:"Google Gemini",
       generated_at:new Date().toISOString(),
       disclosure:"AI-generated suggestions are unverified. Technician review required. No ticket or endpoint was changed. Google may use free-tier content to improve its products."

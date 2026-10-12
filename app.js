@@ -2162,6 +2162,7 @@
   function openTicketModal(id) {
     const t=incidentById(id);if(!t)return;
     const ticket=normalizeTicket(t),ep=endpointById(ticket.endpointId),asset=assetById(ticket.assetId),requester=identityById(ticket.requesterId),tech=technicianById(ticket.assigneeId),sla=ticketSlaState(ticket);
+    const canAnalyze = !demoMode && window.OpsFusionCloud?.isWorkspaceOwner?.();
     showModal("Ticket · "+ticket.id,
       '<div class="endpoint-card"><h3>'+esc(ticket.title)+'</h3><p>'+esc(ticket.type+" · "+ticket.category+" · "+ticket.source)+'</p><div class="endpoint-meta">'+
       '<div><span>Requester</span><strong>'+esc(requester?requester.displayName:"Unassigned")+'</strong></div><div><span>Assignee</span><strong>'+esc(tech?tech.name:"Unassigned")+'</strong></div>'+
@@ -2170,8 +2171,49 @@
       '<p style="font-size:.58rem;color:var(--muted);line-height:1.55">'+esc(ticket.description||"No additional description.")+'</p>'+
       '<div class="stack">'+ticket.activities.slice().reverse().map((a)=>'<div class="stack-row"><div><strong>'+esc(a.action+" · "+a.actor)+'</strong><small>'+esc(fmtDate(a.at)+" · "+a.note)+'</small></div></div>').join("")+'</div>'+
       '<label class="field" style="margin-top:12px"><span>Work note</span><textarea id="mTicketNote" placeholder="Add troubleshooting or resolution note"></textarea></label>'+
-      '<div class="modal-actions">'+(!ticket.firstResponseAt?'<button class="btn secondary" id="mTicketRespond">Record First Response</button>':"")+'<button class="btn primary" id="mTicketNoteSave">Add Work Note</button></div>',
+      (canAnalyze?'<div class="ai-ticket-privacy">AI is optional: clicking Analyze sends this ticket\'s limited text and work notes to an external model. Do not include credentials or sensitive personal data. All suggestions require technician review.</div>'+
+        '<section id="mTicketAiPanel" class="ai-ticket-panel" aria-live="polite" hidden></section>':"")+
+      '<div class="modal-actions">'+(canAnalyze?'<button class="btn secondary" id="mTicketAiAnalyze">AI Analyze Ticket</button>':"")+
+      (!ticket.firstResponseAt?'<button class="btn secondary" id="mTicketRespond">Record First Response</button>':"")+'<button class="btn primary" id="mTicketNoteSave">Add Work Note</button></div>',
       ()=>{
+        if ($("mTicketAiAnalyze")) $("mTicketAiAnalyze").onclick=async()=>{
+          const button=$("mTicketAiAnalyze"),panel=$("mTicketAiPanel");
+          if(!panel)return;
+          button.disabled=true;
+          panel.hidden=false;
+          panel.textContent="Analyzing ticket using the external AI provider. No ticket will be changed.";
+          try {
+            const result=await window.OpsFusionCloud.analyzeTicket(id);
+            if($("mTicketAiPanel")!==panel)return;
+            const data=result.analysis;
+            const items=(values)=>Array.isArray(values)&&values.length
+              ? '<ol>'+values.map((value)=>'<li>'+esc(value)+'</li>').join("")+'</ol>'
+              : '<p>Insufficient evidence available.</p>';
+            panel.innerHTML='<h3>AI Service Desk Assistance · '+esc(result.ticket_id)+'</h3>'+
+              '<p><strong>Summary</strong> '+esc(data.summary)+'</p>'+
+              '<p><strong>Possible causes (not verified)</strong></p>'+items(data.likely_causes)+
+              '<p><strong>Recommended checks for a technician</strong></p>'+items(data.recommended_checks)+
+              '<p><strong>Suggested classification</strong> '+esc(data.recommended_category)+' · '+esc(data.recommended_priority)+'</p>'+
+              '<p><strong>Draft work note (not saved)</strong></p>'+
+              '<div class="ai-ticket-draft">'+esc(data.draft_work_note)+'</div>'+
+              '<button class="btn secondary" id="mTicketAiInsert">Insert Draft Into Work Note</button>'+
+              '<p><strong>Evidence limitations</strong> '+esc(data.limitations)+'</p>'+
+              '<small>'+esc(result.disclosure||"AI-generated suggestions require technician approval.")+'</small>';
+            const insert=$("mTicketAiInsert");
+            if(insert)insert.onclick=()=>{
+              const note=$("mTicketNote");
+              if(!note)return;
+              if(note.value.trim()&&!confirm("Replace the current unsaved work note with the AI draft?"))return;
+              note.value=String(data.draft_work_note||"");
+              note.focus();
+              toast("AI draft inserted","Review and edit this note, then click Add Work Note to save.");
+            };
+          }catch(error){
+            if($("mTicketAiPanel")===panel){
+              panel.innerHTML='<p role="alert"><strong>AI analysis unavailable:</strong> '+esc(error.message||"Unknown error")+'</p>';
+            }
+          }finally{if($("mTicketAiAnalyze")===button)button.disabled=false;}
+        };
         if($("mTicketRespond"))$("mTicketRespond").onclick=async()=>{
           const button=$("mTicketRespond");button.disabled=true;
           try{

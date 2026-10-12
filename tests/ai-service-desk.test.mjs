@@ -19,6 +19,7 @@ const analysis={
 };
 function harness(config={}){
  let handler,providerCalls=0,quotaCalls=0,lastProviderBody=null;
+ const modelsCalled=[];
  const fakeService={
    auth:{getUser:async(token)=>({data:{user:config.invalidAuth?null:{id:"USER-1"}},error:config.invalidAuth?{message:"unauthorized"}:null})},
    from(table){
@@ -44,10 +45,13 @@ function harness(config={}){
  SUPABASE_SERVICE_ROLE_KEY:"server-key",
  GEMINI_API_KEY:config.noKey?undefined:"private-gemini-api-key"})[key];
  const fakeFetch=async(url,options)=>{
-   assert.equal(url,"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent");
+   assert.match(url,/^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-3\.(?:1|5)-flash-lite:generateContent$/);
    assert.equal(options.headers["x-goog-api-key"],"private-gemini-api-key");
    providerCalls++;lastProviderBody=JSON.parse(options.body);
-   if(config.providerStatus) return {ok:false,status:config.providerStatus};
+   modelsCalled.push(url.match(/models\/([^:]+):/)[1]);
+   const status=Array.isArray(config.responses)?(config.responses[providerCalls-1]||200):(config.providerStatus||200);
+   if(status==="timeout") throw new Error("simulated timeout");
+   if(status!==200) return {ok:false,status};
    return {ok:true,json:async()=>({candidates:[{
      finishReason:config.blocked?"SAFETY":"STOP",
      content:{parts:config.emptyResponse?[]:[{text:JSON.stringify(analysis)}]}
@@ -59,7 +63,7 @@ function harness(config={}){
    Deno:{env:{get:env},serve:(fn)=>{handler=fn;}},
    createClient:()=>fakeService,
    fetch:fakeFetch,
-   Response,AbortSignal,console:{warn:()=>{}}
+   Response,AbortSignal,console:{warn:()=>{}},setTimeout:(fn)=>{fn();return 1;}
  });
  assert.equal(typeof handler,"function");
  const invoke=async({method="POST",origin="https://opsfusion-it.vercel.app",
@@ -69,7 +73,7 @@ function harness(config={}){
    const response=await handler(req);
    return {status:response.status,body:response.status===204?null:await response.json()};
  };
- return {invoke,calls:()=>({providerCalls,quotaCalls,lastProviderBody})};
+ return {invoke,calls:()=>({providerCalls,quotaCalls,lastProviderBody,modelsCalled})};
 }
 test("Edge function rejects requests without an authentication token",async()=>{
  const h=harness();
@@ -138,6 +142,40 @@ test("Authenticated owner obtains provider-generated suggestions without mutatin
  assert.equal(out.body.model,"gemini-3.1-flash-lite");
  assert.equal(out.body.provider,"Google Gemini");
  assert.doesNotMatch(JSON.stringify(h.calls().lastProviderBody),/private-gemini-api-key/);
+});
+test("A provider 503 automatically switches to another free-tier Gemini Flash-Lite model",async()=>{
+ const h=harness({responses:[503,200]});
+ const out=await h.invoke();
+ assert.equal(out.status,200);
+ assert.equal(out.body.model,"gemini-3.5-flash-lite");
+ assert.equal(out.body.analysis.summary,analysis.summary);
+ assert.equal(h.calls().providerCalls,2);
+ assert.equal(h.calls().quotaCalls,1);
+ assert.deepEqual(h.calls().modelsCalled,["gemini-3.1-flash-lite","gemini-3.5-flash-lite"]);
+});
+test("Persistent 503 is retried at most twice then returns an honest failure",async()=>{
+ const h=harness({responses:[503,503,503]});
+ const out=await h.invoke();
+ assert.equal(out.status,503);
+ assert.equal(out.body.code,"AI_PROVIDER_UNAVAILABLE");
+ assert.match(out.body.error,/after 3 attempt/);
+ assert.equal(h.calls().providerCalls,3);
+ assert.equal(h.calls().quotaCalls,1);
+});
+test("Network failure is retried via free-tier fallback and successful model is reported",async()=>{
+ const h=harness({responses:["timeout",200]});
+ const out=await h.invoke();
+ assert.equal(out.status,200);
+ assert.equal(out.body.model,"gemini-3.5-flash-lite");
+ assert.equal(h.calls().providerCalls,2);
+});
+test("Repeated timeouts stop after three attempts and never fabricate AI analysis",async()=>{
+ const h=harness({responses:["timeout","timeout","timeout"]});
+ const out=await h.invoke();
+ assert.equal(out.status,503);
+ assert.equal(out.body.code,"AI_UPSTREAM_TIMEOUT");
+ assert.equal(h.calls().providerCalls,3);
+ assert.doesNotMatch(JSON.stringify(out.body),/private-gemini-api-key/);
 });
 test("Gemini free-tier quota errors produce an actionable response",async()=>{
  const h=harness({providerStatus:429});

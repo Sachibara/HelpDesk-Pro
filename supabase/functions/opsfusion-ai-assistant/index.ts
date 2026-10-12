@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ORIGIN = "https://opsfusion-it.vercel.app";
-const MODEL = "gpt-4.1-mini";
+const MODEL = "gemini-2.5-flash-lite";
 const idPattern = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const ticketPattern = /^INC-[A-Za-z0-9-]{1,40}$/;
 const schema = {
@@ -94,8 +94,8 @@ Deno.serve(async (req) => {
   const ticket = tickets.find((t)=>t?.id===ticketId);
   if (!ticket) return respond(404,{error:"Ticket not found in this workspace.",code:"TICKET_NOT_FOUND"});
 
-  const key = Deno.env.get("OPENAI_API_KEY");
-  if (!key) return respond(503,{error:"AI provider is not configured. Add OPENAI_API_KEY in Supabase Edge Function Secrets.",code:"AI_NOT_CONFIGURED"});
+  const key = Deno.env.get("GEMINI_API_KEY");
+  if (!key) return respond(503,{error:"Google Gemini is not configured. Add GEMINI_API_KEY in Supabase Edge Function Secrets.",code:"AI_NOT_CONFIGURED"});
   // An atomic database quota prevents per-user unrestricted API spending.
   const {data:accepted,error:quotaError} = await service.rpc("opsfusion_ai_consume_quota",{p_user_id:user.id});
   if (quotaError) return respond(503,{error:"AI request quota unavailable.",code:"QUOTA_UNAVAILABLE"});
@@ -122,38 +122,43 @@ Deno.serve(async (req) => {
     "Mention missing evidence and technician verification needs in limitations."
   ].join(" ");
   try {
-    const ai = await fetch("https://api.openai.com/v1/responses",{
+    // Use a free-tier-eligible model only; no paid-model fallback.
+    const ai = await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+MODEL+":generateContent",{
       method:"POST",
-      headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+      headers:{"x-goog-api-key":key,"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:MODEL,store:false,temperature:0.2,max_output_tokens:1000,
-        instructions:system,
-        input:[{role:"user",content:JSON.stringify(payload)}],
-        text:{format:{type:"json_schema",name:"service_desk_analysis",strict:true,schema}}
+        systemInstruction:{parts:[{text:system}]},
+        contents:[{role:"user",parts:[{text:JSON.stringify(payload)}]}],
+        generationConfig:{responseMimeType:"application/json",responseSchema:schema,temperature:0.2,maxOutputTokens:1300}
       }),
       signal:AbortSignal.timeout(25000)
     });
     if (!ai.ok) {
-      return respond(ai.status===429?429:503,{
-        error:ai.status===429?"AI provider is busy. Please try again later.":"AI provider request failed. Check the private API key, model access, and billing.",
-        code:ai.status===429?"AI_PROVIDER_RATE_LIMIT":"AI_PROVIDER_UNAVAILABLE"
+      const blocked=ai.status===401||ai.status===403;
+      const limited=ai.status===429;
+      return respond(limited?429:503,{
+        error:limited?"Gemini free-tier quota or rate limit reached. Try again later.":blocked
+          ?"Gemini rejected the API key or project access. Check GEMINI_API_KEY and your project tier in Google AI Studio."
+          :"Gemini request failed. Check the private API key, free-tier project and model access.",
+        code:limited?"AI_PROVIDER_RATE_LIMIT":"AI_PROVIDER_UNAVAILABLE"
       });
     }
     const result = await ai.json();
-    const text = (Array.isArray(result.output)?result.output:[])
-      .flatMap((message)=>Array.isArray(message.content)?message.content:[])
-      .filter((entry)=>entry.type==="output_text"&&typeof entry.text==="string")
-      .map((entry)=>entry.text).join("");
-    if (result.status!=="completed" || !text) {
-      return respond(503,{error:"AI analysis could not complete. Try again.",code:"AI_INCOMPLETE"});
+    const first=Array.isArray(result.candidates)?result.candidates[0]:null;
+    const text=Array.isArray(first?.content?.parts)
+      ?first.content.parts.filter((part)=>typeof part?.text==="string").map((part)=>part.text).join("")
+      :"";
+    if (!text || first?.finishReason==="SAFETY" || first?.finishReason==="RECITATION") {
+      return respond(503,{error:"Gemini could not complete this analysis safely. Try another non-sensitive ticket.",code:"AI_INCOMPLETE"});
     }
     const analysis = trimOutput(JSON.parse(text));
     return respond(200,{
       ticket_id:ticketId,
       analysis,
       model:MODEL,
+      provider:"Google Gemini",
       generated_at:new Date().toISOString(),
-      disclosure:"AI-generated suggestions are unverified. Technician review required. No ticket or endpoint was changed."
+      disclosure:"AI-generated suggestions are unverified. Technician review required. No ticket or endpoint was changed. Google may use free-tier content to improve its products."
     });
   } catch {
     return respond(503,{error:"AI analysis temporarily unavailable. Please retry.",code:"AI_UNAVAILABLE"});

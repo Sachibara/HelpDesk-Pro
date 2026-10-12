@@ -8,7 +8,7 @@
   <title>OpsFusion Unified IT Operations Platform</title>
   <link rel="stylesheet" href="./styles.css?v=20261012-ai-service-desk-v1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
-  <script src="./cloud.js?v=20261012-ai-service-desk-v1" defer></script>
+  <script src="./cloud.js?v=20261013-password-policy-v1" defer></script>
   <script src="./app.js?v=20261012-gemini-flashlite-v1" defer></script>
   <script src="./automation.js?v=20261011-cloud-automation-final" defer></script>
 </head>
@@ -721,7 +721,7 @@
         <form id="signUpForm" class="auth-form" hidden>
           <label class="field"><span>Display name</span><input id="authDisplayName" autocomplete="name" required placeholder="IT Operator"></label>
           <label class="field"><span>Email</span><input id="authSignupEmail" type="email" autocomplete="email" required placeholder="operator@company.com"></label>
-          <label class="field"><span>Password</span><input id="authSignupPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="8+ characters"></label>
+          <label class="field"><span>Password (12+ characters)</span><input id="authSignupPassword" type="password" autocomplete="new-password" minlength="12" required placeholder="12+ characters"></label>
           <button class="btn primary wide" type="submit">Create Cloud Workspace</button>
         </form>
         <form id="resetPasswordForm" class="auth-form" hidden>

@@ -41,7 +41,14 @@
     return data;
   }
 
+  function validateNewPassword(password) {
+    if (typeof password !== "string" || password.length < 12) {
+      throw new Error("Use a password with at least 12 characters.");
+    }
+  }
+
   async function signUp(email, password, displayName) {
+    validateNewPassword(password);
     const { data, error } = await client.auth.signUp({
       email,
       password,
@@ -80,9 +87,7 @@
 
   async function changePassword(nextPassword) {
     if (!session) throw new Error("Sign in before changing your password.");
-    if (typeof nextPassword !== "string" || nextPassword.length < 12) {
-      throw new Error("Use a password with at least 12 characters.");
-    }
+    validateNewPassword(nextPassword);
     const { error } = await client.auth.updateUser({ password: nextPassword });
     if (error) throw error;
     return true;

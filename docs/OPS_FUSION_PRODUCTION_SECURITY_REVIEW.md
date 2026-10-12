@@ -27,7 +27,11 @@ A subsequent linter run **no longer reported the missing-FK-index finding**. It 
 
 **Leaked-password protection: disabled (security warning).** In the Supabase project dashboard, navigate to **Authentication → Settings** and locate password security (the exact setting name/location can vary by dashboard version). Enable **leaked-password protection** if available in the project plan. Confirm it actually saves and rerun the Supabase Security Advisor. Supabase reference: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 
-**Registration password length is not yet harmonized.** Current account password changes/recovery require 12 characters, but the signup form displays 8+ characters and the cloud signup function has no matching 12-character check. This inconsistency remains outstanding. Do not assert it has been fixed. Align signup validation and enforce the same minimum on the server when a safe, tested code change is possible. Existing passwords/accounts must not be reset.
+**Registration password length: application validation aligned.** The signup form now displays and requires 12+ characters. `cloud.js` uses one validator for signup and password changes/recovery, rejecting short or non-string passwords before calling Supabase Auth. Passwords are passed unchanged; sign-in still accepts existing shorter passwords for server authentication. No accounts or existing passwords were changed.
+
+**Server-side minimum remains unverified.** Browser validation can be bypassed. The Supabase Auth minimum must also be set to 12 in the project's Auth settings and verified independently; the available Supabase connector does not expose Auth configuration updates. This application change does not establish server-side enforcement. Leaked-password protection also remains disabled according to the fresh Security Advisor check. Do not claim either control is complete.
+
+**Regression evidence for the application change:** `node --test tests/*.test.mjs` passes all 118 tests, including seven new authentication checks that execute the complete cloud module against mocked Auth methods. Coverage includes invalid signup inputs producing no Auth call, the 12-character boundary, unchanged password transmission, provider error propagation, legacy-password sign-in, password-change authentication, and matching form constraints. These tests create no real accounts and do not change production records; they are not a live signup/password-change test.
 
 ## Privileged automation RPC: reviewed, not blindly removed
 
@@ -59,3 +63,4 @@ Advisor: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls
 ## Scope of this review
 
 This review does **not** claim that the platform has authenticated remote endpoint agents, live network device telemetry, external directory provisioning, or every tool represented in the UI. Such functionality requires separate integration and device-level acceptance evidence. Frontend demonstrations or cached browser data are not proof of real infrastructure control.
+

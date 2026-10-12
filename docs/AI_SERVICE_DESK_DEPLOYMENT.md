@@ -18,6 +18,16 @@ Updated 2026-10-12. The initial Gemini 2.5 Flash-Lite endpoint was unsuitable fo
 
 **Live AI status is pending** until the user configures `GEMINI_API_KEY` and the authenticated browser makes a successful real Gemini response. Simulated unit test output does not count as an actual AI API call.
 
+## Resilience for transient Gemini overload (2026-10-12)
+
+A live first-party Supabase Edge Function log confirmed a `gemini-3.1-flash-lite` provider HTTP 503 after roughly 4 seconds, and a separate timeout after roughly 28 seconds. Google documents 503 as temporary backend capacity exhaustion, not API key rejection or exhausted user quota. The backend now uses bounded exponential backoff and a **free-tier-only** model sequence: `gemini-3.1-flash-lite`, then `gemini-3.5-flash-lite`, then one final `gemini-3.5-flash-lite` retry (up to **three provider attempts per single UI click**). Each attempt has a 19-second timeout; requests only retry on HTTP 408/500/502/503/504 or network/timeouts. They never retry invalid keys (401/403), invalid payloads (400), or free-tier quota exhaustion (429). The current Gemini model returned is accurately reflected in the UI response.
+
+Retries share a single pre-existing, owner-authorized OpsFusion quota unit; they **do** use additional Google API requests and are still subject to the Google project's actual free-tier limits and billing settings. There is no success simulation or automatic write. The Edge Function only logs model identifiers, attempt numbers, and HTTP status codes, not keys, account records, ticket contents, or unredacted provider errors.
+
+Google's [official API troubleshooting guidance](https://ai.google.dev/gemini-api/docs/troubleshooting) recommends backoff with jitter for transient 503 responses. See the [Gemini API Free Tier pricing](https://ai.google.dev/gemini-api/docs/pricing), which lists both Flash-Lite models.
+
+Live model success still requires an actual authenticated user retry; passing mocked provider tests is not proof that Google's backend is currently available.
+
 ## Current security and safeguards
 
 - Supabase Edge Function: `opsfusion-ai-assistant` deployed with `verify_jwt: true`.
@@ -42,6 +52,8 @@ Updated 2026-10-12. The initial Gemini 2.5 Flash-Lite endpoint was unsuitable fo
 - `AI_PROVIDER_UNAVAILABLE`: upstream 5xx or other Gemini API error; retry or check the provider's status.
 - `AI_PROVIDER_RATE_LIMIT`: Google free-tier rate limit exhausted; wait until reset.
 - `AI_RATE_LIMIT`: per-user OpsFusion limit of 15 requests in the same UTC hour.
+- `AI_UPSTREAM_TIMEOUT`: network/timeout after up to three bounded attempts; no advice was generated.
+- `AI_PROVIDER_UNAVAILABLE`: Google's service returned a transient 5xx even after the Flash-Lite fallback was tried; wait a few minutes, then retry.
 - `AI_INCOMPLETE`: no safe completed model response; no advice shown.
 - For the current Supabase security advisor, leaked-password protection is still a separate admin setting; do not present this AI migration as resolving it.
 

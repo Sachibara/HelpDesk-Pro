@@ -330,6 +330,39 @@
     return !!data;
   }
 
+  async function analyzeTicket(ticketId) {
+    if (!session || !workspaceId || workspaceOwnerId !== session.user?.id) {
+      throw new Error("Sign in as the workspace owner to use AI assistance.");
+    }
+    if (!/^INC-[A-Za-z0-9-]{1,40}$/.test(String(ticketId || ""))) {
+      throw new Error("Select a valid Service Desk ticket.");
+    }
+    const expectedWorkspace=workspaceId;
+    const expectedUser=session.user.id;
+    const {data,error}=await client.functions.invoke("opsfusion-ai-assistant",{
+      method:"POST",
+      body:{workspace_id:expectedWorkspace,ticket_id:ticketId}
+    });
+    if (error) {
+      let message=error.message || "AI request failed.";
+      // The Edge Function gives a safe, actionable error (no provider secrets).
+      if (error.context && typeof error.context.json === "function") {
+        try {
+          const response=await error.context.json();
+          if(response && typeof response.error === "string") message=response.error;
+        } catch { /* Keep the original error. */ }
+      }
+      throw new Error(message);
+    }
+    if (!session || session.user?.id !== expectedUser || workspaceId !== expectedWorkspace) {
+      throw new Error("Account changed while AI was processing. Discarded the response.");
+    }
+    if (!data || data.ticket_id!==ticketId || !data.analysis) {
+      throw new Error("AI provider returned an invalid ticket analysis.");
+    }
+    return data;
+  }
+
   function isCloudActive() {
     return !!session && !!workspaceId;
   }
@@ -372,6 +405,7 @@
     saveAutomationRules,
     runAutomations,
     acknowledgeAutomation,
+    analyzeTicket,
     pushAudit,
     isCloudActive,
     getRole,

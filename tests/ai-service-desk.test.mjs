@@ -42,14 +42,16 @@ function harness(config={}){
  };
  const env=(key)=>({SUPABASE_URL:"https://project.supabase.co",
  SUPABASE_SERVICE_ROLE_KEY:"server-key",
- OPENAI_API_KEY:config.noKey?undefined:"private-api-key"})[key];
+ GEMINI_API_KEY:config.noKey?undefined:"private-gemini-api-key"})[key];
  const fakeFetch=async(url,options)=>{
-   assert.equal(url,"https://api.openai.com/v1/responses");
-   assert.equal(options.headers.Authorization,"Bearer private-api-key");
+   assert.equal(url,"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent");
+   assert.equal(options.headers["x-goog-api-key"],"private-gemini-api-key");
    providerCalls++;lastProviderBody=JSON.parse(options.body);
-   return {ok:true,json:async()=>({status:"completed",output:[
-     {type:"message",content:[{type:"output_text",text:JSON.stringify(analysis)}]}
-   ]})};
+   if(config.providerStatus) return {ok:false,status:config.providerStatus};
+   return {ok:true,json:async()=>({candidates:[{
+     finishReason:config.blocked?"SAFETY":"STOP",
+     content:{parts:config.emptyResponse?[]:[{text:JSON.stringify(analysis)}]}
+   }]})};
  };
  const source=edge.replace(/^import \{ createClient \} from "npm:@supabase\/supabase-js@2";\s*/,"");
  assert.doesNotMatch(source,/^import /m);
@@ -129,12 +131,37 @@ test("Authenticated owner obtains provider-generated suggestions without mutatin
  assert.match(out.body.disclosure,/No ticket or endpoint was changed/);
  assert.equal(h.calls().providerCalls,1);
  assert.equal(h.calls().quotaCalls,1);
- assert.equal(h.calls().lastProviderBody.store,false);
- assert.equal(h.calls().lastProviderBody.model,"gpt-4.1-mini");
- assert.equal(h.calls().lastProviderBody.text.format.strict,true);
- assert.equal(h.calls().lastProviderBody.input[0].role,"user");
- assert.match(h.calls().lastProviderBody.instructions,/untrusted text/);
- assert.doesNotMatch(JSON.stringify(h.calls().lastProviderBody),/private-api-key/);
+ assert.equal(h.calls().lastProviderBody.generationConfig.responseMimeType,"application/json");
+ assert.equal(h.calls().lastProviderBody.generationConfig.responseSchema.properties.recommended_priority.type,"string");
+ assert.equal(h.calls().lastProviderBody.contents[0].role,"user");
+ assert.match(h.calls().lastProviderBody.systemInstruction.parts[0].text,/untrusted text/);
+ assert.equal(out.body.model,"gemini-2.5-flash-lite");
+ assert.equal(out.body.provider,"Google Gemini");
+ assert.doesNotMatch(JSON.stringify(h.calls().lastProviderBody),/private-gemini-api-key/);
+});
+test("Gemini free-tier quota errors produce an actionable response",async()=>{
+ const h=harness({providerStatus:429});
+ const out=await h.invoke();
+ assert.equal(out.status,429);
+ assert.equal(out.body.code,"AI_PROVIDER_RATE_LIMIT");
+ assert.equal(h.calls().providerCalls,1);
+});
+test("Gemini invalid key does not expose credentials",async()=>{
+ const h=harness({providerStatus:403});
+ const out=await h.invoke();
+ assert.equal(out.status,503);
+ assert.match(out.body.error,/GEMINI_API_KEY/);
+ assert.doesNotMatch(JSON.stringify(out.body),/private-gemini-api-key/);
+});
+test("Gemini safety refusal does not fabricate advice",async()=>{
+ const h=harness({blocked:true});
+ const out=await h.invoke();
+ assert.equal(out.status,503);
+ assert.equal(out.body.code,"AI_INCOMPLETE");
+});
+test("Empty Gemini response does not fabricate advice",async()=>{
+ const h=harness({emptyResponse:true});
+ assert.equal((await h.invoke()).status,503);
 });
 test("AI quota is restricted to service-role API access and atomic per user",()=>{
  assert.match(migration,/REVOKE ALL ON FUNCTION public\.opsfusion_ai_consume_quota\(uuid\) FROM PUBLIC, anon, authenticated/);

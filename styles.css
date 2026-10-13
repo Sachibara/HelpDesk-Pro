@@ -1,4 +1,5 @@
 :root{
+  --control-font-size:.51rem;
   --ink:#161b1d;
   --ink-2:#242b2e;
   --paper:#f2eee5;
@@ -877,7 +878,7 @@ body::before{background:none}
 .signal-dot.live{background:#24b47e;box-shadow:0 0 0 4px rgba(36,180,126,.1)}
 .btn{
   min-height:38px;border:1px solid #d5deea;border-radius:10px;padding:0 13px;background:#fff;color:#26364e;
-  font-size:.51rem;letter-spacing:.025em;box-shadow:none;text-transform:none
+  font-size:var(--control-font-size);letter-spacing:.025em;box-shadow:none;text-transform:none
 }
 .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 18px rgba(31,50,81,.09)}
 .btn.primary{background:#2563eb;color:#fff;border-color:#2563eb}
@@ -887,8 +888,10 @@ body::before{background:none}
 .icon-btn{border:1px solid #d8e1ec;border-radius:9px;background:#fff}
 input,select,textarea{
   border:1px solid #d7e1ec;border-radius:10px;background:#fff;color:#203049;
+  font-size:var(--control-font-size);
   box-shadow:none
 }
+select option,optgroup{font-size:inherit}
 input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(37,99,235,.11);border-color:#7ea5f8}
 .check-row{border:1px solid #e0e7ef;background:#fff;border-radius:10px}
 .hero{

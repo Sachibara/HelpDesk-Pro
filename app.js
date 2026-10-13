@@ -2159,6 +2159,67 @@
     return incident;
   }
 
+  function wireTicketTools(ticketId) {
+    const panel=$("mTicketToolPanel"), propose=$("mTicketToolPropose"), pending=$("mTicketToolPending");
+    if (!panel || !propose || !pending) return;
+    const epoch=workspaceSessionEpoch;
+    const current=()=>$("mTicketToolPanel")===panel && epoch===workspaceSessionEpoch;
+    const render=(rows)=>{
+      if(!current())return;
+      panel.hidden=false;
+      panel.innerHTML=rows.length ? rows.map((p)=>
+        '<article class="ai-ticket-panel"><h3>Pending tool: '+esc(p.tool_name)+'</h3>'+
+        '<p>Ticket: '+esc(p.ticket_id)+' · Model: '+esc(p.model)+'</p>'+
+        '<p>Expires: '+esc(fmtDate(p.expires_at))+'</p><p>Exact note to append:</p>'+
+        '<div style="white-space:pre-wrap">'+esc(p.arguments?.note||"")+'</div>'+
+        '<p>No action has run. Approval saves this exact note; it does not perform the proposed checks.</p>'+
+        '<button class="btn primary" data-tool-approve="'+esc(p.id)+'">Approve &amp; Add Note</button> '+
+        '<button class="btn secondary" data-tool-reject="'+esc(p.id)+'">Reject</button></article>'
+      ).join("") : '<p>No pending proposals for this ticket.</p>';
+      panel.querySelectorAll("[data-tool-approve],[data-tool-reject]").forEach((button)=>button.onclick=async()=>{
+        const id=button.dataset.toolApprove||button.dataset.toolReject;
+        const decision=button.dataset.toolApprove?"approve":"reject";
+        panel.querySelectorAll("button").forEach(b=>b.disabled=true);
+        propose.disabled=true;pending.disabled=true;
+        try {
+          // Serialize execution with ordinary workspace edits. Refresh the authoritative version before another local edit can run.
+          const operation=workspaceCommitQueue.then(async()=>{
+            if(!current())throw new Error("Session or ticket view changed. Reopen the ticket.");
+            await window.OpsFusionFlushSaves();
+            const result=await window.OpsFusionCloud.ticketToolRequest(ticketId,decision,id);
+            if(epoch!==workspaceSessionEpoch)throw new Error("Session changed.");
+            if(result.status==="executed"){
+              const latest=await window.OpsFusionCloud.refreshWorkspace();
+              if(epoch!==workspaceSessionEpoch)throw new Error("Session changed.");
+              state=latest.state;state.audit=latest.audit||[];migrateUnifiedState();renderAll();
+            }
+            return result;
+          });
+          workspaceCommitQueue=operation.catch(()=>{});
+          const result=await operation;
+          if(!current())return;
+          panel.textContent=result.status==="executed" ? "Executed: the approved note was saved once. Reopen Details to see its activity." :
+            result.status==="rejected" ? "Rejected. No ticket change." :
+            "Not executed: "+result.status+". Refresh cloud data and request a new proposal.";
+          toast("AI tool decision",result.status);
+        } catch(error) {if(current())panel.textContent="Decision could not be confirmed: "+error.message+". Refresh and check ticket history before retrying.";}
+        finally {if(current()){propose.disabled=false;pending.disabled=false;}}
+      });
+    };
+    const run=async(mode)=>{
+      propose.disabled=true;pending.disabled=true;panel.hidden=false;
+      panel.textContent=mode==="propose"?"Requesting a Gemini tool proposal. Nothing will execute without approval.":"Loading pending proposals...";
+      try {
+        await workspaceCommitQueue;
+        await window.OpsFusionFlushSaves();
+        const result=await window.OpsFusionCloud.ticketToolRequest(ticketId,mode);
+        render(mode==="propose"?[result.proposal]:result);
+      }catch(error){if(current())panel.textContent=error.message;}
+      finally{if(current()){propose.disabled=false;pending.disabled=false;}}
+    };
+    propose.onclick=()=>run("propose");pending.onclick=()=>run("list");
+  }
+
   function openTicketModal(id) {
     const t=incidentById(id);if(!t)return;
     const ticket=normalizeTicket(t),ep=endpointById(ticket.endpointId),asset=assetById(ticket.assetId),requester=identityById(ticket.requesterId),tech=technicianById(ticket.assigneeId),sla=ticketSlaState(ticket);
@@ -2172,10 +2233,13 @@
       '<div class="stack">'+ticket.activities.slice().reverse().map((a)=>'<div class="stack-row"><div><strong>'+esc(a.action+" · "+a.actor)+'</strong><small>'+esc(fmtDate(a.at)+" · "+a.note)+'</small></div></div>').join("")+'</div>'+
       '<label class="field" style="margin-top:12px"><span>Work note</span><textarea id="mTicketNote" placeholder="Add troubleshooting or resolution note"></textarea></label>'+
       (canAnalyze?'<div class="ai-ticket-privacy">AI is optional: clicking Analyze sends this ticket\'s limited text and recent work notes to Google Gemini. Free-tier content may be used to improve Google products. Never analyze confidential data or credentials. Technician review is required.</div>'+
-        '<section id="mTicketAiPanel" class="ai-ticket-panel" aria-live="polite" hidden></section>':"")+
+        '<section id="mTicketAiPanel" class="ai-ticket-panel" aria-live="polite" hidden></section>'+ 
+      '<div class="modal-actions"><button class="btn secondary" id="mTicketToolPropose">AI Propose Work Note</button><button class="btn secondary" id="mTicketToolPending">Pending Tool Proposals</button></div>'+ 
+      '<section id="mTicketToolPanel" aria-live="polite" hidden></section>':"")+
       '<div class="modal-actions">'+(canAnalyze?'<button class="btn secondary" id="mTicketAiAnalyze">AI Analyze Ticket</button>':"")+
       (!ticket.firstResponseAt?'<button class="btn secondary" id="mTicketRespond">Record First Response</button>':"")+'<button class="btn primary" id="mTicketNoteSave">Add Work Note</button></div>',
       ()=>{
+        wireTicketTools(id);
         if ($("mTicketAiAnalyze")) $("mTicketAiAnalyze").onclick=async()=>{
           const button=$("mTicketAiAnalyze"),panel=$("mTicketAiPanel");
           if(!panel)return;

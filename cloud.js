@@ -335,6 +335,30 @@
     return !!data;
   }
 
+  async function ticketToolRequest(ticketId, mode = "propose", proposalId = null) {
+    if (!isWorkspaceOwner()) throw new Error("Sign in as the workspace owner.");
+    const userId = session.user.id, workspace = workspaceId;
+    let result;
+    if (mode === "propose") {
+      result = await client.functions.invoke("opsfusion-ai-tools", {body:{workspace_id:workspace,ticket_id:ticketId}});
+    } else if (mode === "list") {
+      result = await client.from("opsfusion_tool_proposals")
+        .select("id,ticket_id,tool_name,arguments,model,status,expires_at")
+        .eq("workspace_id",workspace).eq("ticket_id",ticketId).eq("status","pending")
+        .order("created_at",{ascending:false}).limit(5);
+    } else {
+      if (!["approve","reject"].includes(mode)) throw new Error("Invalid decision.");
+      result = await client.rpc("opsfusion_review_tool",{p_proposal_id:proposalId,p_decision:mode});
+    }
+    if (!session || session.user.id !== userId || workspaceId !== workspace) throw new Error("Session changed. Refresh before continuing.");
+    if (result.error) {
+      let message=result.error.message;
+      try { const body=await result.error.context?.json(); if(body?.error)message=body.error; } catch {}
+      throw new Error(message || "Tool request failed.");
+    }
+    return result.data;
+  }
+
   async function analyzeTicket(ticketId) {
     if (!session || !workspaceId || workspaceOwnerId !== session.user?.id) {
       throw new Error("Sign in as the workspace owner to use AI assistance.");
@@ -411,6 +435,7 @@
     runAutomations,
     acknowledgeAutomation,
     analyzeTicket,
+    ticketToolRequest,
     pushAudit,
     isCloudActive,
     getRole,

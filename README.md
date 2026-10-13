@@ -42,6 +42,12 @@ The authenticated `opsfusion-ai-assistant` Edge Function provides ticket summari
 
 Analysis does not modify tickets. **Insert Draft Into Work Note** fills the editor; the user must review it and separately click **Add Work Note** to save. Use nonsensitive demo tickets and review the provider disclosure. See [AI deployment evidence](docs/AI_SERVICE_DESK_DEPLOYMENT.md).
 
+## Approval-based AI tool calling
+
+Workspace owners can request **AI Propose Work Note** on a ticket. Gemini returns a native `add_work_note` function call, which is validated and stored as a pending proposal. The exact note is shown for **Approve & Add Note** or **Reject**. Approval executes through an authenticated database transaction and records an audit event; the model cannot execute the tool itself. Proposals expire after 15 minutes and are invalidated by workspace edits. Repeat approvals cannot add duplicate notes.
+
+See [approval tool workflow and verification](docs/APPROVAL_TOOLS.md). This tool adds ticket work notes only; it does not run commands or control devices.
+
 ## Password validation and security status
 
 Signup, password recovery, and password changes use a 12-character application minimum. Existing passwords and accounts were preserved. Server-side minimum enforcement remains unverified, and leaked-password protection remains an outstanding Auth setting. See [production security review](docs/OPS_FUSION_PRODUCTION_SECURITY_REVIEW.md).
@@ -142,7 +148,7 @@ GitHub: [@Sachibara](https://github.com/Sachibara)
 
 ## October 14–15 release qualification
 
-As of October 13, 2026 (Philippines): **118 automated regression tests pass**. GitHub Actions checks passed for the password-validation release `c992e9b`, and the production alias serves that release. Tests include mocked integrations and do not replace a complete live browser rehearsal.
+As of October 13, 2026 (Philippines): **129 automated regression tests pass** locally after adding approval-based tools. GitHub Actions checks previously passed for the password-validation release `c992e9b`. Tests include mocked integrations and do not replace a complete live browser rehearsal.
 
 Verified evidence includes cloud persistence, endpoint/asset validation, live hourly SLA/warranty/maintenance scans, alert clearing/reactivation, and successful Gemini responses. Custom SMTP signup/recovery delivery was verified in the earlier acceptance session.
 

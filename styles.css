@@ -1044,3 +1044,15 @@ input,select,textarea{max-width:100%;min-width:0}
 @media(max-width:380px){
   .kpi-grid,.asset-kpis,.identity-kpis,.doc-stats,.incident-kpis{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Readable workspace-record status panel on its light background. */
+.hero-status{color:#24334b}
+.signal-board-head{flex-wrap:wrap;align-items:center}
+.signal-board-head span,.signal-board-head b{font-size:.63rem;line-height:1.45;letter-spacing:.04em}
+.signal-board-head span{color:#334155;font-weight:800}
+.signal-board-head b{color:#1d4ed8}
+.signal-score{width:130px;height:130px;color:#17233a}
+.signal-score small{font-size:.58rem;color:#334155;line-height:1.4}
+.orbit-node{font-size:.53rem}
+.hero-status-row{align-items:flex-start;flex-wrap:wrap;font-size:.63rem;line-height:1.5;color:#475569}
+.hero-status-row b{font-size:.63rem;color:#17233a;letter-spacing:.02em;overflow-wrap:anywhere}

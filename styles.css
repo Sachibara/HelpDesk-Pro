@@ -22,7 +22,7 @@
   --radius:3px;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;font-size:112.5%}
 body{
   margin:0;
   min-height:100vh;
@@ -995,3 +995,4 @@ tbody tr:hover{background:#f7faff}
 .form-grid select,.toolbar select,.incident-actions select{min-width:0;max-width:100%}
 select:disabled{cursor:not-allowed}
 @media(max-width:720px){.form-grid{grid-template-columns:minmax(0,1fr)}}
+

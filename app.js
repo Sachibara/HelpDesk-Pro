@@ -2629,6 +2629,7 @@
 
   function updateModeUI(mode, role = "demo") {
     const cloud = mode === "cloud";
+    if ($("sidebarModeLabel")) $("sidebarModeLabel").textContent = cloud ? "Cloud Workspace" : "Portfolio mode";
     if ($("workspaceModeLabel")) $("workspaceModeLabel").textContent = cloud ? "CLOUD WORKSPACE" : "PORTFOLIO DEMO";
     if ($("persistenceModeLabel")) $("persistenceModeLabel").textContent = cloud ? "SUPABASE" : "LOCAL";
     showSaveStatus(cloud ? "Loaded from Supabase" : "Demo records only");

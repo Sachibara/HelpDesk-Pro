@@ -999,3 +999,48 @@ tbody tr:hover{background:#f7faff}
 select:disabled{cursor:not-allowed}
 @media(max-width:720px){.form-grid{grid-template-columns:minmax(0,1fr)}}
 
+
+/* Fluid sizing across desktop, tablet, phone and short windows. */
+.main,.page,.panel,.grid>*,.ops-visual-grid>*,.auth-shell>*,.top-actions,.topbar-heading{min-width:0}
+.topbar{flex-wrap:wrap}
+.top-actions{max-width:100%}
+.global-search-wrap{min-width:0;max-width:100%}
+.global-search-wrap input{width:min(300px,100%)}
+input,select,textarea{max-width:100%;min-width:0}
+.field input,.field select,.field textarea{width:100%}
+.toolbar input{min-width:0;flex:1 1 200px}
+.toolbar select{min-width:0;flex:0 1 200px}
+.table-wrap{max-width:100%;overflow-x:auto}
+.modal{max-height:calc(100dvh - 40px);min-width:0}
+.modal-actions{flex-wrap:wrap}
+.modal-head h2,.endpoint-meta strong,.stack-row strong,.audit-entry strong,.audit-entry small{overflow-wrap:anywhere}
+.nav-link{grid-template-columns:31px minmax(0,1fr)}
+.nav-link>span:last-child{overflow-wrap:anywhere}
+@media(max-width:1180px){
+  .top-actions{width:100%;justify-content:flex-start}
+  .global-search-wrap{flex:1 1 220px}
+  .global-search-wrap input{width:100%}
+}
+@media(max-width:920px){
+  .app-shell{display:block}
+  .sidebar{position:relative;top:0;height:auto;max-height:none;margin:0;padding:14px;border-radius:0}
+  .side-nav{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .system-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .auth-shell{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:650px){
+  .side-nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .top-actions>.global-search-wrap{flex-basis:100%}
+  .system-strip,.endpoint-meta{grid-template-columns:minmax(0,1fr)}
+  .hero-copy h2{font-size:clamp(1.55rem,7vw,2.3rem)}
+  .hero-copy,.hero-status{min-width:0}
+  .section-head h2{font-size:clamp(1.4rem,6vw,2.1rem)}
+  .modal-backdrop{padding:10px}
+  .modal{max-height:calc(100dvh - 20px);padding:14px}
+  .modal-actions>.btn{flex:1 1 140px}
+  .stack-row{grid-template-columns:minmax(0,1fr);gap:8px}
+  .toolbar select{flex:1 1 140px}
+}
+@media(max-width:380px){
+  .kpi-grid,.asset-kpis,.identity-kpis,.doc-stats,.incident-kpis{grid-template-columns:minmax(0,1fr)}
+}

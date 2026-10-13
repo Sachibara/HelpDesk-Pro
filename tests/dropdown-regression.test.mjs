@@ -88,7 +88,6 @@ test("Role Template selector is explicit, interactive, validated and persisted",
   assert.ok(app.includes('availableRoleTemplates().map('));
   assert.ok(app.includes('key === "mIdTemplate" ? "change" : "input"'));
   assert.ok(app.includes("draft.templates = availableRoleTemplates().map"));
-  assert.ok(app.includes('Selected: '));
 });
 test("Asset lifecycle dropdown responds to status and limits assignment to active identities",()=>{
   assert.ok(app.includes('$("mAssetStatus").addEventListener("change", updateAssignment)'));
@@ -131,3 +130,4 @@ test("All known static data filters and dynamic workflow selectors remain presen
 test("Dropdown scripts do not contain secret Supabase credentials",()=>{
   assert.doesNotMatch(cloud,/service_role|sb_secret_/i);
 });
+

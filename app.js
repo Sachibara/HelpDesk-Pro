@@ -898,7 +898,7 @@
     showModal("Add Endpoint",
       '<div class="form-grid">' +
       '<label class="field"><span>Hostname</span><input id="mHostname" required placeholder="HQ-WS-05"></label>' +
-      '<label class="field"><span>IPv4 address</span><input id="mIp" type="text" inputmode="decimal" required autocomplete="off" spellcheck="false" aria-describedby="mIpHint" placeholder="10.20.10.50"><small id="mIpHint" aria-live="polite">Enter an assignable IPv4 address, e.g. 192.168.1.50.</small></label>' +
+      '<label class="field"><span>IPv4 address</span><input id="mIp" type="text" inputmode="decimal" required autocomplete="off" spellcheck="false" aria-describedby="mIpHint" placeholder="10.20.10.50"></label>' +
       '<label class="field"><span>Site</span><input id="mSite" list="siteList" required placeholder="HQ"><datalist id="siteList">' + sites.map((s) => '<option value="' + esc(s) + '"></option>').join("") + '</datalist></label>' +
       '<label class="field"><span>Type</span><select id="mType"><option>Workstation</option><option>Laptop</option><option>Server</option><option>Router</option><option>Switch</option><option>Access Point</option></select></label>' +
       '<label class="field"><span>Owner</span><input id="mOwner" placeholder="Department / user"></label>' +
@@ -908,7 +908,7 @@
       (demoMode?'<option value="online">Online (demo)</option><option value="offline">Offline (demo)</option>':
        '<option value="unverified">Not connected — requires an authorized endpoint agent</option>')+
       '</select></label>' +
-      '</div><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Endpoint</button></div>',
+      '</div><p id="mIpHint" class="cell-sub" aria-live="polite" hidden></p><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Endpoint</button></div>',
       (root) => {
         $("mCancel").onclick = closeModal;
         const updateIpValidity = () => {
@@ -916,11 +916,10 @@
           const valid = validEndpointIp(value);
           $("mIp").setCustomValidity(valid ? "" : "An assignable, canonical IPv4 address is required.");
           $("mIp").setAttribute("aria-invalid", value && !valid ? "true" : "false");
-          $("mIpHint").textContent = !value
-            ? "Enter an assignable IPv4 address, e.g. 192.168.1.50."
-            : valid
-              ? "Valid endpoint IPv4 format."
-              : "Invalid or non-assignable IPv4 address. Check range, octets and leading zeros.";
+          $("mIpHint").hidden = !value || valid;
+          $("mIpHint").textContent = value && !valid
+            ? "Invalid or non-assignable IPv4 address. Check range, octets and leading zeros."
+            : "";
           $("mSave").disabled = !valid || !$("mHostname").value.trim() || !$("mSite").value.trim() || (!demoMode && cloudRole === "viewer");
         };
         ["mIp","mHostname","mSite"].forEach((id) => $(id).addEventListener("input", updateIpValidity));
@@ -1091,15 +1090,13 @@
       (state.identities.some((u)=>u.status==="Active") ? "Choose an active identity" : "No active identities — add one in Identity & Access") +
       '</option>' +
       state.identities.filter((u) => u.status === "Active").map((u) => '<option value="' + esc(u.id) + '"' + (u.id===asset.assignedUserId ? " selected" : "") + '>' + esc(u.displayName) + '</option>').join("") +
-      '</select><small id="mAssetAssigneeHint">Only Assigned assets require a user.</small></label></div><div class="modal-actions"><button class="btn secondary" id="mAssetTicket">Create Ticket</button><button class="btn primary" id="mAssetSave">Save Asset</button></div>',
+      '</select></label></div><div class="modal-actions"><button class="btn secondary" id="mAssetTicket">Create Ticket</button><button class="btn primary" id="mAssetSave">Save Asset</button></div>',
       () => {
         const updateAssignment = () => {
           const assigning = $("mAssetStatus").value === "Assigned";
           const hasActive = state.identities.some((u) => u.status === "Active");
           $("mAssetUser").disabled = !assigning || !hasActive;
-          $("mAssetAssigneeHint").textContent = assigning
-            ? (hasActive ? "Select the identity receiving this asset." : "Create an active identity first.")
-            : "Only Assigned assets require an identity.";
+
         };
         $("mAssetStatus").addEventListener("change", updateAssignment);
         updateAssignment();
@@ -1398,7 +1395,7 @@
       '<div class="form-grid"><label class="field"><span>First name</span><input id="mIdFirst"></label><label class="field"><span>Last name</span><input id="mIdLast"></label>'+
       '<label class="field"><span>Role template</span><select id="mIdTemplate" required><option value="" selected disabled>Select a role template</option>'+
       availableRoleTemplates().map((t)=>'<option value="'+esc(t.id)+'">'+esc(t.name+" · "+t.department)+'</option>').join("")+
-      '</select><small id="mTemplateHint">Choose a workspace-only role. This does not create an external directory account.</small></label>'+
+      '</select></label>'+
       '<label class="field"><span>Job title</span><input id="mIdTitle" placeholder="Analyst"></label><label class="field"><span>Manager</span><input id="mIdManager"></label>'+
       '<label class="field"><span>Expiry (optional)</span><input id="mIdExpiry" type="date"></label></div>'+
       '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Provision</button></div>',
@@ -1406,9 +1403,7 @@
         $("mCancel").onclick=closeModal;
         const updateIdentityForm = () => {
           const tpl = templateById($("mIdTemplate").value);
-          $("mTemplateHint").textContent = tpl
-            ? "Selected: " + tpl.name + " · " + tpl.department + " (workspace record only)."
-            : "Select Standard Employee, IT Support, or IT Administrator before saving.";
+
           $("mSave").disabled = cloudRole === "viewer" || !tpl ||
             !$("mIdFirst").value.trim() || !$("mIdLast").value.trim();
         };

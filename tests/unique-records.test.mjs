@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+const app=readFileSync(new URL('../app.js',import.meta.url),'utf8');
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const start=app.indexOf('  function recordKey('),end=app.indexOf('  function badge(',start);
+const {validateUniqueRecords:validate,usernameFor}=runInNewContext(app.slice(start,end)+'\n({validateUniqueRecords,usernameFor})');
+const base=()=>({identities:[{id:'u1',displayName:'Alex Reyes',username:'areyes',upn:'areyes@corp.local'}],assets:[{id:'a1',tag:'AST-1',hostname:'PC-1',serial:'SN-1',endpointId:'e1',status:'Assigned',assignedUserId:'u1'}]});
+for(const field of ['displayName','username','upn'])test('Reject normalized duplicate identity '+field,()=>{const d=base();d.identities.push({id:'u2',[field]:'  '+d.identities[0][field].toUpperCase()+'  '});assert.throws(()=>validate(d),/already exists/);});
+for(const field of ['tag','hostname','serial','endpointId'])test('Reject duplicate asset '+field+' despite different owner',()=>{const d=base();d.assets.push({id:'a2',[field]:d.assets[0][field],assignedUserId:'u2'});assert.throws(()=>validate(d),/already exists/);});
+test('Names normalize repeated spaces and compatibility characters',()=>{const d=base();d.identities.push({id:'u2',displayName:'Ａlex   Reyes'});assert.throws(()=>validate(d),/full name/);});
+test('Legacy duplicates can remain or shrink but cannot grow',()=>{const old=base();old.identities.push({...old.identities[0],id:'u2',username:'areyes2',upn:'areyes2@corp.local'});validate(structuredClone(old),old);const next=structuredClone(old);next.identities.push({...old.identities[0],id:'u3',username:'areyes3',upn:'areyes3@corp.local'});assert.throws(()=>validate(next,old),/full name/);});
+test('Username generation never silently appends a number',()=>assert.equal(usernameFor('Alex','Reyes'),'areyes'));
+test('Direct reassignment is denied, release then assignment allowed',()=>{const old=base(),next=base();next.assets[0].assignedUserId='u2';assert.throws(()=>validate(next,old),/Release/);const released=base();released.assets[0].status='Available';released.assets[0].assignedUserId='';validate(released,old);validate(next,released);});
+test('Shared non-unique details and missing serials remain allowed',()=>{const d=base();d.assets[0].serial='—';d.assets.push({id:'a2',tag:'AST-2',hostname:'PC-2',serial:'—',type:'Laptop',department:'IT'});validate(d);});
+test('Reset control and handler removed; import validates records',()=>{assert.doesNotMatch(html,/Reset Portfolio Demo|resetWorkspaceBtn/);assert.doesNotMatch(app,/resetWorkspaceBtn/);assert.match(app,/validateUniqueRecords\(imported\)/);});

@@ -345,6 +345,7 @@
       if (epoch !== workspaceSessionEpoch) throw new Error("Workspace session changed during this action.");
       const proposed = JSON.parse(JSON.stringify(state));
       buildNext(proposed);
+      validateUniqueRecords(proposed, state);
       proposed.meta.updatedAt = now();
       if (!demoMode) {
         showSaveStatus("Saving to Supabase...");
@@ -545,13 +546,38 @@
     return diff >= 0 && diff <= 30 * 86400000;
   }
 
+  function recordKey(value) {
+    return String(value || "").normalize("NFKC").trim().replace(/\s+/g," ").toLowerCase();
+  }
+
+  function validateUniqueRecords(next, previous = {}) {
+    const rules={identities:["id","displayName","username","upn"],assets:["id","tag","hostname","serial","endpointId"]};
+    for(const [collection,fields] of Object.entries(rules)) {
+      const records=next[collection]||[],old=previous[collection]||[];
+      for(const field of fields) {
+        const seen=new Map();
+        for(const record of records) {
+          const key=recordKey(record[field]);
+          if(!key || (field==="serial" && ["—","-","n/a","unknown"].includes(key)))continue;
+          const other=seen.get(key);
+          if(other) {
+            const legacy=field!=="id" && record.id!==other.id && [record,other].every(r=>old.some(o=>o.id===r.id && recordKey(o[field])===key));
+            if(!legacy)throw new Error((collection==="identities"?"Identity":"Asset")+" already exists: duplicate "+({displayName:"full name",upn:"email identifier",hostname:"name",endpointId:"linked endpoint"}[field]||field)+". Open the existing record instead.");
+          }
+          seen.set(key,record);
+        }
+      }
+    }
+    for(const asset of next.assets||[]) {
+      const old=(previous.assets||[]).find(a=>a.id===asset.id);
+      if(old?.status==="Assigned" && asset.status==="Assigned" && old.assignedUserId!==asset.assignedUserId)
+        throw new Error("Asset is already assigned. Release it to Available and save before assigning it to another person.");
+    }
+  }
+
   function usernameFor(first, last) {
     const base = ((first || "").trim().slice(0,1) + (last || "").trim()).toLowerCase().replace(/[^a-z0-9]/g, "") || "user";
-    const used = new Set((state.identities || []).map((u) => String(u.username || "").toLowerCase()));
-    let candidate = base;
-    let n = 2;
-    while (used.has(candidate)) candidate = base + n++;
-    return candidate;
+    return base;
   }
 
   function badge(text, tone) {
@@ -2607,21 +2633,6 @@
     toast("Workflow settings saved", state.meta.workspaceName);
   });
 
-  $("resetWorkspaceBtn").addEventListener("click", () => {
-    if (!demoMode) {
-      toast("Reset unavailable", "Cloud workspaces cannot be replaced by sample data.");
-      return;
-    }
-    if (!confirm("Reset the local Portfolio Demo to sample records?")) return;
-    state = seedState();
-    currentEndpointId = state.endpoints[0]?.id || null;
-    selectedDiagnosticId = null;
-    saveState();
-    renderAll();
-    openPage("overview");
-    toast("Workspace reset", "Seeded unified data restored.");
-  });
-
   $("exportBtn").addEventListener("click", () => {
     audit("System", "Workspace exported", state.meta.workspaceName, "Unified JSON workspace exported from the browser.");
     saveState();
@@ -2650,6 +2661,7 @@
       }
       if (!confirm("Replace the current local demo workspace with " + file.name + "?")) return;
       const base = seedState();
+      validateUniqueRecords(imported);
       state = {
         ...base,
         ...imported,
@@ -2739,7 +2751,7 @@
   function applyRoleAccess() {
     document.body.dataset.role = cloudRole;
     const readOnly = cloudRole === "viewer";
-    const adminOnlyIds = ["resetWorkspaceBtn","clearAuditBtn"];
+    const adminOnlyIds = ["clearAuditBtn"];
     const mutatingIds = [
       "addEndpointBtn","addAssetBtn","provisionUserBtn","runDiagBtn","diagCreateIncidentBtn",
       "addVlanBtn","addPortBtn","addChangeNoteBtn","evaluateComplianceBtn","newIncidentBtn",

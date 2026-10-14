@@ -120,6 +120,7 @@ test("Concurrent workspace edits serialize state-building and avoid lost updates
     'const STORAGE_KEY="test";',
     'const now=()=>"2026-10-12T00:00:00.000Z";',
     'const showSaveStatus=()=>{};',
+    app.slice(app.indexOf("  function recordKey("),app.indexOf("  function usernameFor(")),
     app.slice(from,to),
     '({commitWorkspaceChange,getState:()=>state,setEpoch:()=>workspaceSessionEpoch++})'
   ].join("\n");
@@ -139,6 +140,7 @@ test("Session changes prevent stale queued edits from updating a different accou
     'let demoMode=true,cloudRole="demo",workspaceSessionEpoch=0,workspaceCommitQueue=Promise.resolve();',
     'const window={OpsFusionCloud:null}, localStorage={setItem(){}}, STORAGE_KEY="test";',
     'const now=()=>"2026-10-12T00:00:00.000Z",showSaveStatus=()=>{};',
+    app.slice(app.indexOf("  function recordKey("),app.indexOf("  function usernameFor(")),
     app.slice(from,to),
     '({commitWorkspaceChange,getState:()=>state,setEpoch:()=>workspaceSessionEpoch++})'
   ].join("\n");
@@ -153,3 +155,4 @@ test("Refresh and sign-out wait for pending workspace commits",()=>{
   assert.ok(app.indexOf('await workspaceCommitQueue;',app.indexOf('  $("refreshCloudBtn")'))>=0);
   assert.ok(app.indexOf('await workspaceCommitQueue;',app.indexOf('  $("cloudSignOutBtn")'))>=0);
 });
+

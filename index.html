@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./styles.css?v=20261013-header-spacing-v1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="./cloud.js?v=20261013-approved-tools-v1" defer></script>
-  <script src="./app.js?v=20261013-cloud-label-v1" defer></script>
+  <script src="./app.js?v=20261014-record-workflows-v1" defer></script>
   <script src="./automation.js?v=20261011-cloud-automation-final" defer></script>
 </head>
 <body>
@@ -40,7 +40,8 @@
       <button class="nav-link" data-page="identity"><span class="nav-code">ID</span><span>Identity & Access</span></button>
       <button class="nav-link" data-page="troubleshooting"><span class="nav-code">NT</span><span>Endpoint Diagnostics</span></button>
       <button class="nav-link" data-page="remote"><span class="nav-code">RS</span><span>Remote Support</span></button>
-      <button class="nav-link" data-page="documentation"><span class="nav-code">ND</span><span>Knowledge Base</span></button>
+      <button class="nav-link" data-page="documentation"><span class="nav-code">ND</span><span>Network Documentation</span></button>
+      <button class="nav-link" data-page="knowledge"><span class="nav-code">KB</span><span>Knowledge Base</span></button>
       <button class="nav-link" data-page="compliance"><span class="nav-code">PC</span><span>Compliance</span></button>
       <button class="nav-link" data-page="automation"><span class="nav-code">AT</span><span>Automation</span></button>
       <button class="nav-link" data-page="audit"><span class="nav-code">AU</span><span>Audit Log</span></button>
@@ -544,7 +545,7 @@
 
       <div class="grid two">
         <article class="panel">
-          <div class="panel-head"><div><h3>Knowledge Base</h3><p>Suggested support articles from HelpDesk Pro.</p></div></div>
+          <div class="panel-head"><div><h3>Knowledge Base</h3><p>Saved support articles for this workspace.</p></div><button class="btn secondary" data-go="knowledge">Browse Articles</button></div>
           <div id="knowledgeRows" class="stack"></div>
         </article>
         <article class="panel">
@@ -552,6 +553,12 @@
           <div id="technicianRows" class="stack"></div>
         </article>
       </div>
+    </section>
+
+    <section class="page" data-panel="knowledge">
+      <div class="section-head"><div><p class="eyebrow">Support reference</p><h2>Knowledge Base</h2><p>Create and maintain reviewed troubleshooting guides for your workspace.</p></div><button class="btn primary" id="addKnowledgeBtn">New Article</button></div>
+      <div class="toolbar"><input id="knowledgeSearch" type="search" aria-label="Search knowledge articles" placeholder="Search title, category or article text..."><label class="check-row"><input id="knowledgeArchived" type="checkbox"><span>Show archived articles</span></label></div>
+      <article class="panel"><div id="knowledgeLibraryRows" class="stack"></div></article>
     </section>
 
     <section class="page" data-panel="audit">

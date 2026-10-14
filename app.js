@@ -15,6 +15,7 @@
     troubleshooting: ["Network diagnostics", "Troubleshooting"],
     remote: ["Endpoint operations", "Remote Support"],
     documentation: ["Network records", "Documentation"],
+    knowledge: ["Support reference", "Knowledge Base"],
     compliance: ["Endpoint posture", "Compliance"],
     incidents: ["IT service management", "Service Desk"],
     audit: ["Governance", "Audit Log"],
@@ -625,6 +626,7 @@
     if (page === "troubleshooting") renderTroubleshooting();
     if (page === "remote") renderRemote();
     if (page === "documentation") renderDocumentation();
+    if (page === "knowledge") renderKnowledge();
     if (page === "compliance") renderCompliance();
     if (page === "incidents") renderIncidents();
     if (page === "audit") renderAudit();
@@ -847,6 +849,86 @@
     if (event.target === $("modalBackdrop")) closeModal();
   });
 
+  function updateEndpointRecord(draft, id, input) {
+    const record = draft.endpoints.find((e) => e.id === id);
+    if (!record) throw new Error("Endpoint no longer exists. Refresh Cloud Data.");
+    const text = (value, limit) => { const result=String(value || "").trim(); if(result.length>limit) throw new Error("Inventory field exceeds its maximum length of "+limit+" characters."); return result; };
+    const values = {hostname:text(input.hostname,128),ip:text(input.ip,32),site:text(input.site,120),
+      type:input.type,owner:text(input.owner,160)||"Unassigned",os:text(input.os,160)||"Unknown",model:text(input.model,160)||"Unknown"};
+    if (!values.hostname || !values.site || !validEndpointIp(values.ip)) throw new Error("Hostname, site and an assignable IPv4 address are required.");
+    if (!["Workstation","Laptop","Server","Router","Switch","Access Point"].includes(values.type)) throw new Error("Choose a valid endpoint type.");
+    if (draft.endpoints.some((e)=>e.id!==id && (e.hostname.toLowerCase()===values.hostname.toLowerCase() || e.ip===values.ip))) throw new Error("Hostname and IPv4 address must be unique.");
+    const mappings = draft.ports.filter((p)=>p.switch===record.hostname);
+    if (mappings.length && values.type!=="Switch") throw new Error("Remove this switch's port mappings before changing its type.");
+    const assigned = draft.assets.filter((a)=>a.endpointId===id && a.status==="Assigned");
+    if (assigned.length) {
+      const owner = draft.identities.find((u)=>u.id===assigned[0].assignedUserId && u.status==="Active");
+      if (!owner) throw new Error("Linked asset has no active owner. Review its assignment first.");
+      values.owner = owner.displayName;
+    }
+    mappings.forEach((p)=>{p.switch=values.hostname;});
+    Object.assign(record, values); // Inventory fields only: never accept agent status or telemetry from the form.
+    draft.assets.filter((a)=>a.endpointId===id).forEach((a)=>{a.specs=values.model+" · "+values.os;});
+    return record;
+  }
+
+  function updateAssetEndpoint(draft, assetId, endpointId) {
+    const asset = draft.assets.find((a)=>a.id===assetId);
+    if (!asset) throw new Error("Asset no longer exists.");
+    const endpoint = endpointId ? draft.endpoints.find((e)=>e.id===endpointId) : null;
+    if (endpointId && !endpoint) throw new Error("Selected endpoint no longer exists.");
+    if (endpointId && endpointId!==asset.endpointId && draft.assets.some((a)=>a.id!==assetId && a.endpointId===endpointId)) throw new Error("This endpoint is already linked to another asset.");
+    const previous = draft.endpoints.find((e)=>e.id===asset.endpointId);
+    const owner = draft.identities.find((u)=>u.id===asset.assignedUserId);
+    if (previous && previous.id!==endpointId && owner && previous.owner===owner.displayName &&
+      !draft.assets.some((a)=>a.id!==assetId && a.endpointId===previous.id && a.status==="Assigned")) previous.owner="Unassigned";
+    asset.endpointId=endpointId;
+    asset.specs=endpoint ? endpoint.model+" · "+endpoint.os : "User-managed asset inventory";
+    return endpoint;
+  }
+
+  function saveKnowledgeRecord(draft, id, input, stamp) {
+    const existing=draft.knowledge.find((k)=>k.id===id);
+    if (input.isNew ? !!existing : !existing) throw new Error("Article changed or no longer exists. Refresh Cloud Data.");
+    const title=String(input.title||"").trim(),category=String(input.category||"").trim(),
+      summary=String(input.summary||"").trim(),content=String(input.content||"").trim();
+    if (!title || title.length>160 || !category || category.length>80 || !summary || summary.length>300 || !content || content.length>20000)
+      throw new Error("Enter a title (up to 160 characters), category (80), summary (300) and article text (20,000).");
+    if (draft.knowledge.some((k)=>k.id!==id && k.title.toLowerCase()===title.toLowerCase())) throw new Error("An article with this title already exists.");
+    const article={...existing,id,title,category,summary,content,archived:!!input.archived,
+      createdAt:existing?.createdAt||stamp,updatedAt:stamp};
+    if(existing)draft.knowledge[draft.knowledge.indexOf(existing)]=article;
+    else draft.knowledge.unshift(article);
+    return article;
+  }
+
+  function openEndpointEdit(id) {
+    if (cloudRole==="viewer") return;
+    const e=endpointById(id);if(!e)return;
+    const assigned=state.assets.some((a)=>a.endpointId===id && a.status==="Assigned");
+    const field=(label,key,value)=>'<label class="field"><span>'+label+'</span><input id="'+key+'" value="'+esc(value||"")+'"></label>';
+    showModal("Edit Endpoint · "+e.hostname,
+      '<div class="form-grid">'+field("Hostname","mEditHost",e.hostname)+field("IPv4 address","mEditIp",e.ip)+field("Site","mEditSite",e.site)+
+      '<label class="field"><span>Type</span><select id="mEditType">'+["Workstation","Laptop","Server","Router","Switch","Access Point"].map(t=>'<option'+(t===e.type?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
+      field("Owner","mEditOwner",e.owner)+field("OS / platform","mEditOs",e.os)+field("Model","mEditModel",e.model)+'</div>'+
+      (assigned?'<p class="cell-sub">Owner follows the linked asset assignment. Change it in Assets.</p>':"")+
+      '<p id="mEndpointEditError" role="alert" class="cell-sub" hidden></p><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mEndpointEditSave">Save Endpoint</button></div>',()=>{
+        $("mEditOwner").disabled=assigned;
+        $("mCancel").onclick=()=>openEndpointModal(id);
+        $("mEndpointEditSave").onclick=async()=>{
+          const button=$("mEndpointEditSave"),errorBox=$("mEndpointEditError");
+          const input={hostname:$("mEditHost").value,ip:$("mEditIp").value,site:$("mEditSite").value,type:$("mEditType").value,
+            owner:$("mEditOwner").value,os:$("mEditOs").value,model:$("mEditModel").value};
+          button.disabled=true;errorBox.hidden=true;
+          try {
+            await commitWorkspaceChange(draft=>updateEndpointRecord(draft,id,input));
+            audit("Inventory","Endpoint updated",input.hostname,input.ip+" · "+input.site);
+            renderAll();openEndpointModal(id);toast("Endpoint saved",input.hostname);
+          } catch(error){errorBox.textContent=error.message;errorBox.hidden=false;button.disabled=false;}
+        };
+      });
+  }
+
   function openEndpointModal(id) {
     const e = endpointById(id);
     if (!e) return;
@@ -866,12 +948,14 @@
       '<div><span>Failures</span><strong>' + esc(failures) + '</strong></div>' +
       '</div></div>' +
       '<div class="modal-actions">' +
+      (cloudRole!=="viewer"?'<button class="btn secondary" id="mEndpointEdit">Edit Endpoint</button>':"") +
       '<button class="btn secondary" data-modal-page="documentation">Documentation</button>' +
       '<button class="btn secondary" data-modal-page="compliance">Compliance</button>' +
       '<button class="btn secondary" data-modal-page="remote">Remote Support</button>' +
       '<button class="btn primary" data-modal-page="troubleshooting">Troubleshoot</button>' +
       '</div>',
       (root) => {
+        if($("mEndpointEdit"))$("mEndpointEdit").onclick=()=>openEndpointEdit(id);
         qsa("[data-modal-page]", root).forEach((button) => button.addEventListener("click", () => {
           closeModal();
           openPage(button.dataset.modalPage);
@@ -1090,6 +1174,8 @@
       (state.identities.some((u)=>u.status==="Active") ? "Choose an active identity" : "No active identities — add one in Identity & Access") +
       '</option>' +
       state.identities.filter((u) => u.status === "Active").map((u) => '<option value="' + esc(u.id) + '"' + (u.id===asset.assignedUserId ? " selected" : "") + '>' + esc(u.displayName) + '</option>').join("") +
+      '</select></label><label class="field span-2"><span>Link endpoint</span><select id="mAssetLinkEndpoint"><option value="">No endpoint</option>'+
+      state.endpoints.map(e=>'<option value="'+esc(e.id)+'"'+(e.id===asset.endpointId?' selected':'')+'>'+esc(e.hostname)+'</option>').join("")+
       '</select></label></div><div class="modal-actions"><button class="btn secondary" id="mAssetTicket">Create Ticket</button><button class="btn primary" id="mAssetSave">Save Asset</button></div>',
       () => {
         const updateAssignment = () => {
@@ -1103,6 +1189,7 @@
         $("mAssetSave").onclick = async () => {
           const selectedStatus = $("mAssetStatus").value;
           const selectedUser = selectedStatus === "Assigned" ? $("mAssetUser").value : "";
+          const selectedEndpoint = $("mAssetLinkEndpoint").value;
           const owner = selectedUser ? identityById(selectedUser) : null;
           if (selectedStatus === "Assigned" && (!owner || owner.status !== "Active")) {
             toast("Assignment required", "Choose an active identity record before assigning the asset.");
@@ -1115,13 +1202,14 @@
             await commitWorkspaceChange((draft) => {
               const item = draft.assets.find((a) => a.id === id);
               if (!item) throw new Error("Asset was not found. Refresh Cloud Data.");
+              updateAssetEndpoint(draft,id,selectedEndpoint);
               item.status = selectedStatus;
               item.assignedUserId = selectedUser;
               const endpoint = draft.endpoints.find((e) => e.id === item.endpointId);
               if (endpoint) endpoint.owner = owner ? owner.displayName : "Unassigned";
             });
             audit("Assets", "Asset updated", asset.tag, oldStatus + " → " + selectedStatus +
-              (owner ? " · " + owner.displayName : ""));
+              (owner ? " · " + owner.displayName : "")+" · endpoint "+(selectedEndpoint||"Not linked"));
             closeModal(); renderAssets(); renderEndpoints(); renderIdentity(); renderOverview();
             toast("Asset updated", asset.tag);
           } catch (error) {
@@ -2355,8 +2443,7 @@
     });
     qsa("[data-open-ticket]").forEach((b)=>b.onclick=()=>openTicketModal(b.dataset.openTicket));
 
-    $("knowledgeRows").innerHTML=state.knowledge.length ? state.knowledge.map((k)=>'<button class="knowledge-row" data-kb="'+esc(k.id)+'"><strong>'+esc(k.title)+'</strong><span>'+esc(k.category+" · "+k.summary)+'</span></button>').join("") : '<div class="empty">No knowledge articles saved.</div>';
-    qsa("[data-kb]").forEach((b)=>b.onclick=()=>{const k=state.knowledge.find((x)=>x.id===b.dataset.kb);if(k)showModal(k.title,'<p style="font-size:.62rem;color:var(--muted);line-height:1.7">'+esc(k.summary)+'</p><div class="modal-actions"><button class="btn primary" id="mKbClose">Close</button></div>',()=>{$("mKbClose").onclick=closeModal;});});
+    renderKnowledge();
     $("technicianRows").innerHTML=availableTechnicians().map((tech)=>{const load=open.filter((t)=>t.assigneeId===tech.id).length;return '<div class="stack-row"><div><strong>'+esc(tech.name+" · "+tech.role)+'</strong><small>'+esc(tech.specialty)+'</small></div>'+badge(load+" open",load>3?"amber":"blue")+'</div>';}).join("");
     // Rendering is read-only. In particular, do not overwrite a remote cloud
     // workspace merely because a user opened the Service Desk page.
@@ -2400,6 +2487,55 @@
       }
     );
   });
+
+  function renderKnowledge() {
+    const query=$("knowledgeSearch").value.trim().toLowerCase();
+    const archived=$("knowledgeArchived").checked;
+    const card=k=>'<button class="knowledge-row" data-kb="'+esc(k.id)+'"><strong>'+esc(k.title)+(k.archived?' · Archived':'')+'</strong><span>'+esc(k.category+" · "+k.summary)+'</span></button>';
+    const active=state.knowledge.filter(k=>!k.archived);
+    $("knowledgeRows").innerHTML=active.length ? active.slice(0,8).map(card).join("") : '<div class="empty">No active articles. Open Knowledge Base to add one.</div>';
+    const filtered=state.knowledge.filter(k=>(archived||!k.archived) && (!query || [k.title,k.category,k.summary,k.content].join(" ").toLowerCase().includes(query)));
+    $("knowledgeLibraryRows").innerHTML=filtered.length ? filtered.map(card).join("") : '<div class="empty">No articles match this view.</div>';
+    $("addKnowledgeBtn").disabled=cloudRole==="viewer";
+    qsa("[data-kb]").forEach(b=>b.onclick=()=>openKnowledgeArticle(b.dataset.kb));
+  }
+
+  function openKnowledgeArticle(id) {
+    const k=state.knowledge.find(k=>k.id===id);if(!k)return;
+    showModal(k.title,'<p class="cell-sub">'+esc(k.category)+(k.archived?' · Archived':'')+(k.updatedAt?' · Updated '+esc(fmtDate(k.updatedAt)):'')+'</p>'+
+      '<p>'+esc(k.summary)+'</p><div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.73rem;line-height:1.7">'+esc(k.content||k.summary)+'</div>'+
+      '<div class="modal-actions">'+(cloudRole!=="viewer"?'<button class="btn secondary" id="mKbEdit">Edit Article</button>':'')+'<button class="btn primary" id="mKbClose">Close</button></div>',()=>{
+        $("mKbClose").onclick=closeModal;if($("mKbEdit"))$("mKbEdit").onclick=()=>openKnowledgeEditor(id);
+      });
+  }
+
+  function openKnowledgeEditor(id=null) {
+    if(cloudRole==="viewer")return;
+    const k=id ? state.knowledge.find(k=>k.id===id) : null;
+    if(id&&!k)return;
+    const articleId=id||uid("KB");
+    showModal(k?"Edit Knowledge Article":"New Knowledge Article",
+      '<div class="form-grid"><label class="field"><span>Title</span><input id="mKbTitle" maxlength="160" value="'+esc(k?.title||"")+'"></label>'+
+      '<label class="field"><span>Category</span><input id="mKbCategory" maxlength="80" value="'+esc(k?.category||"General")+'"></label>'+
+      '<label class="field span-2"><span>Summary</span><textarea id="mKbSummary" maxlength="300">'+esc(k?.summary||"")+'</textarea></label>'+
+      '<label class="field span-2"><span>Article text</span><textarea id="mKbContent" maxlength="20000" rows="10">'+esc(k?.content||k?.summary||"")+'</textarea></label></div>'+
+      '<label class="check-row"><input id="mKbArchived" type="checkbox"'+(k?.archived?' checked':'')+'><span>Archived (hidden from active support articles)</span></label>'+
+      '<p id="mKbError" class="cell-sub" role="alert" hidden></p><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mKbSave">Save Article</button></div>',()=>{
+        $("mCancel").onclick=()=>k?openKnowledgeArticle(id):closeModal();
+        $("mKbSave").onclick=async()=>{
+          const input={isNew:!k,title:$("mKbTitle").value,category:$("mKbCategory").value,summary:$("mKbSummary").value,content:$("mKbContent").value,archived:$("mKbArchived").checked};
+          const button=$("mKbSave"),errorBox=$("mKbError");button.disabled=true;errorBox.hidden=true;
+          try {
+            await commitWorkspaceChange(draft=>saveKnowledgeRecord(draft,articleId,input,now()));
+            audit("Knowledge",k?"Article updated":"Article created",articleId,input.title+(input.archived?" · archived":""));
+            renderKnowledge();openKnowledgeArticle(articleId);toast("Article saved",input.title);
+          }catch(error){errorBox.textContent=error.message;errorBox.hidden=false;button.disabled=false;}
+        };
+      });
+  }
+  $("addKnowledgeBtn").addEventListener("click",()=>openKnowledgeEditor());
+  $("knowledgeSearch").addEventListener("input",renderKnowledge);
+  $("knowledgeArchived").addEventListener("change",renderKnowledge);
 
   function renderAuditEntries(entries) {
     return entries.length ? entries.map((row) =>
@@ -2607,7 +2743,7 @@
     const mutatingIds = [
       "addEndpointBtn","addAssetBtn","provisionUserBtn","runDiagBtn","diagCreateIncidentBtn",
       "addVlanBtn","addPortBtn","addChangeNoteBtn","evaluateComplianceBtn","newIncidentBtn",
-      "saveRulesBtn","saveWorkflowSettingsBtn","addMaintenanceTaskBtn"
+      "saveRulesBtn","saveWorkflowSettingsBtn","addMaintenanceTaskBtn","addKnowledgeBtn"
     ];
     mutatingIds.forEach((id) => { if ($(id)) $(id).disabled = readOnly; });
     qsa("[data-remote-action],[data-remediate]").forEach((el) => {

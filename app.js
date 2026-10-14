@@ -702,13 +702,14 @@
 
   function renderOpsVisuals(stats) {
     if (!$("healthTrendChart")) return;
+    if ($("healthTrendEmpty")) $("healthTrendEmpty").hidden = demoMode;
     if (!demoMode) {
       // A user-entered inventory record is not an agent heartbeat. Never
       // manufacture telemetry, historical measurements or risk indices.
       $("healthTrendLine").setAttribute("points", "");
       $("healthTrendArea").setAttribute("d", "");
       $("healthTrendPoints").innerHTML = "";
-      $("healthTrendDates").innerHTML = '<text x="50" y="108">No verified telemetry — connect an authorized agent</text>';
+      $("healthTrendDates").innerHTML = "";
       $("riskScoreValue").textContent = "—";
       $("riskKey").innerHTML = '<div class="empty">No measured risk signals.</div>';
       $("riskDonut").style.background = "none";

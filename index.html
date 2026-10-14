@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#f4f7fb">
   <meta name="description" content="OpsFusion unified IT operations workspace integrating troubleshooting, remote support, documentation, endpoint compliance, incidents, and audit history.">
   <title>OpsFusion Unified IT Operations Platform</title>
-  <link rel="stylesheet" href="./styles.css?v=20261013-header-spacing-v1">
+  <link rel="stylesheet" href="./styles.css?v=20261015-telemetry-text-v1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="./cloud.js?v=20261013-approved-tools-v1" defer></script>
-  <script src="./app.js?v=20261014-unique-records-v1" defer></script>
+  <script src="./app.js?v=20261015-telemetry-text-v1" defer></script>
   <script src="./automation.js?v=20261011-cloud-automation-final" defer></script>
 </head>
 <body>
@@ -133,6 +133,7 @@
             <div><span class="visual-kicker">OPERATIONS TREND</span><h3>Fleet health telemetry</h3></div>
             <div class="visual-legend"><span><i class="lg-cyan"></i>health</span><span><i class="lg-coral"></i>risk</span></div>
           </div>
+          <div class="trend-chart-wrap">
           <svg id="healthTrendChart" class="trend-chart" viewBox="0 0 760 220" role="img" aria-label="Fleet health trend chart">
             <defs>
               <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
@@ -153,6 +154,8 @@
             </g>
             <g id="healthTrendDates" class="chart-dates"></g>
           </svg>
+          <div id="healthTrendEmpty" class="trend-empty" hidden><div><strong>No verified telemetry</strong><span>Connect an authorized agent to view fleet health.</span></div></div>
+          </div>
         </article>
 
         <article class="visual-card">

@@ -9,8 +9,9 @@
   <link rel="stylesheet" href="./styles.css?v=20261015-telemetry-text-v1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="./cloud.js?v=20261013-approved-tools-v1" defer></script>
-  <script src="./app.js?v=20261015-telemetry-text-v1" defer></script>
+  <script src="./app.js?v=20261015-portal-v1" defer></script>
   <script src="./automation.js?v=20261011-cloud-automation-final" defer></script>
+  <script src="./employee-admin.js?v=20261015-portal-v1" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -633,6 +634,7 @@
     </section>
 
     <section class="page" data-panel="settings">
+      <article class="panel"><h3>Employee Portal Access</h3><p>Enable employees to submit and track their own support requests.</p><a class="btn secondary" href="/employee">Open Employee Portal</a> <button class="btn primary" id="employeeAccessOpen">Manage Employee Access</button></article>
       <div class="section-head">
         <div>
           <p class="eyebrow">Configuration</p>
@@ -736,12 +738,14 @@
         <div id="authMessage" class="auth-message">Cloud data is protected with Supabase Auth, RLS, and role-based access control.</div>
         <div class="auth-divider"><span>OR</span></div>
         <button class="btn demo wide" id="continueDemoBtn">Launch Portfolio Demo</button>
+        <p><a href="/employee">Employee support portal</a></p>
         <p class="auth-footnote">Demo Mode uses seeded, browser-local data. No infrastructure access is performed.</p>
       </div>
     </section>
   </div>
 </div>
 
+<dialog id="employeeAccessDialog" style="max-width:700px;width:calc(100% - 32px);max-height:85vh;overflow:auto;border:1px solid #cbd5e1;border-radius:12px;padding:24px"><h2>Employee Portal Access</h2><div id="employeeAccessBody"></div><button class="btn secondary" id="employeeAccessClose">Close</button></dialog>
 <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 </body>
 </html>

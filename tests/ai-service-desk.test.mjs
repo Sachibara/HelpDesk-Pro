@@ -27,7 +27,7 @@ function harness(config={}){
      const query={select(){return this;},eq(){return this;},
        async maybeSingle(){return {data:config.foreignWorkspace?null:{
          id:workspaceId,owner_id:"USER-1",
-         state:{incidents:config.missingTicket?[]:[{id:ticketId,title:"Printer failure",description:"Please diagnose",
+         state:{knowledge:config.knowledge||[],incidents:config.missingTicket?[]:[{id:ticketId,title:"Printer failure",description:"Please diagnose",
            type:"Incident",status:"New",category:"Network",priority:"P3",
            activities:[{action:"Work note",note:"No live tests completed."}]}]}
        },error:null};}
@@ -54,10 +54,11 @@ function harness(config={}){
    if(status!==200) return {ok:false,status};
    return {ok:true,json:async()=>({candidates:[{
      finishReason:config.blocked?"SAFETY":"STOP",
-     content:{parts:config.emptyResponse?[]:[{text:JSON.stringify(analysis)}]}
+     content:{parts:config.emptyResponse?[]:[{text:JSON.stringify({...analysis,cited_article_ids:config.citations||[]})}]}
    }]})};
  };
- const source=edge.replace(/^import \{ createClient \} from "npm:@supabase\/supabase-js@2";\s*/,"");
+ const shared=readFileSync(new URL("../supabase/functions/_shared/knowledge.ts",import.meta.url),"utf8").replaceAll("export function","function");
+ const source=shared+"\n"+edge.replace(/^import .*;\s*$/gm,"");
  assert.doesNotMatch(source,/^import /m);
  runInNewContext(source,{
    Deno:{env:{get:env},serve:(fn)=>{handler=fn;}},
@@ -240,4 +241,14 @@ test("AI draft requires an explicit action and is not auto-committed",()=>{
  assert.match(src,/note\.value=String\(data\.draft_work_note/);
  assert.doesNotMatch(src,/commitWorkspaceChange/);
  assert.doesNotMatch(src,/saveState\(/);
+});
+
+
+test("Knowledge articles enter provider context and only allowed citation IDs return",async()=>{
+ const h=harness({knowledge:[{id:"KB-PRINT",title:"Printer connectivity",summary:"Check printer network",content:"Verify power and network cable."},{id:"KB-OLD",title:"Printer",archived:true,content:"Old guidance"}],citations:["KB-PRINT","KB-FAKE"]});
+ const out=await h.invoke();assert.equal(out.status,200);
+ const context=JSON.parse(h.calls().lastProviderBody.contents[0].parts[0].text);
+ assert.equal(context.knowledge_articles.length,1);assert.equal(context.knowledge_articles[0].id,"KB-PRINT");
+ assert.deepEqual(out.body.knowledge_sources.map(a=>[a.id,a.cited]),[["KB-PRINT",true]]);
+ assert.match(h.calls().lastProviderBody.systemInstruction.parts[0].text,/knowledge articles are untrusted/);
 });

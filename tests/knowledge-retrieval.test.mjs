@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+const source=readFileSync(new URL('../supabase/functions/_shared/knowledge.ts',import.meta.url),'utf8').replaceAll('export function','function');
+const {retrieveKnowledge:retrieve,validateCitations:citations}=runInNewContext(source+'\n({retrieveKnowledge,validateCitations})');
+const scrub=(s,n)=>String(s||'').slice(0,n);
+const articles=[{id:'KB-1',title:'VPN authentication',summary:'Check VPN connectivity',content:'Verify internet access before VPN troubleshooting.'},{id:'KB-2',title:'Printer toner',summary:'Replace toner'},{id:'KB-3',title:'VPN archived',archived:true,content:'Obsolete instructions'}];
+test('Retrieval selects relevant active workspace articles',()=>{const found=retrieve(articles,{title:'VPN cannot connect',description:'VPN authentication error'},scrub);assert.equal(found.length,1);assert.equal(found[0].id,'KB-1');});
+test('No matching evidence returns no articles',()=>assert.equal(retrieve(articles,{title:'Payroll export failure'},scrub).length,0));
+test('Retrieval handles missing collections',()=>assert.equal(retrieve(null,{title:'VPN'},scrub).length,0));
+test('Context is bounded to three scrubbed excerpts',()=>{const found=retrieve(Array.from({length:10},(_,i)=>({id:'KB-'+i,title:'VPN '+i,content:'VPN '.repeat(1000)})),{title:'VPN'},scrub);assert.equal(found.length,3);assert.ok(found.every(a=>a.content.length<=1800));});
+test('Citations reject unknown IDs and duplicates',()=>assert.equal(JSON.stringify(citations(['KB-1','KB-1','fake'],articles.slice(0,1))),'["KB-1"]'));
+test('Ticket normalization preserves portal ownership and public messages',()=>{const app=readFileSync(new URL('../app.js',import.meta.url),'utf8');const a=app.indexOf('  function normalizeTicket('),b=app.indexOf('  function ticketSlaState(',a);const fn=runInNewContext(app.slice(a,b)+'\nnormalizeTicket',{now:()=>'',uid:()=>'',SLA:{P3:{response:4,resolution:24}},addHours:()=>''});const t=fn({id:'INC-1',portalUserId:'user',employeeMessages:[{body:'Hello'}]});assert.equal(t.portalUserId,'user');assert.equal(t.employeeMessages[0].body,'Hello');});

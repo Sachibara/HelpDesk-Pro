@@ -510,6 +510,8 @@
       resolutionDue: ticket.resolutionDue || ticket.resolution_due || addHours(createdAt, sla.resolution),
       firstResponseAt: ticket.firstResponseAt || ticket.first_response_at || null,
       resolvedAt: ticket.resolvedAt || ticket.resolved_at || (["Resolved","Closed"].includes(status) ? ticket.updatedAt || createdAt : null),
+      portalUserId: ticket.portalUserId || "",
+      employeeMessages: Array.isArray(ticket.employeeMessages) ? ticket.employeeMessages : [],
       activities: Array.isArray(ticket.activities) ? ticket.activities : []
     };
   }
@@ -2341,8 +2343,9 @@
       '<div><span>Priority</span><strong>'+esc(ticket.priority+" · "+sla.label)+'</strong></div><div><span>Resolution due</span><strong>'+esc(fmtDate(ticket.resolutionDue))+'</strong></div></div></div>'+
       '<p style="font-size:.58rem;color:var(--muted);line-height:1.55">'+esc(ticket.description||"No additional description.")+'</p>'+
       '<div class="stack">'+ticket.activities.slice().reverse().map((a)=>'<div class="stack-row"><div><strong>'+esc(a.action+" · "+a.actor)+'</strong><small>'+esc(fmtDate(a.at)+" · "+a.note)+'</small></div></div>').join("")+'</div>'+
+      (ticket.portalUserId ? '<h3>Employee conversation</h3><div>'+ticket.employeeMessages.map(m=>'<p><strong>'+esc(m.author)+'</strong> · '+esc(fmtDate(m.at))+'<br>'+esc(m.body)+'</p>').join('')+'</div><label class="field"><span>Reply visible to employee</span><textarea id="mEmployeeReply" maxlength="2000"></textarea></label><button class="btn secondary" id="mEmployeeReplySave">Send Employee Reply</button>' : '')+
       '<label class="field" style="margin-top:12px"><span>Work note</span><textarea id="mTicketNote" placeholder="Add troubleshooting or resolution note"></textarea></label>'+
-      (canAnalyze?'<div class="ai-ticket-privacy">AI is optional: clicking Analyze sends this ticket\'s limited text and recent work notes to Google Gemini. Free-tier content may be used to improve Google products. Never analyze confidential data or credentials. Technician review is required.</div>'+
+      (canAnalyze?'<div class="ai-ticket-privacy">AI is optional: clicking Analyze sends this ticket\'s limited text, recent work notes, and relevant active Knowledge Base excerpts to Google Gemini. Free-tier content may be used to improve Google products. Never analyze confidential data or credentials. Technician review is required.</div>'+
         '<section id="mTicketAiPanel" class="ai-ticket-panel" aria-live="polite" hidden></section>'+ 
       '<div class="modal-actions"><button class="btn secondary" id="mTicketToolPropose">AI Propose Work Note</button><button class="btn secondary" id="mTicketToolPending">Pending Tool Proposals</button></div>'+ 
       '<section id="mTicketToolPanel" aria-live="polite" hidden></section>':"")+
@@ -2350,6 +2353,19 @@
       (!ticket.firstResponseAt?'<button class="btn secondary" id="mTicketRespond">Record First Response</button>':"")+'<button class="btn primary" id="mTicketNoteSave">Add Work Note</button></div>',
       ()=>{
         wireTicketTools(id);
+        if($("mEmployeeReplySave"))$("mEmployeeReplySave").onclick=async()=>{
+          const button=$("mEmployeeReplySave"),body=$("mEmployeeReply").value.trim();
+          if(!body)return;button.disabled=true;
+          try{await commitWorkspaceChange(draft=>{
+            const target=draft.incidents.find(t=>t.id===id);if(!target?.portalUserId)throw new Error("Employee ticket no longer available.");
+            if(["Resolved","Closed"].includes(target.status))throw new Error("Reopen the ticket before replying.");
+            target.employeeMessages=target.employeeMessages||[];
+            if(target.employeeMessages.length>=100)throw new Error("Conversation limit reached.");
+            target.employeeMessages.push({author:"IT Support",body:body.slice(0,2000),at:now()});target.updatedAt=now();
+            if(!target.firstResponseAt)target.firstResponseAt=now();
+          });audit("Service Desk","Employee reply sent",id,"Public response saved");openTicketModal(id);}
+          catch(e){toast("Reply not saved",e.message);button.disabled=false;}
+        };
         if ($("mTicketAiAnalyze")) $("mTicketAiAnalyze").onclick=async()=>{
           const button=$("mTicketAiAnalyze"),panel=$("mTicketAiPanel");
           if(!panel)return;
@@ -2372,6 +2388,7 @@
               '<p><strong>Draft work note (not saved)</strong></p>'+
               '<div class="ai-ticket-draft">'+esc(data.draft_work_note)+'</div>'+
               '<button class="btn secondary" id="mTicketAiInsert">Insert Draft Into Work Note</button>'+
+              '<p><strong>Knowledge Base references</strong></p>'+((result.knowledge_sources||[]).length ? (result.knowledge_sources||[]).map(k=>'<p><strong>'+esc(k.id+' · '+k.title)+'</strong> · '+(k.cited?'Cited by AI':'Retrieved reference')+'<br>'+esc(k.summary)+'</p>').join('') : '<p>No relevant active articles found. Suggestions are not grounded in your Knowledge Base.</p>')+
               '<p><strong>Evidence limitations</strong> '+esc(data.limitations)+'</p>'+
               '<small>'+esc(result.disclosure||"AI-generated suggestions require technician approval.")+'</small>';
             const insert=$("mTicketAiInsert");

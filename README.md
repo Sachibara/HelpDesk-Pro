@@ -155,3 +155,11 @@ Verified evidence includes cloud persistence, endpoint/asset validation, live ho
 Before presenting, rehearse the exact deployed workflow: sign in, open a sample ticket and its linked asset, request AI analysis, review and save a work note, refresh to confirm persistence, and show scheduled automation history. Separate-account UI permissions and simultaneous-save conflicts remain part of the final browser acceptance checklist. See [production security review](docs/OPS_FUSION_PRODUCTION_SECURITY_REVIEW.md) for current evidence and outstanding controls.
 
 **Additional integrations:** Authenticated endpoint agents, OS/service control, live network probes, real AD provisioning, and external automation-alert delivery are not implemented. AI assistance is implemented; autonomous device diagnosis/remediation is not.
+
+## Employee portal and knowledge-backed AI
+
+The [employee portal](https://opsfusion-it.vercel.app/employee) supports owner-managed enrollment, employee-only support requests, status tracking and public replies separated from internal work notes. In Settings, use **Manage Employee Access** to link a confirmed employee account to an active identity.
+
+AI ticket analysis and work-note proposals now retrieve relevant active Knowledge Base articles. Analysis shows the retrieved references and validated model citation IDs. Retrieval uses bounded keyword matching, not vector search. Existing owner authorization and approval controls remain enforced.
+
+See [setup, security, verification and acceptance limitations](docs/EMPLOYEE_PORTAL_AND_KNOWLEDGE.md). The regression suite contains 160 tests. `INTERVIEW_DEMO.md` has been removed.

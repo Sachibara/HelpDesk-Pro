@@ -61,7 +61,8 @@ function harness(config={}){
      content:{parts:config.emptyResponse?[]:(config.parts || [{functionCall:{name:"add_work_note",args:{note:"Proposed: check camera permissions."}}}])}
    }]})};
  };
- const source=edge.replace(/^import \{ createClient \} from "npm:@supabase\/supabase-js@2\.117\.0";\s*/,"");
+ const shared=readFileSync(new URL("../supabase/functions/_shared/knowledge.ts",import.meta.url),"utf8").replaceAll("export function","function");
+ const source=shared+"\n"+edge.replace(/^import .*;\s*$/gm,"");
  assert.doesNotMatch(source,/^import /m);
  runInNewContext(source,{
    Deno:{env:{get:env},serve:(fn)=>{handler=fn;}},

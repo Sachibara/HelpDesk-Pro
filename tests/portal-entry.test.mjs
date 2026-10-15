@@ -32,5 +32,5 @@ test('No demo seed or demo static route remains in the local backend or Pages bu
  const pages=readFileSync(new URL('../.github/workflows/pages.yml',import.meta.url),'utf8');
  assert.doesNotMatch(backend,/seed_database|demo_tickets|demo-data\.js/);
  assert.doesNotMatch(pages,/demo-data\.js/);
- assert.match(pages,/employee\.html employee\.css employee\.js employee-admin\.js/);
+ assert.match(pages,/employee\.html employee\.css employee\.js employee-model\.js employee-admin\.js/);
 });

@@ -24,5 +24,8 @@ jobs:
           node --check app.js
           node --check cloud.js
           node --check automation.js
+          node --check employee.js
+          node --check employee-model.js
       - name: Run IPv4, automation and production-hardening regressions
         run: node --test tests/*.test.mjs
+

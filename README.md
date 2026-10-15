@@ -165,3 +165,7 @@ See [setup, security, verification and acceptance limitations](docs/EMPLOYEE_POR
 ## Removal of Portfolio Demo
 
 The entry-page **Employee Support Portal** button opens `/employee`. The browser-local workspace, sample data, simulated endpoint execution, demo reset/import handlers, and `demo-data.js` have been removed. Cloud accounts and records are unchanged. Historical administrator-only database backups are retained; this release does not delete database records.
+
+### Employee-friendly support experience
+
+The employee portal includes guided request forms, plain-language progress explanations, request search and filters, public conversations, confirmation-email resend, and in-portal password recovery. Its responsive blue/indigo design shares OpsFusion branding without exposing the staff dashboard. Access remains owner-managed and restricted to the employee’s own portal requests.

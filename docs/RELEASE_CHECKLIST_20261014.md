@@ -6,7 +6,7 @@
 
 ## Implemented and verified in source/database tests
 
-- [x] Authenticated Supabase Cloud Workspace, separate from Portfolio Demo
+- [x] Authenticated Supabase Cloud Workspace
 - [x] IPv4 endpoint validation in browser and Supabase with reserved-network and duplicate checks
 - [x] Asset tag and endpoint association validation in browser and Supabase
 - [x] Assigned assets require an existing active workspace identity record
@@ -44,4 +44,5 @@ No authenticated Windows endpoint agent, device-pairing backend, live network pr
 
 ## Fresh-start reset — only with the owner's explicit confirmation
 
-Do not reset during acceptance testing. Export evidence, back up test records, identify exactly which data will be erased, and obtain approval. The eventual dedicated-project cleanup must include workspace state, audits, automation rules, alert and run tables, memberships, profiles, legacy demo backups and Supabase Auth accounts. Preserve all schema, RLS, policies, functions, triggers, cron jobs, deployment and credentials. Verify zero data, then rehearse new registration. Portfolio Demo uses separate local sample records.
+Do not reset during acceptance testing. Export evidence, back up test records, identify exactly which data will be erased, and obtain approval. The eventual dedicated-project cleanup must include workspace state, audits, automation rules, alert and run tables, memberships, profiles, legacy demo backups and Supabase Auth accounts. Preserve all schema, RLS, policies, functions, triggers, cron jobs, deployment and credentials. Verify zero data, then rehearse new registration.
+

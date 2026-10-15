@@ -6,7 +6,7 @@ Checks are workspace-scoped and normalize case, whitespace and Unicode compatibi
 - Assets: unique ID, tag, hostname/name, meaningful serial number and linked endpoint. Empty serials and legacy placeholders are not identifiers. Shared types, departments, models and locations are allowed.
 - Assigned assets must be saved as Available before assignment to a different identity. The same existing asset record should be reused.
 - Existing duplicate groups are preserved, but cannot gain records. No records are deleted or merged automatically.
-- The reset demo panel and handler are removed. Demo imports reject duplicate records before replacing local state.
+- Demo reset/import controls and handlers are removed. Cloud mutations validate uniqueness before committing.
 
 Enforcement runs in the serialized browser save queue and a PostgreSQL trigger, including direct cloud API writes. Existing optimistic concurrency and access controls remain in place. Identity records are workspace personnel records, not Supabase login accounts.
 

@@ -186,7 +186,7 @@ a{color:inherit;text-decoration:none}
 .btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink)}
 .btn.primary{background:var(--coral);color:#151515}
 .btn.secondary{background:var(--paper-2)}
-.btn.demo{background:var(--acid)}
+.btn.employee-portal{background:var(--acid)}
 .btn.danger{background:#ffe6e8;color:#a32730;border-color:#a32730}
 .btn.wide{width:100%}
 .file-label input{display:none}
@@ -883,7 +883,7 @@ body::before{background:none}
 .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 18px rgba(31,50,81,.09)}
 .btn.primary{background:#2563eb;color:#fff;border-color:#2563eb}
 .btn.secondary{background:#fff}
-.btn.demo{background:#eef4ff;color:#194dbb;border-color:#cfe0ff}
+.btn.employee-portal{background:#eef4ff;color:#194dbb;border-color:#cfe0ff}
 .btn.danger{background:#fff3f5;color:#b83048;border-color:#f0c9d1}
 .icon-btn{border:1px solid #d8e1ec;border-radius:9px;background:#fff}
 input,select,textarea{

@@ -114,10 +114,8 @@ test("Concurrent workspace edits serialize state-building and avoid lost updates
   const script=[
     'let state={meta:{updatedAt:""},value:0};',
     'let cloudSavePending=false,cloudSavePromise=Promise.resolve(),cloudSaveTimer=null;',
-    'let demoMode=true,cloudRole="demo",workspaceSessionEpoch=0,workspaceCommitQueue=Promise.resolve();',
-    'const window={OpsFusionCloud:null};',
-    'const localStorage={setItem(){}};',
-    'const STORAGE_KEY="test";',
+    'let cloudRole="owner",workspaceSessionEpoch=0,workspaceCommitQueue=Promise.resolve();',
+    'const window={OpsFusionCloud:{isCloudActive:()=>true,getWorkspaceId:()=>"workspace-a",saveWorkspace:async()=>{}}};',
     'const now=()=>"2026-10-12T00:00:00.000Z";',
     'const showSaveStatus=()=>{};',
     app.slice(app.indexOf("  function recordKey("),app.indexOf("  function usernameFor(")),
@@ -137,8 +135,8 @@ test("Session changes prevent stale queued edits from updating a different accou
   const script=[
     'let state={meta:{updatedAt:""},value:0};',
     'let cloudSavePending=false,cloudSavePromise=Promise.resolve(),cloudSaveTimer=null;',
-    'let demoMode=true,cloudRole="demo",workspaceSessionEpoch=0,workspaceCommitQueue=Promise.resolve();',
-    'const window={OpsFusionCloud:null}, localStorage={setItem(){}}, STORAGE_KEY="test";',
+    'let cloudRole="owner",workspaceSessionEpoch=0,workspaceCommitQueue=Promise.resolve();',
+    'const window={OpsFusionCloud:{isCloudActive:()=>true,getWorkspaceId:()=>"workspace-a",saveWorkspace:async()=>{}}};',
     'const now=()=>"2026-10-12T00:00:00.000Z",showSaveStatus=()=>{};',
     app.slice(app.indexOf("  function recordKey("),app.indexOf("  function usernameFor(")),
     app.slice(from,to),

@@ -37,10 +37,10 @@ jobs:
 
           module.init_db()
           payload = module.bootstrap()
-          assert payload["users"]
-          assert payload["assets"]
-          assert payload["tickets"]
-          assert payload["knowledge"]
+          assert payload["users"] == []
+          assert payload["assets"] == []
+          assert payload["tickets"] == []
+          assert payload["knowledge"] == []
           assert all("activities" in ticket for ticket in payload["tickets"])
           print("HelpDesk Pro backend smoke test passed")
           PY
@@ -62,6 +62,7 @@ jobs:
 
           # Static DOM ids plus ids declared inside JS-generated modal markup.
           defined_ids = set(re.findall(r'id="([^"]+)"', html + "\n" + js))
+          defined_ids.update(re.findall(r'field\("[^\"]+",\s*"([^\"]+)"', js))
           referenced_ids = set(re.findall(r'\$\("([^"]+)"\)', js))
           missing = sorted(referenced_ids - defined_ids)
           assert not missing, f"DOM ids referenced but never defined: {missing}"
@@ -77,3 +78,4 @@ jobs:
         run: |
           python -m json.tool vercel.json > /dev/null
           echo "No additional JSON files"
+

@@ -40,7 +40,7 @@ This presentation demonstrates **real Supabase-backed IT process automation**, n
 
 ## What is not yet connected
 
-No SMTP/email delivery for alerts, autonomous remediation, real Windows agent telemetry, live network diagnostic probes, AI-generated IT diagnoses, or external user directory provisioning. The `Cloud Workspace` UI must not suggest those exist. The separate **Portfolio Demo** has illustrative sample content.
+No SMTP/email delivery for alerts, autonomous remediation, real Windows agent telemetry, live network diagnostic probes, AI-generated IT diagnoses, or external user directory provisioning. The `Cloud Workspace` UI must not suggest those exist.
 
 ## Interview-ready explanation
 
@@ -52,3 +52,4 @@ No SMTP/email delivery for alerts, autonomous remediation, real Windows agent te
 - Database smoke test: candidate generation, repeated scan, and automatic clearance confirmed in a rolled-back transaction.
 - Confirm the scheduled cron entry remains active; its creation alone is not proof of a completed scheduled run.
 - **Do not reset before final user approval.** During the final authorized interview reset, clear `opsfusion_automation_alerts`, `opsfusion_automation_runs` and `opsfusion_automation_settings` along with other dedicated workspace and account records. Preserve PostgreSQL schema, RLS and hourly job so fresh user registration can create clean settings.
+

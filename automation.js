@@ -68,7 +68,7 @@
   async function refresh() {
     if(!connected()) {
       snapshotWorkspace=null; snapshot={settings:null,alerts:[],runs:[]};
-      status("Sign in to Cloud Workspace to see real Supabase automation. Portfolio Demo is separate.");
+      status("Sign in to your workspace to access Supabase automation.");
       render(); return;
     }
     const requested=cloud().getWorkspaceId();

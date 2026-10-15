@@ -122,169 +122,9 @@ def init_db() -> None:
             );
             """
         )
-        seed_database(conn)
         conn.commit()
 
 
-def seed_database(conn: sqlite3.Connection) -> None:
-    if not conn.execute("SELECT 1 FROM users LIMIT 1").fetchone():
-        conn.executemany(
-            "INSERT INTO users(id,name,email,role,department) VALUES(?,?,?,?,?)",
-            [
-                (1, "Adrian Reyes", "adrian.reyes@contoso.local", "Requester", "Finance"),
-                (2, "Marco Santos", "marco.santos@contoso.local", "Requester", "Operations"),
-                (3, "Nico Cruz", "nico.cruz@contoso.local", "Requester", "Human Resources"),
-                (10, "Jim Camus", "jim.camus@helpdesk.local", "Administrator", "IT"),
-                (11, "Kevin Lim", "kevin.lim@helpdesk.local", "Technician", "IT"),
-                (12, "Ryan Mendoza", "ryan.mendoza@helpdesk.local", "Technician", "IT"),
-            ],
-        )
-
-    if not conn.execute("SELECT 1 FROM assets LIMIT 1").fetchone():
-        conn.executemany(
-            """
-            INSERT INTO assets(id,hostname,type,owner,serial,platform,status,location)
-            VALUES(?,?,?,?,?,?,?,?)
-            """,
-            [
-                (1, "FIN-LT-014", "Laptop", "Adrian Reyes", "LNV-83F4A2", "Windows 11 Pro", "In Service", "Finance"),
-                (2, "OPS-DT-022", "Desktop", "Marco Santos", "DEL-72D19B", "Windows 11 Pro", "In Service", "Operations"),
-                (3, "HR-LT-008", "Laptop", "Nico Cruz", "HP-19A8D1", "Windows 11 Pro", "In Service", "Human Resources"),
-                (4, "CORE-SW-01", "Switch", "IT Infrastructure", "CSC-9200-01", "Cisco IOS XE", "In Service", "MDF"),
-                (5, "AP-F2-03", "Access Point", "IT Infrastructure", "UBQ-U6-003", "UniFi", "In Service", "Floor 2"),
-                (6, "PRN-FIN-01", "Printer", "Finance", "HP-M428-11", "Embedded", "Degraded", "Finance"),
-                (7, "SRV-AD01", "Server", "IT Infrastructure", "DEL-R550-01", "Windows Server 2022", "In Service", "Server Room"),
-                (8, "SPARE-LT-02", "Laptop", "IT Stock", "ACR-SWIFT-02", "Windows 11 Pro", "Available", "IT Stockroom"),
-            ],
-        )
-
-    if not conn.execute("SELECT 1 FROM knowledge LIMIT 1").fetchone():
-        conn.executemany(
-            """
-            INSERT INTO knowledge(title,category,summary,body,views,helpful,tags)
-            VALUES(?,?,?,?,?,?,?)
-            """,
-            [
-                (
-                    "VPN authentication failure after password change",
-                    "VPN",
-                    "Clear cached VPN credentials and verify account synchronization after an AD password reset.",
-                    "Verify the account is not locked, validate the new password, remove saved VPN credentials, reconnect, and review authentication logs if the failure continues.",
-                    184, 97, "VPN,Active Directory,Credentials",
-                ),
-                (
-                    "Troubleshoot APIPA / DHCP connectivity",
-                    "Network",
-                    "First-line workflow when a Windows endpoint receives a 169.254.x.x address.",
-                    "Check physical link, switch port, ipconfig, DHCP scope, VLAN assignment, and DHCP relay before renewing the lease.",
-                    241, 95, "DHCP,Windows,Network",
-                ),
-                (
-                    "Repeated Active Directory account lockout",
-                    "Account Access",
-                    "Identify stale credentials and common lockout sources.",
-                    "Check lockout source, mapped drives, scheduled tasks, mobile mail profiles, saved RDP credentials, and services running under the affected identity.",
-                    156, 94, "AD,Lockout,Windows",
-                ),
-                (
-                    "Outlook desktop synchronization checklist",
-                    "Microsoft 365",
-                    "Validate connectivity, cached mode, profile state, and Microsoft 365 service health.",
-                    "Confirm Outlook Web works, check service health, Work Offline, connection status, safe mode, OST health, and profile state.",
-                    132, 92, "Outlook,M365,Email",
-                ),
-                (
-                    "Printer offline - service desk triage",
-                    "Printer",
-                    "Standard checks for network printers reporting offline.",
-                    "Verify power and display errors, ping the printer, open its web UI, validate TCP/IP port, clear stuck jobs, restart spooler, and inspect hardware state.",
-                    205, 90, "Printer,Spooler,TCP/IP",
-                ),
-            ],
-        )
-
-    if not conn.execute("SELECT 1 FROM tickets LIMIT 1").fetchone():
-        now = datetime.now(timezone.utc)
-        demo_tickets = [
-            (
-                "Incident", "Finance printer unavailable after paper jam",
-                "PRN-FIN-01 remains offline after clearing a paper jam. Users cannot print invoices.",
-                1, "Printer", 6, "Medium", "High", "P2", "In Progress", 11, 1, -5.5, -0.4
-            ),
-            (
-                "Incident", "VPN authentication fails after password reset",
-                "User changed Active Directory password and now receives authentication failure in corporate VPN.",
-                2, "VPN", 2, "High", "High", "P1", "Assigned", 10, 2, -1.1, -0.2
-            ),
-            (
-                "Service Request", "New Microsoft 365 shared mailbox access",
-                "Finance manager requests access to the AP shared mailbox.",
-                1, "Microsoft 365", None, "Low", "Medium", "P3", "Pending", 12, 0, -8, -2
-            ),
-            (
-                "Incident", "Intermittent Wi-Fi on Floor 2",
-                "Several users report Wi-Fi drops near meeting rooms on Floor 2.",
-                2, "Network", 5, "High", "Medium", "P2", "New", None, 0, -0.7, -0.7
-            ),
-            (
-                "Incident", "User account locked repeatedly",
-                "HR user account re-locks shortly after unlock. Suspected stale credentials.",
-                3, "Account Access", 3, "Medium", "High", "P2", "Resolved", 10, 1, -26, -3
-            ),
-        ]
-
-        for item in demo_tickets:
-            (
-                ticket_type, subject, description, requester_id, category, asset_id,
-                impact, urgency, priority, status, assignee_id, escalation,
-                created_offset, updated_offset
-            ) = item
-            created = now + timedelta(hours=created_offset)
-            updated = now + timedelta(hours=updated_offset)
-            rule = SLA[priority]
-            response_due = created + timedelta(hours=rule["response"])
-            resolution_due = created + timedelta(hours=rule["resolution"])
-            first_response = created + timedelta(minutes=30) if assignee_id else None
-            resolved = updated if status in {"Resolved", "Closed"} else None
-            cur = conn.execute(
-                """
-                INSERT INTO tickets(
-                    number,type,subject,description,requester_id,category,asset_id,
-                    impact,urgency,priority,status,assignee_id,escalation,created_at,
-                    updated_at,response_due,resolution_due,first_response_at,resolved_at,csat
-                ) VALUES(NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """,
-                (
-                    ticket_type, subject, description, requester_id, category, asset_id,
-                    impact, urgency, priority, status, assignee_id, escalation,
-                    created.isoformat(), updated.isoformat(), response_due.isoformat(),
-                    resolution_due.isoformat(),
-                    first_response.isoformat() if first_response else None,
-                    resolved.isoformat() if resolved else None,
-                    5 if resolved else None,
-                ),
-            )
-            ticket_id = int(cur.lastrowid)
-            number = f"HD-{1000 + ticket_id}"
-            conn.execute("UPDATE tickets SET number=? WHERE id=?", (number, ticket_id))
-            requester = conn.execute("SELECT name FROM users WHERE id=?", (requester_id,)).fetchone()["name"]
-            conn.execute(
-                "INSERT INTO activities(ticket_id,at,actor_id,actor_name,action,note) VALUES(?,?,?,?,?,?)",
-                (ticket_id, created.isoformat(), requester_id, requester, "Created ticket", description),
-            )
-            if assignee_id:
-                tech = conn.execute("SELECT name FROM users WHERE id=?", (assignee_id,)).fetchone()["name"]
-                conn.execute(
-                    "INSERT INTO activities(ticket_id,at,actor_id,actor_name,action,note) VALUES(?,?,?,?,?,?)",
-                    (
-                        ticket_id,
-                        first_response.isoformat(),
-                        assignee_id,
-                        tech,
-                        "First response",
-                        "Ticket acknowledged and triage started.",
-                    ),
-                )
 
 
 def get_ticket(conn: sqlite3.Connection, ticket_id: int) -> dict[str, Any]:
@@ -632,9 +472,6 @@ def styles():
     return FileResponse(ROOT / "styles.css", media_type="text/css")
 
 
-@app.get("/demo-data.js")
-def demo_data():
-    return FileResponse(ROOT / "demo-data.js", media_type="application/javascript")
 
 
 @app.get("/app.js")
@@ -650,3 +487,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -8,9 +8,9 @@
   <title>OpsFusion Unified IT Operations Platform</title>
   <link rel="stylesheet" href="./styles.css?v=20261015-telemetry-text-v1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
-  <script src="./cloud.js?v=20261013-approved-tools-v1" defer></script>
-  <script src="./app.js?v=20261015-portal-v1" defer></script>
-  <script src="./automation.js?v=20261011-cloud-automation-final" defer></script>
+  <script src="./cloud.js?v=20261015-portal-only" defer></script>
+  <script src="./app.js?v=20261015-portal-only" defer></script>
+  <script src="./automation.js?v=20261015-portal-only" defer></script>
   <script src="./employee-admin.js?v=20261015-portal-v1" defer></script>
 </head>
 <body>
@@ -67,7 +67,6 @@
         </div>
         <button class="btn secondary" id="refreshCloudBtn" type="button" hidden>Refresh Cloud Data</button>
         <button class="btn secondary" id="exportBtn">Export Workspace</button>
-        <label class="btn secondary file-label">Import<input id="importInput" type="file" accept="application/json"></label>
         <div class="cloud-user" id="cloudUser" hidden>
           <span id="cloudUserLabel">Cloud user</span>
           <b id="cloudRoleLabel">admin</b>
@@ -78,10 +77,10 @@
     </header>
 
     <div class="system-strip">
-      <div><span class="signal-dot live"></span><b>CONTROL FABRIC</b><small id="workspaceModeLabel">PORTFOLIO DEMO</small></div>
-      <div><span class="strip-key">SYNC</span><b id="persistenceModeLabel">LOCAL</b><small id="cloudSaveStatus" role="status" aria-live="polite">Demo records only</small></div>
-      <div><span class="strip-key">ACCESS</span><b id="accessModeLabel">DEMO</b><small>role boundary</small></div>
-      <div><span class="strip-key">AGENT</span><b id="agentStatusLabel">DEMO MODE</b><small id="agentStatusDetail">simulation only</small></div>
+      <div><span class="signal-dot live"></span><b>CONTROL FABRIC</b><small id="workspaceModeLabel">CLOUD WORKSPACE</small></div>
+      <div><span class="strip-key">SYNC</span><b id="persistenceModeLabel">SUPABASE</b><small id="cloudSaveStatus" role="status" aria-live="polite">Sign in required</small></div>
+      <div><span class="strip-key">ACCESS</span><b id="accessModeLabel">SIGNED OUT</b><small>role boundary</small></div>
+      <div><span class="strip-key">AGENT</span><b id="agentStatusLabel">NOT CONNECTED</b><small id="agentStatusDetail">No live telemetry</small></div>
     </div>
 
     <section class="page active" data-panel="overview">
@@ -102,7 +101,7 @@
           </div>
         </div>
         <div class="hero-status signal-board">
-          <div class="signal-board-head"><span id="signalTitle">DEMO OPERATIONS SIGNAL</span><b>OPS-FABRIC</b></div>
+          <div class="signal-board-head"><span id="signalTitle">SUPABASE WORKSPACE RECORDS</span><b>OPS-FABRIC</b></div>
           <div class="signal-core">
             <div class="signal-ring ring-a"></div>
             <div class="signal-ring ring-b"></div>
@@ -114,9 +113,9 @@
             <span class="orbit-node n4">ID</span><span class="orbit-node n5">NT</span><span class="orbit-node n6">PC</span>
           </div>
           <div class="health-bar"><i id="healthBar"></i></div>
-          <div class="hero-status-row"><span>Data plane</span><b id="heroPersistenceLabel">Local demo</b></div>
+          <div class="hero-status-row"><span>Data plane</span><b id="heroPersistenceLabel">Supabase records</b></div>
           <div class="hero-status-row"><span>Control boundary</span><b>RLS / RBAC</b></div>
-          <div class="hero-status-row"><span>Action model</span><b id="actionModelLabel">Demo simulation</b></div>
+          <div class="hero-status-row"><span>Action model</span><b id="actionModelLabel">Database records only</b></div>
         </div>
       </div>
 
@@ -360,7 +359,7 @@
         <div>
           <p class="eyebrow">Network Troubleshooting Toolkit</p>
           <h2>Guided Diagnostics</h2>
-          <p>Run portfolio-safe diagnostic simulations against shared endpoint records and convert failures directly into incidents.</p>
+          <p>Live diagnostics require an authorized endpoint agent. Review previously saved diagnostic records here.</p>
         </div>
       </div>
 
@@ -570,9 +569,8 @@
         <div>
           <p class="eyebrow">Governance</p>
           <h2>Unified Audit Log</h2>
-          <p>Cross-module actions are recorded in one immutable-style local activity history for demonstration and review.</p>
+          <p>Review recorded workspace actions and their audit history.</p>
         </div>
-        <button class="btn secondary" id="clearAuditBtn">Clear Demo Audit</button>
       </div>
 
       <div class="toolbar">
@@ -639,7 +637,7 @@
         <div>
           <p class="eyebrow">Configuration</p>
           <h2>Workspace Settings</h2>
-          <p>Adjust compliance policy and portfolio-safe automation behavior.</p>
+          <p>Adjust workspace policy and workflow settings.</p>
         </div>
       </div>
 
@@ -655,7 +653,7 @@
         </article>
 
         <article class="panel">
-          <div class="panel-head"><div><h3>Workflow automation</h3><p>Portfolio-mode automation links modules without executing unsafe real-world actions.</p></div></div>
+          <div class="panel-head"><div><h3>Workflow automation</h3><p>Endpoint-triggered automation requires a connected, authorized telemetry service.</p></div></div>
           <label class="check-row"><input id="autoTicketCompliance" type="checkbox"><span>Automatically create an incident when an endpoint newly fails compliance</span></label>
           <label class="check-row"><input id="autoTicketDiagnostic" type="checkbox"><span>Automatically create an incident for failed full diagnostics</span></label>
           <label class="field"><span>Workspace name</span><input id="workspaceNameInput"></label>
@@ -712,7 +710,7 @@
         </div>
         <p class="eyebrow">Supabase-backed cloud workspace</p>
         <h2>Choose your operating mode.</h2>
-        <p class="auth-copy">Sign in for persistent cloud state and role-based access, or enter Demo Mode to inspect the complete product without an account.</p>
+        <p class="auth-copy">Sign in to manage your IT workspace, or open the Employee Support Portal to submit and track support requests.</p>
         <div class="auth-tabs">
           <button class="auth-tab active" data-auth-tab="signin">Sign In</button>
           <button class="auth-tab" data-auth-tab="signup">Create Account</button>
@@ -737,9 +735,8 @@
         </form>
         <div id="authMessage" class="auth-message">Cloud data is protected with Supabase Auth, RLS, and role-based access control.</div>
         <div class="auth-divider"><span>OR</span></div>
-        <button class="btn demo wide" id="continueDemoBtn">Launch Portfolio Demo</button>
-        <p><a href="/employee">Employee support portal</a></p>
-        <p class="auth-footnote">Demo Mode uses seeded, browser-local data. No infrastructure access is performed.</p>
+        <a class="btn employee-portal wide" id="employeePortalBtn" href="/employee">Employee Support Portal</a>
+        <p class="auth-footnote">Employee access is managed by your workspace owner.</p>
       </div>
     </section>
   </div>

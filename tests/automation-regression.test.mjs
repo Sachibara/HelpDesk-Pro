@@ -66,6 +66,7 @@ test("Automation rule editing requires the actual workspace owner",()=>{
   assert.match(cloud,/function isWorkspaceOwner\(\)/);
   assert.match(ui,/cloud\(\)\?\.isWorkspaceOwner\?\.\(\) === true/);
 });
-test("Separate Portfolio Demo cannot submit cloud audit records",()=>{
-  assert.match(app,/if \(!demoMode && window\.OpsFusionCloud\?\.isCloudActive\?\.\(\) && cloudRole !== "viewer"\)/);
+test("Cloud audit writes require an authenticated non-viewer session",()=>{
+  assert.match(app,/if \(window\.OpsFusionCloud\?\.isCloudActive\?\.\(\) && cloudRole !== "viewer"\)/);
 });
+

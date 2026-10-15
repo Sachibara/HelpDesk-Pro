@@ -9,7 +9,7 @@ const scanSql = readFileSync(new URL("../supabase/migrations/20261011_automation
 
 test("Fresh Cloud Workspace has role templates without fake people or groups",()=>{
  const start=app.indexOf("  function cloudRoleTemplates() {");
- const end=app.indexOf("  function loadState() {",start);
+ const end=app.indexOf("  let state = emptyCloudState();",start);
  assert.ok(start>=0&&end>start);
  const {cloudRoleTemplates,emptyCloudState}=runInNewContext(
    app.slice(start,end)+"\n({cloudRoleTemplates,emptyCloudState})",
@@ -25,7 +25,7 @@ test("Fresh Cloud Workspace has role templates without fake people or groups",()
  assert.ok(state.templates.every(t=>Array.isArray(t.groups)&&t.groups.length===0));
 });
 test("Old cloud workspaces without templates are upgraded without fabricated users",()=>{
- assert.ok(app.includes("if (!demoMode && !state.templates.length) state.templates = cloudRoleTemplates()"));
+ assert.ok(app.includes("if (!state.templates.length) state.templates = cloudRoleTemplates()"));
 });
 test("Asset mutation validates assignment before any state change",()=>{
  const modal=app.slice(app.indexOf("  function openAssetModal("),app.indexOf('  $("assetSearch")'));
@@ -70,3 +70,4 @@ test("Auth uses Supabase sessions and no browser-side service role key",()=>{
  assert.ok(cloud.includes('client.auth.signInWithPassword('));
  assert.doesNotMatch(cloud,/service_role|sb_secret_/i);
 });
+

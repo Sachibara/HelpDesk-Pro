@@ -26,7 +26,7 @@ jobs:
       - name: Prepare browser app
         run: |
           mkdir -p public
-          cp index.html styles.css demo-data.js app.js public/
+          cp index.html styles.css app.js cloud.js automation.js employee.html employee.css employee.js employee-admin.js public/
           touch public/.nojekyll
 
       - name: Configure Pages
@@ -42,3 +42,4 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+

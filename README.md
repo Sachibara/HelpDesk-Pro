@@ -4,7 +4,7 @@
 
 OpsFusion is the product name; `Sachibara/HelpDesk-Pro` is its actively maintained source repository. [`Sachibara/opsfusion`](https://github.com/Sachibara/opsfusion) is an older September 2026 standalone snapshot and is not synchronized with this codebase.
 
-**Live demo:** https://opsfusion-it.vercel.app/
+**Live application:** https://opsfusion-it.vercel.app/
 
 ## Dedicated Supabase backend (OpsFusion only)
 
@@ -14,7 +14,7 @@ OpsFusion has its own Supabase project in Sachibara's Org, **OpsFusion** (`qyizw
 - `opsfusion_profiles`, `opsfusion_workspaces`, `opsfusion_memberships`, and `opsfusion_audit_events` have Row Level Security enabled.
 - Anonymous clients have no table access; authenticated clients have role-appropriate privileges. Workspace owner identifiers cannot be edited through the browser.
 - Reproducible first-time database setup: [`supabase/opsfusion_schema.sql`](supabase/opsfusion_schema.sql).
-- The public **Portfolio Demo** still works with browser-local demo data; it deliberately simulates remote endpoint activity rather than claiming to control production infrastructure.
+- The public entry page links directly to the Employee Support Portal; staff workspace access requires authentication.
 - Cloud Workspace requires a confirmed Supabase Auth account. New accounts begin with an empty private workspace; email confirmation may be required depending on Auth settings.
 - **Do not rerun** the first-time SQL file on the already provisioned database because policy and table creation is not intended as an idempotent migration. Future database changes should use versioned migrations.
 
@@ -32,7 +32,7 @@ A dedicated `opsfusion_enforce_endpoint_integrity` trigger on `public.opsfusion_
 
 ## Real cloud automation (October 2026)
 
-OpsFusion's **Automation Center** is a live Supabase feature, separate from the Portfolio Demo. PostgreSQL `pg_cron` runs an hourly scanner independently of browser sessions. It detects active tickets with overdue first-response or resolution SLAs, expiring/expired asset warranties, and upcoming/overdue scheduled maintenance tasks. Automation alerts and timestamped run history are stored in separate workspace-scoped, RLS-protected tables, and the in-app **Run Checks Now** button executes the same server-side scan. Alerts are deduplicated and automatically clear when their source conditions disappear; owners can acknowledge an alert and edit due-date lookahead rules. The Assets tab lets operators create and complete maintenance tasks.
+OpsFusion's **Automation Center** is a live Supabase feature. PostgreSQL `pg_cron` runs an hourly scanner independently of browser sessions. It detects active tickets with overdue first-response or resolution SLAs, expiring/expired asset warranties, and upcoming/overdue scheduled maintenance tasks. Automation alerts and timestamped run history are stored in separate workspace-scoped, RLS-protected tables, and the in-app **Run Checks Now** button executes the same server-side scan. Alerts are deduplicated and automatically clear when their source conditions disappear; owners can acknowledge an alert and edit due-date lookahead rules. The Assets tab lets operators create and complete maintenance tasks.
 
 This automation does **not** send emails or SMS, make AI decisions, run remote commands, or measure real endpoint telemetry. Those require separately configured integrations. See [presentation rehearsal](docs/AUTOMATION_PRESENTATION_20261014.md) for a live Oct 14–15 workflow and exact values.
 
@@ -56,7 +56,7 @@ Signup, password recovery, and password changes use a 12-character application m
 
 OpsFusion is being hardened as a **working cloud-based IT service desk and inventory/documentation workspace**, not falsely represented as a complete endpoint-management platform.
 
-- **Implemented:** Supabase email/password authentication, email recovery and signed-in password change, private RLS-protected workspace, ticket and incident management, device and asset record management, user records, IP/VLAN documentation, knowledge articles, record audit events, import/export for the isolated demo, and cloud refresh.
+- **Implemented:** Supabase email/password authentication, email recovery and signed-in password change, private RLS-protected workspace, ticket and incident management, device and asset record management, user records, IP/VLAN documentation, knowledge articles, record audit events, workspace JSON export, and cloud refresh.
 - **Cloud save reliability:** Saves are queued and version-checked against the last database `updated_at` value. A conflicting edit from another browser or device is blocked and reported; it is not silently overwritten. The interface shows the server save state and waits for pending changes before sign-out.
 - **Browser privacy:** Ending an authenticated session hides and clears private workspace data from the interface. Browsers that block requests to Supabase can still fail to connect; users should review their tracking protection settings.
 - **Not integrated:** Windows/macOS/Linux agent deployment, authenticated device pairing, verified CPU/RAM/OS/patch/AV heartbeats, real ping/traceroute/DNS probes, privileged service control, genuine Active Directory/identity-provider provisioning, external email delivery, and agent-driven infrastructure alerts. These depend on separately authorized systems and cannot be made real by hardcoded browser data.
@@ -76,8 +76,7 @@ The **authenticated live site** never initializes a cloud workspace from portfol
 - A previously initialized workspace containing only the original demo records was safely archived in `public.opsfusion_legacy_demo_backups` (administrator-only) and reset to an empty inventory. Account/authentication and workspace identity were retained.
 - Cloud inventory, tickets, assets, identity records, documentation and knowledge-base entries are **user-managed records**, stored in Supabase and restored on sign-in. They are not automatically discovered infrastructure.
 - The **Refresh Cloud Data** button loads the latest saved server workspace and audit history; browser-local data does not override cloud records.
-- Until an authorized endpoint agent and telemetry ingestion service exist, Cloud Workspace displays **No telemetry / Not measured** instead of artificial uptime, health curves, compliance rates, diagnostics, or remote commands. Simulated diagnostic, remote-action, compliance-evaluation, sample import and demo reset controls cannot run in Cloud Workspace.
-- **Portfolio Demo** is clearly separate and uses mock data for guided demonstrations. It does not upload its mock records into Cloud Workspace.
+- Until an authorized endpoint agent and telemetry ingestion service exist, Cloud Workspace displays **No telemetry / Not measured** instead of artificial uptime, health curves, compliance rates, diagnostics, or remote commands. Simulated endpoint execution, sample imports, and local reset paths have been removed.
 - The public cloud application must not be presented as active LAN monitoring, real remote control, real AD provisioning, or continuously streaming endpoint telemetry without those integrations.
 
 
@@ -112,16 +111,16 @@ The platform uses a shared record model so incidents, assets, identities, endpoi
 - Knowledge Base
 - Audit & Global Search
 
-## Modes
+## Access
 
-### Portfolio Demo
-Recruiter-friendly browser workspace with safe local demo data. It does not remotely control unmanaged endpoints or expose arbitrary command execution.
+### Employee Support Portal
+Open `/employee` from the entry-page button. Confirm an account, then have the workspace owner link it to an active employee identity. Employees submit and track their own requests and exchange public replies with staff.
 
 ### Cloud Workspace
 Supabase Auth + RLS-protected persistent workspace. The frontend contains only a Supabase publishable key and never a service-role/secret key.
 
 ### Preserved local backend
-This repository retains the original HelpDesk Pro `backend/` code for local/persistent service-desk operation. The public unified frontend remains separated from privileged/private infrastructure access.
+This repository retains the original HelpDesk Pro `backend/` code for local/persistent service-desk operation. It now starts with empty tables and no sample users, tickets, assets, or knowledge articles. The public unified frontend remains separated from privileged/private infrastructure access.
 
 ## Security principles
 
@@ -129,8 +128,7 @@ This repository retains the original HelpDesk Pro `backend/` code for local/pers
 - Supabase RLS
 - publishable key only in public client code
 - no arbitrary shell/command runner
-- ticket/change reference requirement for simulated state-changing support actions
-- no real enterprise credentials in the public demo
+- authenticated access to private workspace records
 - CSP and browser security headers
 - pinned Supabase JS client version
 
@@ -162,4 +160,8 @@ The [employee portal](https://opsfusion-it.vercel.app/employee) supports owner-m
 
 AI ticket analysis and work-note proposals now retrieve relevant active Knowledge Base articles. Analysis shows the retrieved references and validated model citation IDs. Retrieval uses bounded keyword matching, not vector search. Existing owner authorization and approval controls remain enforced.
 
-See [setup, security, verification and acceptance limitations](docs/EMPLOYEE_PORTAL_AND_KNOWLEDGE.md). The regression suite contains 160 tests. `INTERVIEW_DEMO.md` has been removed.
+See [setup, security, verification and acceptance limitations](docs/EMPLOYEE_PORTAL_AND_KNOWLEDGE.md). Run `node --test tests/*.test.mjs` for the current regression suite. `INTERVIEW_DEMO.md` has been removed.
+
+## Removal of Portfolio Demo
+
+The entry-page **Employee Support Portal** button opens `/employee`. The browser-local workspace, sample data, simulated endpoint execution, demo reset/import handlers, and `demo-data.js` have been removed. Cloud accounts and records are unchanged. Historical administrator-only database backups are retained; this release does not delete database records.

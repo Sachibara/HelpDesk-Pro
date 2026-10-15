@@ -20,7 +20,7 @@ function pickFunctions(names, context) {
 test("Cloud role templates always offer three selectable defaults on existing empty workspaces",()=>{
   const state={templates:[],identities:[],technicians:[]};
   const out=pickFunctions(["cloudRoleTemplates","availableRoleTemplates","templateById"],
-    {state,demoMode:false});
+    {state});
   assert.deepEqual(Array.from(out.availableRoleTemplates(),x=>x.id),["TPL-STD","TPL-IT","TPL-ADMIN"]);
   assert.equal(out.templateById("TPL-IT").department,"IT");
   assert.equal(out.templateById("unknown"),null);
@@ -28,15 +28,10 @@ test("Cloud role templates always offer three selectable defaults on existing em
 test("Cloud role choices preserve valid customized templates and normalize missing groups",()=>{
   const state={templates:[{id:"TPL-IT",name:"Custom IT Support",department:"IT"},
     {id:"TPL-CUSTOM",name:"Network Operator",department:"Network"}]};
-  const out=pickFunctions(["cloudRoleTemplates","availableRoleTemplates","templateById"],{state,demoMode:false});
+  const out=pickFunctions(["cloudRoleTemplates","availableRoleTemplates","templateById"],{state});
   assert.equal(out.availableRoleTemplates().length,4);
   assert.equal(out.templateById("TPL-IT").name,"Custom IT Support");
   assert.deepEqual(Array.from(out.templateById("TPL-CUSTOM").groups),[]);
-});
-test("Portfolio Demo uses its own templates only, not cloud defaults",()=>{
-  const state={templates:[{id:"DEMO-ONLY",name:"Demo role",department:"Test",groups:[]}]};
-  const out=pickFunctions(["cloudRoleTemplates","availableRoleTemplates","templateById"],{state,demoMode:true});
-  assert.deepEqual(Array.from(out.availableRoleTemplates(),x=>x.id),["DEMO-ONLY"]);
 });
 test("Available technician options derive from active real IT identities only",()=>{
   const state={templates:[],technicians:[],identities:[
@@ -44,7 +39,7 @@ test("Available technician options derive from active real IT identities only",(
     {id:"U2",displayName:"Finance Employee",status:"Active",templateId:"TPL-STD",department:"General"},
     {id:"U3",displayName:"Former IT",status:"Offboarded",templateId:"TPL-IT",department:"IT"}
   ]};
-  const out=pickFunctions(["cloudRoleTemplates","availableRoleTemplates","templateById","availableTechnicians","technicianById"],{state,demoMode:false});
+  const out=pickFunctions(["cloudRoleTemplates","availableRoleTemplates","templateById","availableTechnicians","technicianById"],{state});
   assert.deepEqual(Array.from(out.availableTechnicians(),x=>x.id),["U1"]);
   assert.equal(out.technicianById("U1").name,"IT Technician");
   assert.equal(out.technicianById("U2"),null);
@@ -110,7 +105,7 @@ test("Ticket status dropdown confirms cloud save and rolls back on rejection",()
   assert.ok(app.includes('select.value=previous;select.disabled=false'));
 });
 test("Cloud endpoint agent dropdown cannot claim online status without an agent",()=>{
-  assert.ok(app.includes('(demoMode?\'<option value="online">Online (demo)</option>'));
+  assert.doesNotMatch(app, /Online \(demo\)|demoMode/);
   assert.ok(app.includes('Not connected — requires an authorized endpoint agent'));
   assert.ok(html.includes('<option value="unverified">Unverified / Agent Not Connected</option>'));
 });
@@ -121,7 +116,7 @@ test("All known static data filters and dynamic workflow selectors remain presen
     assert.ok(html.includes('id="'+id+'"'),"Missing static select "+id);
   }
   for(const id of ["mType","mAgent","mAssetStatus","mAssetUser","mAssetType","mAssetEndpoint",
-    "mMaintAsset","mMaintType","mIdTemplate","mService","mPortSwitch","mPortEndpoint",
+    "mMaintAsset","mMaintType","mIdTemplate","mPortSwitch","mPortEndpoint",
     "mTicketType","mTicketCategory","mTicketRequester","mTicketAsset","mTicketImpact",
     "mTicketUrgency","mTicketAssignee","mIncidentSource"]) {
     assert.ok(app.includes('id="'+id+'"'),"Missing dynamic select "+id);

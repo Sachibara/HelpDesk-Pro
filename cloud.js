@@ -21,7 +21,7 @@
   let session = null;
   let workspaceId = null;
   let workspaceOwnerId = null;
-  let role = "demo";
+  let role = "signed-out";
   let workspaceUpdatedAt = null;
   let saveQueue = Promise.resolve();
   // Supabase implicit password-recovery links include "type=recovery" in the fragment.
@@ -100,10 +100,10 @@
     workspaceId = null;
     workspaceOwnerId = null;
     workspaceUpdatedAt = null;
-    role = "demo";
+    role = "signed-out";
   }
 
-  async function bootstrap(seedState, displayName) {
+  async function bootstrap(initialState, displayName) {
     const { data: authData, error: authError } = await client.auth.getUser();
     if (authError) throw authError;
     const user = authData.user;
@@ -147,8 +147,8 @@
         .from("opsfusion_workspaces")
         .insert({
           owner_id: user.id,
-          name: seedState?.meta?.workspaceName || "OpsFusion Unified",
-          state: seedState || {}
+          name: initialState?.meta?.workspaceName || "OpsFusion Unified",
+          state: initialState || {}
         })
         .select("id, owner_id, name, state, created_at, updated_at")
         .single();
@@ -192,7 +192,7 @@
       role,
       workspaceId,
       workspaceName: workspace.name,
-      state: workspace.state && Object.keys(workspace.state).length ? workspace.state : seedState,
+      state: workspace.state && Object.keys(workspace.state).length ? workspace.state : initialState,
       audit: (serverAudit || []).map((row) => ({
         id: row.id,
         module: row.module,
@@ -411,7 +411,7 @@
       workspaceId = null;
       workspaceOwnerId = null;
       workspaceUpdatedAt = null;
-      role = "demo";
+      role = "signed-out";
       if (event === "SIGNED_OUT") window.dispatchEvent(new Event("opsfusion-session-ended"));
     }
   });

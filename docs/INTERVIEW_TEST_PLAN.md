@@ -4,7 +4,7 @@ This document separates **source-level checks** from **real browser and database
 
 ## Baseline
 
-Use the authenticated **Cloud Workspace** at https://opsfusion-it.vercel.app/. Do not use Portfolio Demo for persistence tests.
+Use the authenticated **Cloud Workspace** at https://opsfusion-it.vercel.app/.
 
 Before each test, record the current endpoint/asset/ticket counts, capture the cloud save indicator and refresh from Supabase. Keep an existing verified endpoint until all tests are complete.
 
@@ -52,4 +52,5 @@ Basic source-level regression suite: `node --check app.js && node --check cloud.
 
 ## Final interview reset (explicit owner approval required)
 
-**Do not perform during testing.** Back up and export all test evidence before clearing application records and Supabase Auth accounts. Use targeted, controlled deletion in the **dedicated OpsFusion project only**. Preserve schema, RLS policies, Supabase credentials, Vercel domain, GitHub code, and the project itself. Include the administrator-only legacy demo backup in the reset inventory if zero retained data is required. Verify all counts afterward and rehearse fresh account registration. The built-in Portfolio Demo has separate, intentional example content.
+**Do not perform during testing.** Back up and export all test evidence before clearing application records and Supabase Auth accounts. Use targeted, controlled deletion in the **dedicated OpsFusion project only**. Preserve schema, RLS policies, Supabase credentials, Vercel domain, GitHub code, and the project itself. Include the administrator-only legacy demo backup in the reset inventory if zero retained data is required. Verify all counts afterward and rehearse fresh account registration.
+

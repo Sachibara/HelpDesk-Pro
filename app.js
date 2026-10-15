@@ -1,7 +1,6 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "opsfusion_unified_v1";
   const $ = (id) => document.getElementById(id);
   const qsa = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const now = () => new Date().toISOString();
@@ -23,174 +22,7 @@
     settings: ["Configuration", "Settings"]
   };
 
-  function seedState() {
-    const stamp = now();
-    return {
-      meta: {
-        version: 1,
-        workspaceName: "OpsFusion Unified",
-        createdAt: stamp,
-        updatedAt: stamp
-      },
-      settings: {
-        autoTicketCompliance: false,
-        autoTicketDiagnostic: false
-      },
-      complianceRules: {
-        maxMissingUpdates: 0,
-        maxRebootAge: 14,
-        requireFirewall: true,
-        requireBitlocker: true,
-        requireAv: true
-      },
-      endpoints: [
-        {
-          id: "EP-001", hostname: "HQ-FIN-01", ip: "10.20.10.21", mac: "00:1A:2B:3C:10:21",
-          site: "HQ", type: "Workstation", os: "Windows 11 24H2", model: "Dell OptiPlex 7010",
-          owner: "Finance", agent: "online", lastSeen: stamp, gateway: "10.20.10.1", dns: "10.20.10.53",
-          updatesMissing: 0, av: "healthy", firewall: true, bitlocker: true, rebootAge: 3,
-          cpu: 22, memory: 54, disk: 63, complianceManaged: true, issue: "healthy"
-        },
-        {
-          id: "EP-002", hostname: "HQ-HR-02", ip: "10.20.10.34", mac: "00:1A:2B:3C:10:34",
-          site: "HQ", type: "Workstation", os: "Windows 11 24H2", model: "HP EliteDesk 800 G9",
-          owner: "HR", agent: "online", lastSeen: stamp, gateway: "10.20.10.1", dns: "10.20.10.53",
-          updatesMissing: 2, av: "healthy", firewall: true, bitlocker: true, rebootAge: 19,
-          cpu: 31, memory: 67, disk: 72, complianceManaged: true, issue: "dns"
-        },
-        {
-          id: "EP-003", hostname: "BR-WS-01", ip: "10.30.20.15", mac: "00:1A:2B:4D:20:15",
-          site: "Branch", type: "Workstation", os: "Windows 11 23H2", model: "Lenovo ThinkCentre M80s",
-          owner: "Sales", agent: "online", lastSeen: stamp, gateway: "10.30.20.1", dns: "10.30.20.10",
-          updatesMissing: 1, av: "stale", firewall: false, bitlocker: true, rebootAge: 9,
-          cpu: 44, memory: 71, disk: 58, complianceManaged: true, issue: "gateway"
-        },
-        {
-          id: "EP-004", hostname: "BR-LAP-03", ip: "10.30.20.44", mac: "00:1A:2B:4D:20:44",
-          site: "Branch", type: "Laptop", os: "Windows 11 24H2", model: "Dell Latitude 5450",
-          owner: "Operations", agent: "offline", lastSeen: "2026-09-22T02:14:00.000Z", gateway: "10.30.20.1", dns: "10.30.20.10",
-          updatesMissing: 0, av: "healthy", firewall: true, bitlocker: false, rebootAge: 5,
-          cpu: 0, memory: 0, disk: 48, complianceManaged: true, issue: "offline"
-        },
-        {
-          id: "EP-005", hostname: "HQ-SRV-AD01", ip: "10.20.30.10", mac: "00:1A:2B:3C:30:10",
-          site: "HQ", type: "Server", os: "Windows Server 2025", model: "PowerEdge R350",
-          owner: "Infrastructure", agent: "online", lastSeen: stamp, gateway: "10.20.30.1", dns: "10.20.30.10",
-          updatesMissing: 0, av: "healthy", firewall: true, bitlocker: true, rebootAge: 8,
-          cpu: 18, memory: 61, disk: 69, complianceManaged: true, issue: "port"
-        },
-        {
-          id: "NET-001", hostname: "HQ-GW-01", ip: "10.20.10.1", mac: "00:AA:10:20:00:01",
-          site: "HQ", type: "Router", os: "IOS XE", model: "Cisco ISR 4331",
-          owner: "Network Team", agent: "online", lastSeen: stamp, gateway: "", dns: "10.20.10.53",
-          updatesMissing: 0, av: "n/a", firewall: true, bitlocker: true, rebootAge: 1,
-          cpu: 17, memory: 42, disk: 35, complianceManaged: false, issue: "healthy"
-        },
-        {
-          id: "NET-002", hostname: "HQ-SW-01", ip: "10.20.10.2", mac: "00:AA:10:20:00:02",
-          site: "HQ", type: "Switch", os: "IOS XE", model: "Catalyst 9200L",
-          owner: "Network Team", agent: "online", lastSeen: stamp, gateway: "10.20.10.1", dns: "10.20.10.53",
-          updatesMissing: 0, av: "n/a", firewall: true, bitlocker: true, rebootAge: 1,
-          cpu: 14, memory: 39, disk: 31, complianceManaged: false, issue: "healthy"
-        }
-      ],
-      vlans: [
-        { id: "VLAN-10-HQ", site: "HQ", vlan: 10, name: "Users", cidr: "10.20.10.0/24", gateway: "10.20.10.1", dns: "10.20.10.53" },
-        { id: "VLAN-30-HQ", site: "HQ", vlan: 30, name: "Servers", cidr: "10.20.30.0/24", gateway: "10.20.30.1", dns: "10.20.30.10" },
-        { id: "VLAN-20-BR", site: "Branch", vlan: 20, name: "Branch Users", cidr: "10.30.20.0/24", gateway: "10.30.20.1", dns: "10.30.20.10" }
-      ],
-      ports: [
-        { id: "PORT-001", switch: "HQ-SW-01", port: "Gi1/0/3", endpointId: "EP-001", vlan: 10 },
-        { id: "PORT-002", switch: "HQ-SW-01", port: "Gi1/0/7", endpointId: "EP-002", vlan: 10 },
-        { id: "PORT-003", switch: "HQ-SW-01", port: "Gi1/0/24", endpointId: "NET-001", vlan: 10 }
-      ],
-      docChanges: [
-        { id: "DOC-001", detail: "Initial HQ and Branch network documentation baseline.", createdAt: stamp }
-      ],
-      diagnostics: [],
-      remoteActions: [],
-      identities: [
-        { id:"USR-001", firstName:"Adrian", lastName:"Reyes", displayName:"Adrian Reyes", username:"areyes", upn:"areyes@corp.local", department:"Finance", title:"Finance Analyst", manager:"Finance Manager", status:"Active", enabled:true, templateId:"TPL-FIN", groups:["GRP-ALL","GRP-FIN"], expiry:"", mustResetPassword:false, createdAt:"2025-01-16T08:00:00.000Z" },
-        { id:"USR-002", firstName:"Nico", lastName:"Cruz", displayName:"Nico Cruz", username:"ncruz", upn:"ncruz@corp.local", department:"Human Resources", title:"HR Specialist", manager:"HR Manager", status:"Active", enabled:true, templateId:"TPL-HR", groups:["GRP-ALL","GRP-HR"], expiry:"", mustResetPassword:false, createdAt:"2025-03-11T08:00:00.000Z" },
-        { id:"USR-003", firstName:"Jim", lastName:"Camus", displayName:"Jim Camus", username:"jcamus", upn:"jcamus@corp.local", department:"IT", title:"IT Support Specialist", manager:"IT Operations Manager", status:"Active", enabled:true, templateId:"TPL-IT", groups:["GRP-ALL","GRP-HELP","GRP-VPN"], expiry:"", mustResetPassword:false, createdAt:"2024-11-03T08:00:00.000Z" },
-        { id:"USR-004", firstName:"Marco", lastName:"Santos", displayName:"Marco Santos", username:"msantos", upn:"msantos@corp.local", department:"Operations", title:"Operations Coordinator", manager:"Operations Manager", status:"Active", enabled:true, templateId:"TPL-OPS", groups:["GRP-ALL","GRP-OPS","GRP-VPN"], expiry:"", mustResetPassword:false, createdAt:"2025-05-18T08:00:00.000Z" },
-        { id:"USR-005", firstName:"Daniel", lastName:"Lee", displayName:"Daniel Lee", username:"dlee", upn:"dlee@corp.local", department:"Sales", title:"Account Executive", manager:"Sales Manager", status:"Active", enabled:true, templateId:"TPL-STD", groups:["GRP-ALL"], expiry:"", mustResetPassword:false, createdAt:"2024-12-08T08:00:00.000Z" },
-        { id:"USR-006", firstName:"Miguel", lastName:"Torres", displayName:"Miguel Torres", username:"mtorres", upn:"mtorres@corp.local", department:"Marketing", title:"Marketing Associate", manager:"Marketing Manager", status:"Disabled", enabled:false, templateId:"TPL-STD", groups:["GRP-ALL"], expiry:"", mustResetPassword:false, createdAt:"2025-02-20T08:00:00.000Z" },
-        { id:"USR-007", firstName:"Paolo", lastName:"Garcia", displayName:"Paolo Garcia", username:"pgarcia", upn:"pgarcia@corp.local", department:"Finance", title:"Finance Contractor", manager:"Finance Manager", status:"Active", enabled:true, templateId:"TPL-FIN", groups:["GRP-ALL","GRP-FIN"], expiry:"2026-10-11", mustResetPassword:true, createdAt:"2026-09-01T08:00:00.000Z" },
-        { id:"USR-008", firstName:"Leo", lastName:"Ramos", displayName:"Leo Ramos", username:"lramos", upn:"lramos@corp.local", department:"Operations", title:"Operations Associate", manager:"Operations Manager", status:"Offboarded", enabled:false, templateId:"TPL-OPS", groups:[], expiry:"", mustResetPassword:false, createdAt:"2024-08-01T08:00:00.000Z" }
-      ],
-      groups: [
-        { id:"GRP-ALL", name:"GG-All-Employees", type:"Security", owner:"IT Operations", risk:"Low", permission:"Baseline employee resources" },
-        { id:"GRP-FIN", name:"GG-Finance-Share-RW", type:"Security", owner:"Finance", risk:"Medium", permission:"Finance shared-drive modify access" },
-        { id:"GRP-HR", name:"GG-HR-Confidential-RW", type:"Security", owner:"Human Resources", risk:"High", permission:"HR confidential records modify access" },
-        { id:"GRP-HELP", name:"GG-IT-HelpDesk", type:"Security", owner:"IT Operations", risk:"Medium", permission:"Help desk tools and support resources" },
-        { id:"GRP-ADMIN", name:"GG-IT-Admins", type:"Security", owner:"Infrastructure", risk:"High", permission:"Privileged administration" },
-        { id:"GRP-OPS", name:"GG-Operations-Apps", type:"Security", owner:"Operations", risk:"Medium", permission:"Operations application access" },
-        { id:"GRP-VPN", name:"GG-VPN-Users", type:"Security", owner:"Infrastructure", risk:"Medium", permission:"Remote-access entitlement" }
-      ],
-      templates: [
-        { id:"TPL-STD", name:"Standard Employee", department:"Corporate", groups:["GRP-ALL"], description:"Baseline employee identity" },
-        { id:"TPL-FIN", name:"Finance User", department:"Finance", groups:["GRP-ALL","GRP-FIN"], description:"Finance resources and shared-drive access" },
-        { id:"TPL-HR", name:"HR User", department:"Human Resources", groups:["GRP-ALL","GRP-HR"], description:"HR confidential-resource access" },
-        { id:"TPL-IT", name:"IT Support", department:"IT", groups:["GRP-ALL","GRP-HELP","GRP-VPN"], description:"Help desk and remote-support access" },
-        { id:"TPL-ADMIN", name:"IT Administrator", department:"IT", groups:["GRP-ALL","GRP-HELP","GRP-ADMIN","GRP-VPN"], description:"Privileged infrastructure administration" },
-        { id:"TPL-OPS", name:"Operations User", department:"Operations", groups:["GRP-ALL","GRP-OPS"], description:"Operations application access" }
-      ],
-      technicians: [
-        { id:"TECH-01", name:"Jim Camus", role:"Administrator", specialty:"Network / Endpoint", identityId:"USR-003" },
-        { id:"TECH-02", name:"Kevin Lim", role:"Technician", specialty:"Endpoint / Hardware", identityId:"" },
-        { id:"TECH-03", name:"Ryan Mendoza", role:"Technician", specialty:"Microsoft 365 / Access", identityId:"" }
-      ],
-      assets: [
-        { id:"AST-1001", tag:"AST-1001", hostname:"HQ-FIN-01", type:"Workstation", serial:"DEL-7010-F01", status:"Assigned", assignedUserId:"USR-001", endpointId:"EP-001", department:"Finance", location:"HQ · Finance", purchaseDate:"2025-01-16", warrantyExpiry:"2027-01-16", specs:"Dell OptiPlex 7010 · Windows 11 24H2" },
-        { id:"AST-1002", tag:"AST-1002", hostname:"HQ-HR-02", type:"Workstation", serial:"HP-800G9-H02", status:"Assigned", assignedUserId:"USR-002", endpointId:"EP-002", department:"Human Resources", location:"HQ · HR", purchaseDate:"2024-07-04", warrantyExpiry:"2026-10-31", specs:"HP EliteDesk 800 G9 · Windows 11 24H2" },
-        { id:"AST-1003", tag:"AST-1003", hostname:"BR-WS-01", type:"Workstation", serial:"LNV-M80S-B01", status:"Assigned", assignedUserId:"USR-005", endpointId:"EP-003", department:"Sales", location:"Branch · Sales", purchaseDate:"2024-04-22", warrantyExpiry:"2027-04-22", specs:"Lenovo ThinkCentre M80s · Windows 11 23H2" },
-        { id:"AST-1004", tag:"AST-1004", hostname:"BR-LAP-03", type:"Laptop", serial:"DEL-5450-B03", status:"Assigned", assignedUserId:"USR-004", endpointId:"EP-004", department:"Operations", location:"Branch · Operations", purchaseDate:"2025-02-18", warrantyExpiry:"2028-02-18", specs:"Dell Latitude 5450 · Windows 11 24H2" },
-        { id:"AST-1005", tag:"AST-1005", hostname:"HQ-SRV-AD01", type:"Server", serial:"DEL-R350-AD01", status:"Assigned", assignedUserId:"USR-003", endpointId:"EP-005", department:"IT", location:"HQ · Server Room", purchaseDate:"2025-05-10", warrantyExpiry:"2029-05-10", specs:"PowerEdge R350 · Windows Server 2025" },
-        { id:"AST-1006", tag:"AST-1006", hostname:"HQ-GW-01", type:"Router", serial:"CSC-4331-GW01", status:"Assigned", assignedUserId:"USR-003", endpointId:"NET-001", department:"IT", location:"HQ · MDF", purchaseDate:"2025-05-10", warrantyExpiry:"2029-05-10", specs:"Cisco ISR 4331 · IOS XE" },
-        { id:"AST-1007", tag:"AST-1007", hostname:"HQ-SW-01", type:"Switch", serial:"CSC-9200-SW01", status:"Assigned", assignedUserId:"USR-003", endpointId:"NET-002", department:"IT", location:"HQ · MDF", purchaseDate:"2025-05-10", warrantyExpiry:"2029-05-10", specs:"Catalyst 9200L · IOS XE" },
-        { id:"AST-1008", tag:"AST-1008", hostname:"SPARE-LT-02", type:"Laptop", serial:"ACR-SWIFT-02", status:"Available", assignedUserId:"", endpointId:"", department:"IT", location:"HQ · IT Stockroom", purchaseDate:"2025-08-20", warrantyExpiry:"2028-08-20", specs:"Acer Swift · Windows 11 Pro" },
-        { id:"AST-1009", tag:"AST-1009", hostname:"PRN-FIN-01", type:"Printer", serial:"HP-M428-11", status:"In Repair", assignedUserId:"", endpointId:"", department:"Finance", location:"HQ · IT Repair Bench", purchaseDate:"2023-09-11", warrantyExpiry:"2026-04-11", specs:"HP LaserJet Pro M428 · Ethernet" }
-      ],
-      maintenance: [
-        { id:"MNT-001", assetId:"AST-1009", type:"Hardware Repair", status:"In Progress", owner:"Kevin Lim", dueDate:"2026-09-25", detail:"Printer hardware fault after paper jam." },
-        { id:"MNT-002", assetId:"AST-1002", type:"Patch / Reboot", status:"Scheduled", owner:"Jim Camus", dueDate:"2026-09-24", detail:"Install missing updates and restart outside business hours." }
-      ],
-      software: [
-        { assetId:"AST-1001", name:"Microsoft 365 Apps", version:"Current Channel", status:"Approved" },
-        { assetId:"AST-1001", name:"Endpoint Security Agent", version:"6.4", status:"Healthy" },
-        { assetId:"AST-1002", name:"Microsoft 365 Apps", version:"Current Channel", status:"Approved" },
-        { assetId:"AST-1002", name:"Endpoint Security Agent", version:"6.4", status:"Healthy" },
-        { assetId:"AST-1003", name:"Endpoint Security Agent", version:"6.2", status:"Review" },
-        { assetId:"AST-1004", name:"VPN Client", version:"5.1", status:"Approved" }
-      ],
-      knowledge: [
-        { id:"KB-001", title:"DNS resolution troubleshooting checklist", category:"Network", summary:"Validate local resolver, gateway reachability, cache, and authoritative response path." },
-        { id:"KB-002", title:"Windows endpoint compliance remediation", category:"Endpoint", summary:"Remediate missing updates, stale AV, firewall, encryption, and reboot-age findings." },
-        { id:"KB-003", title:"Account lockout and stale credential workflow", category:"Identity", summary:"Identify lockout source, clear cached credentials, validate devices, and confirm access." },
-        { id:"KB-004", title:"VPN authentication after password reset", category:"Access", summary:"Refresh cached credentials, verify account state, group membership, and VPN entitlement." },
-        { id:"KB-005", title:"Printer outage triage", category:"Hardware", summary:"Check queue/spooler, device status, network reachability, consumables, and hardware error state." }
-      ],
-      incidents: [
-        {
-          id: "INC-1001", endpointId: "EP-002", title: "HR workstation cannot resolve internal names",
-          priority: "P2", status: "Active", source: "Troubleshooting", createdAt: stamp
-        },
-        {
-          id: "INC-1002", endpointId: "EP-004", title: "Branch laptop agent offline",
-          priority: "P3", status: "Pending", source: "Monitoring", createdAt: stamp
-        }
-      ],
-      audit: [
-        { id: "AUD-001", module: "System", action: "Workspace initialized", target: "OpsFusion", detail: "Unified shared-data workspace created.", createdAt: stamp }
-      ]
-    };
-  }
-
-  // Empty, independent Supabase workspace. Sample data exists only in seedState()
-  // and must never be copied into an authenticated user's database.
-  // Role templates are configuration definitions, never synthetic employees.
-  // Cloud workspaces start with no people or memberships.
+  // Configuration templates do not create employees or memberships.
   function cloudRoleTemplates() {
     return [
       {id:"TPL-STD",name:"Standard Employee",department:"Corporate",groups:[],description:"Record-only standard user profile"},
@@ -212,45 +44,9 @@
     };
   }
 
-  function loadState() {
-    const base = seedState();
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return base;
-      const parsed = JSON.parse(raw);
-      if (!parsed || !Array.isArray(parsed.endpoints)) return base;
-      return {
-        ...base,
-        ...parsed,
-        meta: { ...base.meta, ...(parsed.meta || {}) },
-        settings: { ...base.settings, ...(parsed.settings || {}) },
-        complianceRules: { ...base.complianceRules, ...(parsed.complianceRules || {}) },
-        endpoints: Array.isArray(parsed.endpoints) ? parsed.endpoints : base.endpoints,
-        vlans: Array.isArray(parsed.vlans) ? parsed.vlans : base.vlans,
-        ports: Array.isArray(parsed.ports) ? parsed.ports : base.ports,
-        docChanges: Array.isArray(parsed.docChanges) ? parsed.docChanges : base.docChanges,
-        diagnostics: Array.isArray(parsed.diagnostics) ? parsed.diagnostics : [],
-        remoteActions: Array.isArray(parsed.remoteActions) ? parsed.remoteActions : [],
-        identities: Array.isArray(parsed.identities) ? parsed.identities : base.identities,
-        groups: Array.isArray(parsed.groups) ? parsed.groups : base.groups,
-        templates: Array.isArray(parsed.templates) ? parsed.templates : base.templates,
-        technicians: Array.isArray(parsed.technicians) ? parsed.technicians : base.technicians,
-        assets: Array.isArray(parsed.assets) ? parsed.assets : base.assets,
-        maintenance: Array.isArray(parsed.maintenance) ? parsed.maintenance : base.maintenance,
-        software: Array.isArray(parsed.software) ? parsed.software : base.software,
-        knowledge: Array.isArray(parsed.knowledge) ? parsed.knowledge : base.knowledge,
-        incidents: Array.isArray(parsed.incidents) ? parsed.incidents : base.incidents,
-        audit: Array.isArray(parsed.audit) ? parsed.audit : base.audit
-      };
-    } catch (error) {
-      console.warn("Unable to restore OpsFusion workspace:", error);
-      return base;
-    }
-  }
+  let state = emptyCloudState();
+  let cloudRole = "signed-out";
 
-  let state = loadState();
-  let cloudRole = "demo";
-  let demoMode = false;
   let cloudSaveTimer = null;
   let cloudSavePending = false;
   let cloudSavePromise = Promise.resolve();
@@ -267,12 +63,12 @@
   }
 
   function migrateUnifiedState() {
-    const base = demoMode ? seedState() : emptyCloudState();
+    const base = (emptyCloudState());
     ["identities","groups","templates","technicians","assets","maintenance","software","knowledge","endpoints","vlans","ports","docChanges","diagnostics","remoteActions","incidents","audit"].forEach((key) => {
       if (!Array.isArray(state[key])) state[key] = base[key];
     });
-    // Upgrade older empty cloud workspaces without importing demo identities.
-    if (!demoMode && !state.templates.length) state.templates = cloudRoleTemplates();
+    // Upgrade older empty workspaces with configuration-only templates.
+    if (!state.templates.length) state.templates = cloudRoleTemplates();
     state.incidents = (state.incidents || []).map(normalizeTicket);
     state.assets.forEach((asset) => {
       const endpoint = endpointById(asset.endpointId);
@@ -286,12 +82,8 @@
 
   function saveState() {
     state.meta.updatedAt = now();
-    // The browser's localStorage is exclusively for explicitly selected demo mode.
-    // Cloud users must not see or silently write demo/local fallback records.
-    if (demoMode) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      return;
-    }
+    // Persist records only through an authenticated cloud session.
+
     if (window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
       clearTimeout(cloudSaveTimer);
       cloudSavePending = true;
@@ -327,7 +119,7 @@
       if (epoch !== workspaceSessionEpoch) {
         throw new Error("Workspace session changed during this action.");
       }
-      if (!demoMode) {
+
         if (!window.OpsFusionCloud?.isCloudActive?.() || cloudRole === "viewer") {
           throw new Error("An editor cloud session is required.");
         }
@@ -341,13 +133,13 @@
         } else {
           await cloudSavePromise;
         }
-      }
+
       if (epoch !== workspaceSessionEpoch) throw new Error("Workspace session changed during this action.");
       const proposed = JSON.parse(JSON.stringify(state));
       buildNext(proposed);
       validateUniqueRecords(proposed, state);
       proposed.meta.updatedAt = now();
-      if (!demoMode) {
+
         showSaveStatus("Saving to Supabase...");
         try {
           await window.OpsFusionCloud.saveWorkspace(proposed);
@@ -355,14 +147,13 @@
           showSaveStatus("Not saved — " + (error.message || "database rejected change"), true);
           throw error;
         }
-      }
+
       if (epoch !== workspaceSessionEpoch || 
-          (!demoMode && window.OpsFusionCloud?.getWorkspaceId?.() !== targetWorkspace)) {
+          (window.OpsFusionCloud?.getWorkspaceId?.() !== targetWorkspace)) {
         throw new Error("Workspace changed while saving; refresh the current account.");
       }
       state = proposed;
-      if (demoMode) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      else showSaveStatus("Saved to Supabase");
+      showSaveStatus("Saved to Supabase");
       return state;
     });
     workspaceCommitQueue = operation.then(() => undefined, () => undefined);
@@ -403,7 +194,7 @@
     };
     state.audit.unshift(event);
     state.audit = state.audit.slice(0, 500);
-    if (!demoMode && window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
+    if (window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer") {
       window.OpsFusionCloud.pushAudit(event).catch((error) => console.error("Server audit write failed:", error));
     }
   }
@@ -434,7 +225,7 @@
   function availableRoleTemplates() {
     const existing = Array.isArray(state.templates)
       ? state.templates.filter((t) => t && t.id && t.name) : [];
-    if (demoMode) return existing;
+
     const merged = new Map(cloudRoleTemplates().map((t) => [t.id, t]));
     existing.forEach((t) => merged.set(t.id, {
       ...t, groups: Array.isArray(t.groups) ? t.groups : []
@@ -664,13 +455,13 @@
   function renderOverview() {
     const stats = fleetStats();
     $("kpiEndpoints").textContent = state.endpoints.length;
-    $("kpiOnline").textContent = demoMode ? stats.online : "—";
-    $("kpiCompliance").textContent = demoMode ? stats.complianceRate + "%" : "N/A";
+    $("kpiOnline").textContent = ("—");
+    $("kpiCompliance").textContent = ("N/A");
     $("kpiIncidents").textContent = stats.openIncidents;
     $("kpiDiagnostics").textContent = state.diagnostics.length;
-    $("healthScoreHero").textContent = demoMode ? stats.health + "%" : "—";
-    $("healthLabelHero").textContent = demoMode ? (stats.health >= 90 ? "Healthy operations" : stats.health >= 75 ? "Attention required" : "Operational risk") : "No connected endpoint telemetry";
-    $("healthBar").style.width = demoMode ? stats.health + "%" : "0%";
+    $("healthScoreHero").textContent = ("—");
+    $("healthLabelHero").textContent = ("No connected endpoint telemetry");
+    $("healthBar").style.width = ("0%");
 
     const attention = state.endpoints
       .map((endpoint) => ({ endpoint, compliance: evaluateEndpoint(endpoint) }))
@@ -695,17 +486,17 @@
     }).join("") : '<div class="empty">No incidents yet.</div>';
 
     $("overviewAudit").innerHTML = renderAuditEntries(state.audit.slice(0, 8));
-    if (!demoMode) {
+
       $("attentionQueue").innerHTML = '<div class="empty">No live endpoint monitoring agent is connected. Inventory entries do not report device health.</div>';
-    }
+
     renderOpsVisuals(stats);
     bindOpenEndpointButtons();
   }
 
   function renderOpsVisuals(stats) {
     if (!$("healthTrendChart")) return;
-    if ($("healthTrendEmpty")) $("healthTrendEmpty").hidden = demoMode;
-    if (!demoMode) {
+    if ($("healthTrendEmpty")) $("healthTrendEmpty").hidden = false;
+
       // A user-entered inventory record is not an agent heartbeat. Never
       // manufacture telemetry, historical measurements or risk indices.
       $("healthTrendLine").setAttribute("points", "");
@@ -725,80 +516,7 @@
         ? '<div class="empty">Registered inventory only; no live device status is available.</div>'
         : '<div class="empty">No endpoints registered. Add inventory records to begin.</div>';
       return;
-    }
 
-    const noncompliant = stats.managed.length - stats.compliant;
-    const offline = state.endpoints.filter((e) => e.agent !== "online").length;
-    const warrantyRisk = (state.assets || []).filter((a) => {
-      const w = warrantyInfo(a);
-      return w.days !== null && w.days <= 45;
-    }).length;
-    const openTickets = state.incidents.filter((i) => !["Resolved","Closed"].includes(i.status)).length;
-
-    // Deterministic telemetry curve derived from the current fleet posture.
-    const penalty = Math.min(22, noncompliant * 3 + offline * 4 + openTickets * 2);
-    const base = stats.health;
-    const offsets = [-7,-4,-6,-2,-1,2,0,3];
-    const values = offsets.map((offset, index) =>
-      Math.max(18, Math.min(100, base + offset - Math.round(penalty * (7-index) / 24)))
-    );
-    values[values.length - 1] = base;
-
-    const x0=48, x1=738, y0=24, y1=208;
-    const pts = values.map((value,index) => {
-      const x=x0 + (x1-x0) * index/(values.length-1);
-      const y=y1 - (value/100)*(y1-y0);
-      return {x,y,value};
-    });
-    $("healthTrendLine").setAttribute("points",pts.map(p=>p.x.toFixed(1)+","+p.y.toFixed(1)).join(" "));
-    $("healthTrendArea").setAttribute("d","M "+pts[0].x.toFixed(1)+" "+y1+" L "+pts.map(p=>p.x.toFixed(1)+" "+p.y.toFixed(1)).join(" L ")+" L "+pts[pts.length-1].x.toFixed(1)+" "+y1+" Z");
-    $("healthTrendPoints").innerHTML=pts.map(p=>'<circle class="trend-point" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4"><title>'+p.value+'% health</title></circle>').join("");
-    const labels=["−7h","−6h","−5h","−4h","−3h","−2h","−1h","Now"];
-    $("healthTrendDates").innerHTML=pts.map((p,i)=>'<text x="'+p.x.toFixed(1)+'" y="219">'+labels[i]+'</text>').join("");
-
-    const riskItems = [
-      {label:"Open tickets", value:openTickets, cls:"rk1"},
-      {label:"Non-compliant", value:noncompliant, cls:"rk2"},
-      {label:"Offline agents", value:offline, cls:"rk3"},
-      {label:"Warranty risk", value:warrantyRisk, cls:"rk4"}
-    ];
-    const totalRisk = Math.max(1,riskItems.reduce((sum,item)=>sum+item.value,0));
-    const riskIndex = Math.min(100,Math.round((100-stats.health)*.7 + Math.min(30,totalRisk*3)));
-    $("riskScoreValue").textContent=riskIndex;
-    $("riskKey").innerHTML=riskItems.map(item =>
-      '<div class="risk-key-row"><i class="'+item.cls+'"></i><span>'+esc(item.label)+'</span><b>'+item.value+'</b></div>'
-    ).join("");
-
-    let cursor=0;
-    const colors=["var(--coral)","var(--yellow)","var(--cyan)","var(--acid)"];
-    const segments=riskItems.map((item,i)=>{
-      const start=cursor;
-      const size=(item.value/totalRisk)*100;
-      cursor+=size;
-      return colors[i]+" "+start.toFixed(1)+"% "+cursor.toFixed(1)+"%";
-    });
-    $("riskDonut").style.background="conic-gradient("+segments.join(",")+")";
-
-    if ($("fabricTickets")) $("fabricTickets").textContent=openTickets+" open";
-    if ($("fabricAssets")) $("fabricAssets").textContent=(state.assets||[]).length+" managed";
-    if ($("fabricUsers")) $("fabricUsers").textContent=(state.identities||[]).length+" users";
-    if ($("fabricEndpoints")) $("fabricEndpoints").textContent=state.endpoints.length+" devices";
-    if ($("fabricDiagnostics")) $("fabricDiagnostics").textContent=state.diagnostics.length+" runs";
-    if ($("fabricCompliance")) $("fabricCompliance").textContent=stats.complianceRate+"%";
-
-    const sites={};
-    state.endpoints.forEach((e)=>{
-      if(!sites[e.site]) sites[e.site]={total:0,online:0,devices:[]};
-      sites[e.site].total++;
-      if(e.agent==="online") sites[e.site].online++;
-      sites[e.site].devices.push(e);
-    });
-    const maxSite=Math.max(1,...Object.values(sites).map(s=>s.total));
-    $("siteVisual").innerHTML=Object.entries(sites).map(([site,row])=>{
-      const width=Math.max(8,(row.total/maxSite)*100);
-      return '<div class="site-bar-row"><span>'+esc(site)+'</span><div class="site-bar-track"><div class="site-bar-fill" style="width:'+width.toFixed(0)+'%"></div></div><b>'+row.online+'/'+row.total+'</b></div>';
-    }).join("")+
-    '<div class="site-device-cloud">'+state.endpoints.map(e=>'<span class="'+(e.agent==="online"?"online":"offline")+'" title="'+esc(e.ip)+'">'+esc(e.hostname)+'</span>').join("")+'</div>';
   }
 
   function uniqueSites() {
@@ -1017,9 +735,8 @@
       '<label class="field"><span>Owner</span><input id="mOwner" placeholder="Department / user"></label>' +
       '<label class="field"><span>OS / platform</span><input id="mOs" placeholder="Windows 11 24H2"></label>' +
       '<label class="field"><span>Model</span><input id="mModel" placeholder="Dell OptiPlex"></label>' +
-      '<label class="field"><span>Agent</span><select id="mAgent"'+(demoMode?'':' disabled')+'>'+
-      (demoMode?'<option value="online">Online (demo)</option><option value="offline">Offline (demo)</option>':
-       '<option value="unverified">Not connected — requires an authorized endpoint agent</option>')+
+      '<label class="field"><span>Agent</span><select id="mAgent"'+((' disabled'))+'>'+
+      '<option value="unverified">Not connected — requires an authorized endpoint agent</option>'+
       '</select></label>' +
       '</div><p id="mIpHint" class="cell-sub" aria-live="polite" hidden></p><div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Endpoint</button></div>',
       (root) => {
@@ -1033,7 +750,7 @@
           $("mIpHint").textContent = value && !valid
             ? "Invalid or non-assignable IPv4 address. Check range, octets and leading zeros."
             : "";
-          $("mSave").disabled = !valid || !$("mHostname").value.trim() || !$("mSite").value.trim() || (!demoMode && cloudRole === "viewer");
+          $("mSave").disabled = !valid || !$("mHostname").value.trim() || !$("mSite").value.trim() || (cloudRole === "viewer");
         };
         ["mIp","mHostname","mSite"].forEach((id) => $(id).addEventListener("input", updateIpValidity));
         updateIpValidity();
@@ -1056,17 +773,17 @@
             id: uid(managed ? "EP" : "NET"), hostname, ip, mac: "—", site, type,
             os: $("mOs").value.trim() || "Unknown", model: $("mModel").value.trim() || "Unknown",
             owner: $("mOwner").value.trim() || "Unassigned",
-            agent: demoMode ? $("mAgent").value : "unverified",
-            lastSeen: demoMode ? now() : null, gateway: "", dns: "",
-            updatesMissing: demoMode ? 0 : null, av: demoMode && managed ? "healthy" : "unknown",
-            firewall: demoMode ? true : null, bitlocker: demoMode ? true : null,
-            rebootAge: demoMode ? 0 : null,
-            cpu: demoMode ? 0 : null, memory: demoMode ? 0 : null, disk: demoMode ? 0 : null,
-            complianceManaged: demoMode && managed, issue: demoMode ? "healthy" : "unknown"
+            agent: "unverified",
+            lastSeen: null, gateway: "", dns: "",
+            updatesMissing: null, av: "unknown",
+            firewall: null, bitlocker: null,
+            rebootAge: null,
+            cpu: null, memory: null, disk: null,
+            complianceManaged: false, issue: "unknown"
           };
           const button = $("mSave");
           button.disabled = true;
-          if (!demoMode) {
+
             // Only show "Endpoint added" once Supabase has accepted the record.
             try {
               showSaveStatus("Validating endpoint in Supabase...");
@@ -1090,9 +807,7 @@
               updateIpValidity();
               return;
             }
-          } else {
-            state.endpoints.push(endpoint);
-          }
+
           currentEndpointId = endpoint.id;
           audit("Inventory", "Endpoint added", endpoint.hostname, endpoint.ip + " · " + endpoint.site);
           saveState();
@@ -1103,7 +818,6 @@
       }
     );
   });
-
 
   function renderAssets() {
     const statusFilter = $("assetStatusFilter");
@@ -1253,8 +967,7 @@
             category:"Hardware / Asset",impact:"Medium",urgency:"Medium",source:"Asset Management"};
           button.disabled=true;
           try {
-            if (demoMode) createIncident(input);
-            else await commitNewTicket(input);
+            await commitNewTicket(input);
             closeModal();
             toast("Ticket created",asset.tag);
           } catch(error) {
@@ -1372,7 +1085,7 @@
   });
 
   window.OpsFusionFlushSaves = async () => {
-    if (demoMode || !window.OpsFusionCloud?.isCloudActive?.()) throw new Error("Sign in to Cloud Workspace.");
+    if (!window.OpsFusionCloud?.isCloudActive?.()) throw new Error("Sign in to Cloud Workspace.");
     if (cloudSavePending) {
       clearTimeout(cloudSaveTimer);
       cloudSaveTimer=null;
@@ -1536,7 +1249,7 @@
           button.disabled=true;
           try {
             await commitWorkspaceChange((draft) => {
-              if (!demoMode) draft.templates = availableRoleTemplates().map((t) => ({
+              draft.templates = availableRoleTemplates().map((t) => ({
                 ...t, groups: Array.isArray(t.groups) ? t.groups : []
               }));
               draft.identities.push(user);
@@ -1559,9 +1272,9 @@
   });
 
   function renderTroubleshooting() {
-    if (!demoMode) {
+
       $("diagTerminal").textContent = "Live diagnostics unavailable: no authorized endpoint agent is connected. Saved inventory is not proof of network reachability.";
-    }
+
     fillEndpointSelect($("diagEndpoint"), null, true);
     if ($("diagEndpoint").value) currentEndpointId = $("diagEndpoint").value;
     renderDiagnosticSummary();
@@ -1571,102 +1284,15 @@
     currentEndpointId = $("diagEndpoint").value;
   });
 
-  function diagnosticStep(endpoint, type, port) {
-    const issue = endpoint.issue || "healthy";
-    if (type === "ping") {
-      if (issue === "offline") return { name: "Reachability", pass: false, detail: "No ICMP response from " + endpoint.ip + "." };
-      if (issue === "gateway") return { name: "Reachability", pass: true, detail: "Host replies with elevated latency (86 ms)." };
-      return { name: "Reachability", pass: true, detail: "Host replied successfully (12 ms average)." };
-    }
-    if (type === "gateway") {
-      if (!endpoint.gateway) return { name: "Gateway", pass: true, detail: "No gateway expected for this record." };
-      if (issue === "gateway" || issue === "offline") return { name: "Gateway", pass: false, detail: "Default gateway " + endpoint.gateway + " is unreachable." };
-      return { name: "Gateway", pass: true, detail: "Default gateway " + endpoint.gateway + " is reachable." };
-    }
-    if (type === "dns") {
-      if (issue === "dns" || issue === "offline") return { name: "DNS", pass: false, detail: "DNS lookup failed through " + (endpoint.dns || "configured resolver") + "." };
-      return { name: "DNS", pass: true, detail: "DNS resolution completed successfully through " + (endpoint.dns || "configured resolver") + "." };
-    }
-    if (type === "internet") {
-      if (["gateway", "offline"].includes(issue)) return { name: "Internet", pass: false, detail: "External reachability failed because the local path is unavailable." };
-      return { name: "Internet", pass: true, detail: "External HTTPS reachability is available." };
-    }
-    if (type === "port") {
-      if (issue === "offline") return { name: "TCP " + port, pass: false, detail: "Endpoint is offline; TCP test cannot complete." };
-      if (issue === "port" && Number(port) === 443) return { name: "TCP " + port, pass: false, detail: "TCP port " + port + " is not accepting connections." };
-      return { name: "TCP " + port, pass: true, detail: "TCP port " + port + " is reachable in the simulated endpoint profile." };
-    }
-    if (type === "trace") {
-      if (issue === "offline") return { name: "Route trace", pass: false, detail: "Trace stops before the destination because the endpoint is offline." };
-      if (issue === "gateway") return { name: "Route trace", pass: false, detail: "Trace stops at the local access segment before the default gateway." };
-      return { name: "Route trace", pass: true, detail: "Route path: endpoint → gateway → WAN edge → destination." };
-    }
-    return { name: type, pass: true, detail: "Test completed." };
-  }
-
   function runDiagnostic() {
-    if (!demoMode) {
+
       $("diagTerminal").textContent = "No live diagnostic agent is connected. This cloud workspace does not generate simulated ping, DNS, port or route results.";
       toast("Diagnostics unavailable", "Connect an authorized backend before running real probes.");
       return;
-    }
-    const endpoint = endpointById($("diagEndpoint").value);
-    if (!endpoint) return;
-    currentEndpointId = endpoint.id;
-    const type = $("diagType").value;
-    const port = Math.max(1, Math.min(65535, Number($("diagPort").value) || 443));
-    const types = type === "full" ? ["ping", "gateway", "dns", "internet", "port", "trace"] : [type];
-    const results = types.map((t) => diagnosticStep(endpoint, t, port));
-    const pass = results.every((r) => r.pass);
-    const diagnosis = pass ? "No blocking fault detected in the selected test scope." :
-      results.some((r) => !r.pass && r.name === "DNS") ? "Likely DNS resolver or name-resolution path issue." :
-      results.some((r) => !r.pass && r.name === "Gateway") ? "Likely local gateway, VLAN, routing, or access-path issue." :
-      results.some((r) => !r.pass && r.name.startsWith("TCP")) ? "Likely service, host firewall, or upstream port-policy issue." :
-      "Endpoint or path is unavailable and requires connectivity investigation.";
-    const record = {
-      id: uid("DIAG"), endpointId: endpoint.id, type, port, status: pass ? "pass" : "fail",
-      summary: diagnosis, results, createdAt: now()
-    };
-    state.diagnostics.unshift(record);
-    state.diagnostics = state.diagnostics.slice(0, 200);
-    selectedDiagnosticId = record.id;
-    audit("Troubleshooting", "Diagnostic completed", endpoint.hostname, type + " · " + record.status.toUpperCase() + " · " + diagnosis);
 
-    if (!pass && type === "full" && state.settings.autoTicketDiagnostic) {
-      createIncident({
-        endpointId: endpoint.id,
-        title: "Failed full diagnostic: " + diagnosis,
-        priority: "P2",
-        source: "Troubleshooting"
-      }, true);
-    }
-
-    saveState();
-    renderDiagnosticOutput(record);
-    renderDiagnosticSummary();
-    renderOverview();
-    toast("Diagnostic completed", endpoint.hostname + " · " + record.status.toUpperCase());
   }
 
   $("runDiagBtn").addEventListener("click", runDiagnostic);
-
-  function renderDiagnosticOutput(record) {
-    const endpoint = endpointById(record.endpointId);
-    const lines = [
-      "OpsFusion Guided Diagnostic",
-      "Endpoint: " + (endpoint ? endpoint.hostname + " (" + endpoint.ip + ")" : record.endpointId),
-      "Started: " + fmtDate(record.createdAt),
-      ""
-    ];
-    record.results.forEach((result) => {
-      lines.push("[" + (result.pass ? "PASS" : "FAIL") + "] " + result.name);
-      lines.push("  " + result.detail);
-    });
-    lines.push("");
-    lines.push("Interpretation: " + record.summary);
-    lines.push("Mode: portfolio-safe simulation; real probes require an authorized local agent.");
-    $("diagTerminal").textContent = lines.join("\n");
-  }
 
   function renderDiagnosticSummary() {
     const record = selectedDiagnosticId ? state.diagnostics.find((d) => d.id === selectedDiagnosticId) : state.diagnostics[0];
@@ -1690,18 +1316,25 @@
     $("diagOpenEndpointBtn").disabled = !endpoint;
   }
 
-  $("diagCreateIncidentBtn").addEventListener("click", () => {
+  $("diagCreateIncidentBtn").addEventListener("click", async () => {
     const record = state.diagnostics.find((d) => d.id === selectedDiagnosticId);
     if (!record) return;
-    const endpoint = endpointById(record.endpointId);
-    createIncident({
-      endpointId: record.endpointId,
-      title: "Diagnostic follow-up: " + record.summary,
-      priority: record.status === "fail" ? "P2" : "P4",
-      source: "Troubleshooting"
-    });
-    renderDiagnosticSummary();
-    toast("Incident created", endpoint ? endpoint.hostname : record.endpointId);
+    const button = $("diagCreateIncidentBtn");
+    button.disabled = true;
+    try {
+      const ticket = await commitNewTicket({
+        endpointId: record.endpointId,
+        title: "Diagnostic follow-up: " + record.summary,
+        description: record.summary,
+        source: "Troubleshooting"
+      });
+      toast("Incident created", ticket.id);
+    } catch (error) {
+      toast("Incident not saved", error.message || "Unable to save ticket.");
+    } finally {
+      renderDiagnosticSummary();
+      applyRoleAccess();
+    }
   });
 
   $("diagOpenEndpointBtn").addEventListener("click", () => {
@@ -1792,152 +1425,22 @@
 
   function renderRemoteEndpointCard() {
     const endpoint = endpointById($("remoteEndpoint").value);
-    if (!demoMode) {
+
       $("remoteEndpointCard").innerHTML = endpoint
         ? '<h3>' + esc(endpoint.hostname) + '</h3><p>' + esc(endpoint.ip + " · " + endpoint.site) + '</p><div class="empty">No authorized agent connected. Live CPU, memory, disk, heartbeat and remote-action results are unavailable.</div>'
         : '<div class="empty">No endpoint selected. Remote support requires a connected agent.</div>';
       qsa("[data-remote-action]").forEach((button) => { button.disabled = true; });
       $("remoteConsole").textContent = "Real remote-support functions require a connected, authenticated endpoint agent. No simulated results are available in Cloud Workspace.";
       return;
-    }
-    if (!endpoint) {
-      $("remoteEndpointCard").innerHTML = '<div class="empty">No endpoint selected.</div>';
-      return;
-    }
-    $("remoteEndpointCard").innerHTML =
-      "<h3>" + esc(endpoint.hostname) + "</h3><p>" + esc(endpoint.ip + " · " + endpoint.site + " · " + endpoint.type) + "</p>" +
-      '<div class="endpoint-meta">' +
-      '<div><span>Agent</span><strong>' + esc(endpoint.agent) + '</strong></div>' +
-      '<div><span>Last seen</span><strong>' + esc(fmtDate(endpoint.lastSeen)) + '</strong></div>' +
-      '<div><span>CPU</span><strong>' + esc(endpoint.cpu + "%") + '</strong></div>' +
-      '<div><span>Memory</span><strong>' + esc(endpoint.memory + "%") + '</strong></div>' +
-      '<div><span>Disk</span><strong>' + esc(endpoint.disk + "%") + '</strong></div>' +
-      '<div><span>Owner</span><strong>' + esc(endpoint.owner) + "</strong></div></div>";
-    qsa("[data-remote-action]").forEach((button) => button.disabled = endpoint.agent !== "online");
-  }
 
-  function remoteOutput(endpoint, action) {
-    const header = ["OpsFusion Remote Support", "Endpoint: " + endpoint.hostname + " (" + endpoint.ip + ")", "Action: " + action, ""];
-    if (action === "system") {
-      return header.concat([
-        "OS: " + endpoint.os,
-        "Model: " + endpoint.model,
-        "CPU utilization: " + endpoint.cpu + "%",
-        "Memory utilization: " + endpoint.memory + "%",
-        "Disk utilization: " + endpoint.disk + "%",
-        "Last agent check-in: " + fmtDate(endpoint.lastSeen)
-      ]).join("\n");
-    }
-    if (action === "software") {
-      return header.concat([
-        "Microsoft 365 Apps · Current Channel",
-        "Microsoft Edge · Managed",
-        "Endpoint Security Agent · Healthy",
-        "7-Zip · Approved",
-        "Inventory source: portfolio-safe seeded endpoint profile"
-      ]).join("\n");
-    }
-    if (action === "disk") {
-      return header.concat([
-        "Disk utilization: " + endpoint.disk + "%",
-        "SMART summary: Healthy",
-        "Free-space assessment: " + (endpoint.disk >= 85 ? "Action recommended" : "Within threshold"),
-        "BitLocker: " + (endpoint.bitlocker ? "Enabled" : "Not enabled")
-      ]).join("\n");
-    }
-    if (action === "network") {
-      return header.concat([
-        "IPv4: " + endpoint.ip,
-        "Gateway: " + (endpoint.gateway || "N/A"),
-        "DNS: " + (endpoint.dns || "N/A"),
-        "Reachability profile: " + endpoint.issue,
-        "Use the Troubleshooting module for interpreted diagnostics."
-      ]).join("\n");
-    }
-    if (action === "logs") {
-      return header.concat([
-        "Collected: System event summary",
-        "Collected: Application event summary",
-        "Collected: Network adapter snapshot",
-        "Collected: Endpoint agent status",
-        "Result: Diagnostic package staged in portfolio workspace"
-      ]).join("\n");
-    }
-    return header.concat(["Action completed in portfolio-safe simulation mode."]).join("\n");
   }
 
   qsa("[data-remote-action]").forEach((button) => button.addEventListener("click", () => {
-    if (!demoMode) {
+
       toast("Agent required", "Live remote support is not available without a connected endpoint agent.");
       return;
-    }
-    const endpoint = endpointById($("remoteEndpoint").value);
-    if (!endpoint) return;
-    const action = button.dataset.remoteAction;
-    if (endpoint.agent !== "online") {
-      toast("Endpoint offline", "Remote actions require an online agent.");
-      return;
-    }
-    if (action === "service") {
-      showServiceRestartModal(endpoint);
-      return;
-    }
-    const labelMap = { system: "System Info", software: "Software Inventory", disk: "Disk Health", network: "Network Diagnostics", logs: "Collect Logs" };
-    const label = labelMap[action] || action;
-    const record = { id: uid("RA"), endpointId: endpoint.id, action: label, status: "Completed", reference: "", createdAt: now() };
-    state.remoteActions.unshift(record);
-    state.remoteActions = state.remoteActions.slice(0, 200);
-    audit("Remote Support", label, endpoint.hostname, "Approved read-only support action completed.");
-    saveState();
-    $("remoteConsole").textContent = remoteOutput(endpoint, action);
-    renderRemoteActions();
-    renderOverview();
-    toast("Remote action completed", endpoint.hostname + " · " + label);
-  }));
 
-  function showServiceRestartModal(endpoint) {
-    if (!demoMode) {
-      toast("Agent required", "A real service restart requires a connected and authorized agent.");
-      return;
-    }
-    showModal("Restart Approved Service",
-      '<label class="field"><span>Service</span><select id="mService"><option>Print Spooler</option><option>Windows Update</option><option>DNS Client</option></select></label>' +
-      '<label class="field"><span>Ticket / change reference</span><input id="mReference" placeholder="INC-1001 or CHG-204"></label>' +
-      '<p style="font-size:.55rem;color:var(--muted)">State-changing support actions require an operational reference. This portfolio build simulates the restart and records it in the audit trail.</p>' +
-      '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mConfirm">Confirm Restart</button></div>',
-      () => {
-        $("mCancel").onclick = closeModal;
-        $("mConfirm").onclick = () => {
-          const reference = $("mReference").value.trim();
-          const service = $("mService").value;
-          if (!reference) {
-            toast("Reference required", "Enter a ticket or approved change reference.");
-            return;
-          }
-          const record = { id: uid("RA"), endpointId: endpoint.id, action: "Restart " + service, status: "Completed", reference, createdAt: now() };
-          state.remoteActions.unshift(record);
-          audit("Remote Support", "Approved service restart", endpoint.hostname, service + " · Reference " + reference);
-          saveState();
-          closeModal();
-          $("remoteConsole").textContent = [
-            "OpsFusion Remote Support",
-            "Endpoint: " + endpoint.hostname,
-            "Approved action: Restart " + service,
-            "Reference: " + reference,
-            "",
-            "Service stop: simulated successful",
-            "Service start: simulated successful",
-            "Post-check: simulated healthy",
-            "",
-            "No arbitrary shell execution is exposed by this portfolio workflow."
-          ].join("\n");
-          renderRemoteActions();
-          renderOverview();
-          toast("Service restart recorded", endpoint.hostname + " · " + service);
-        };
-      }
-    );
-  }
+  }));
 
   function renderRemoteActions() {
     const rows = state.remoteActions.slice(0, 12);
@@ -2104,92 +1607,22 @@
   });
 
   function renderCompliance() {
-    if (!demoMode) {
+
       $("complianceScore").textContent = "N/A";
       $("complianceBreakdown").innerHTML = '<div class="empty">No authenticated endpoint compliance feed is connected.</div>';
       $("complianceRows").innerHTML = '<tr><td colspan="8" class="empty">No verified compliance readings available. Inventory entries alone cannot establish device compliance.</td></tr>';
       return;
-    }
-    const managed = state.endpoints.filter((e) => e.complianceManaged !== false);
-    const rows = managed.map((e) => ({ endpoint: e, result: evaluateEndpoint(e) }));
-    const compliant = rows.filter((r) => r.result.status === "compliant").length;
-    const noncompliant = rows.length - compliant;
-    const score = rows.length ? Math.round((compliant / rows.length) * 100) : 100;
 
-    $("complianceScore").textContent = score + "%";
-    $("complianceBreakdown").innerHTML =
-      '<article><span>Managed endpoints</span><strong>' + rows.length + '</strong></article>' +
-      '<article><span>Compliant</span><strong class="text-green">' + compliant + '</strong></article>' +
-      '<article><span>Need action</span><strong class="text-amber">' + noncompliant + "</strong></article>";
-
-    $("complianceRows").innerHTML = rows.length ? rows.map((row) => {
-      const e = row.endpoint;
-      const r = row.result;
-      return "<tr>" +
-        '<td><span class="cell-title">' + esc(e.hostname) + '</span><span class="cell-sub">' + esc(e.ip + " · " + e.site) + "</span></td>" +
-        "<td>" + (e.updatesMissing === 0 ? badge("Current", "green") : badge(e.updatesMissing + " missing", "amber")) + "</td>" +
-        "<td>" + badge(e.av, e.av === "healthy" ? "green" : "red") + "</td>" +
-        "<td>" + badge(e.firewall ? "Enabled" : "Disabled", e.firewall ? "green" : "red") + "</td>" +
-        "<td>" + badge(e.bitlocker ? "Enabled" : "Disabled", e.bitlocker ? "green" : "red") + "</td>" +
-        "<td>" + esc(e.rebootAge + " days") + "</td>" +
-        "<td>" + (r.status === "compliant" ? badge("Compliant", "green") : badge("Needs action", "amber")) + "</td>" +
-        '<td><button class="mini-btn" data-remediate="' + esc(e.id) + '"' + (r.status === "compliant" ? " disabled" : "") + ">Create Ticket</button></td></tr>";
-    }).join("") : '<tr><td colspan="8" class="empty">No compliance-managed endpoints.</td></tr>';
-
-    qsa("[data-remediate]").forEach((button) => button.onclick = () => {
-      const e = endpointById(button.dataset.remediate);
-      if (!e) return;
-      const result = evaluateEndpoint(e);
-      createIncident({
-        endpointId: e.id,
-        title: "Compliance remediation: " + result.failures.map((f) => f.label).join(", "),
-        priority: "P3",
-        source: "Compliance"
-      });
-      renderCompliance();
-      toast("Remediation incident created", e.hostname);
-    });
   }
 
   function evaluateFleet(recordAudit = true) {
-    if (!demoMode) {
+
       toast("Compliance feed unavailable", "Connect verified endpoint telemetry to evaluate live compliance.");
       return;
-    }
-    const failing = state.endpoints.filter((e) => evaluateEndpoint(e).status === "noncompliant");
-    if (state.settings.autoTicketCompliance) {
-      failing.forEach((e) => {
-        const exists = state.incidents.some((i) =>
-          i.endpointId === e.id && i.source === "Compliance" && !["Resolved", "Closed"].includes(i.status)
-        );
-        if (!exists) {
-          const result = evaluateEndpoint(e);
-          createIncident({
-            endpointId: e.id,
-            title: "Compliance remediation: " + result.failures.map((f) => f.label).join(", "),
-            priority: "P3",
-            source: "Compliance"
-          }, true);
-        }
-      });
-    }
-    if (recordAudit) audit("Compliance", "Fleet evaluated", state.meta.workspaceName, failing.length + " endpoint(s) require remediation.");
-    saveState();
-    renderCompliance();
-    renderOverview();
-    renderIncidents();
-    if (recordAudit) toast("Fleet evaluated", failing.length + " endpoint(s) need action.");
+
   }
 
   $("evaluateComplianceBtn").addEventListener("click", () => evaluateFleet(true));
-
-  function nextIncidentId() {
-    const max = state.incidents.reduce((value, item) => {
-      const n = Number(String(item.id || "").replace(/\D/g, ""));
-      return Number.isFinite(n) ? Math.max(value, n) : value;
-    }, 1000);
-    return "INC-" + String(max + 1);
-  }
 
   // Build a ticket against an isolated draft. Shared by cloud-confirmed create paths.
   function buildTicketForDraft(draft, input) {
@@ -2246,29 +1679,6 @@
     audit("Service Desk","Ticket created",created.id,created.title);
     renderIncidents();renderOverview();
     return created;
-  }
-
-  function createIncident(input, silent = false) {
-    const createdAt=now();
-    const impact=input.impact||"Medium",urgency=input.urgency||"Medium";
-    const priority=input.priority||priorityFromImpactUrgency(impact,urgency);
-    const sla=SLA[priority]||SLA.P3;
-    const asset=assetById(input.assetId);
-    const endpointId=input.endpointId||(asset?asset.endpointId:"");
-    const incident=normalizeTicket({
-      id:nextIncidentId(),type:input.type||"Incident",endpointId,assetId:input.assetId||"",
-      requesterId:input.requesterId||"",assigneeId:input.assigneeId||"",category:input.category||input.source||"General",
-      title:String(input.title||"New service desk ticket").trim(),description:input.description||"",
-      impact,urgency,priority,status:input.status||"New",source:input.source||"Manual",createdAt,
-      responseDue:addHours(createdAt,sla.response),resolutionDue:addHours(createdAt,sla.resolution),
-      activities:[{at:createdAt,actor:"OpsFusion",action:"Ticket created",note:input.description||input.source||"Service desk intake"}]
-    });
-    state.incidents.unshift(incident);
-    const ep=endpointById(incident.endpointId),requester=identityById(incident.requesterId);
-    audit("Service Desk","Ticket created",incident.id,incident.title+(ep?" · "+ep.hostname:"")+(requester?" · "+requester.displayName:""));
-    saveState();
-    if(!silent){renderIncidents();renderOverview();}
-    return incident;
   }
 
   function wireTicketTools(ticketId) {
@@ -2335,7 +1745,7 @@
   function openTicketModal(id) {
     const t=incidentById(id);if(!t)return;
     const ticket=normalizeTicket(t),ep=endpointById(ticket.endpointId),asset=assetById(ticket.assetId),requester=identityById(ticket.requesterId),tech=technicianById(ticket.assigneeId),sla=ticketSlaState(ticket);
-    const canAnalyze = !demoMode && window.OpsFusionCloud?.isWorkspaceOwner?.();
+    const canAnalyze = window.OpsFusionCloud?.isWorkspaceOwner?.();
     showModal("Ticket · "+ticket.id,
       '<div class="endpoint-card"><h3>'+esc(ticket.title)+'</h3><p>'+esc(ticket.type+" · "+ticket.category+" · "+ticket.source)+'</p><div class="endpoint-meta">'+
       '<div><span>Requester</span><strong>'+esc(requester?requester.displayName:"Unassigned")+'</strong></div><div><span>Assignee</span><strong>'+esc(tech?tech.name:"Unassigned")+'</strong></div>'+
@@ -2523,8 +1933,7 @@
             source:$("mIncidentSource").value,description:$("mTicketDescription").value.trim()};
           const button=$("mSave");button.disabled=true;
           try {
-            if(demoMode)createIncident(input);
-            else await commitNewTicket(input);
+            await commitNewTicket(input);
             closeModal();toast("Ticket created",title);
           }catch(error){button.disabled=false;toast("Ticket not saved",error.message||"Unable to save the Service Desk record.");}
         };
@@ -2605,19 +2014,6 @@
   $("auditSearch").addEventListener("input", renderAudit);
   $("auditModuleFilter").addEventListener("change", renderAudit);
 
-  $("clearAuditBtn").addEventListener("click", () => {
-    if (!demoMode) {
-      toast("Audit history protected", "Cloud audit entries are append-only and cannot be cleared from the browser.");
-      return;
-    }
-    if (!confirm("Clear the demo audit history in this browser?")) return;
-    state.audit = [{ id: uid("AUD"), module: "System", action: "Audit reset", target: state.meta.workspaceName, detail: "Demo audit history cleared by the portfolio user.", createdAt: now() }];
-    saveState();
-    renderAudit();
-    renderOverview();
-    toast("Audit reset", "Demo history was cleared.");
-  });
-
   function renderSettings() {
     $("ruleMissingUpdates").value = state.complianceRules.maxMissingUpdates;
     $("ruleRebootAge").value = state.complianceRules.maxRebootAge;
@@ -2645,7 +2041,7 @@
     state.settings.autoTicketCompliance = $("autoTicketCompliance").checked;
     state.settings.autoTicketDiagnostic = $("autoTicketDiagnostic").checked;
     state.meta.workspaceName = $("workspaceNameInput").value.trim() || "OpsFusion Unified";
-    audit("System", "Workflow settings updated", state.meta.workspaceName, "Portfolio automation settings saved.");
+    audit("System", "Workflow settings updated", state.meta.workspaceName, "Workspace settings saved.");
     saveState();
     renderOverview();
     toast("Workflow settings saved", state.meta.workspaceName);
@@ -2663,43 +2059,6 @@
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     renderOverview();
-  });
-
-  $("importInput").addEventListener("change", async () => {
-    const file = $("importInput").files && $("importInput").files[0];
-    if (!file) return;
-    try {
-      const parsed = JSON.parse(await file.text());
-      const imported = parsed.workspace || parsed;
-      if (!imported || !Array.isArray(imported.endpoints) || !Array.isArray(imported.incidents)) {
-        throw new Error("This file is not a valid OpsFusion workspace.");
-      }
-      if (!demoMode) {
-        throw new Error("Cloud import is disabled: only Supabase-backed records may appear in a signed-in workspace.");
-      }
-      if (!confirm("Replace the current local demo workspace with " + file.name + "?")) return;
-      const base = seedState();
-      validateUniqueRecords(imported);
-      state = {
-        ...base,
-        ...imported,
-        meta: { ...base.meta, ...(imported.meta || {}) },
-        settings: { ...base.settings, ...(imported.settings || {}) },
-        complianceRules: { ...base.complianceRules, ...(imported.complianceRules || {}) }
-      };
-      migrateUnifiedState();
-      audit("System", "Workspace imported", file.name, "Unified state restored from JSON.");
-      saveState();
-      currentEndpointId = state.endpoints[0] ? state.endpoints[0].id : null;
-      selectedDiagnosticId = null;
-      renderAll();
-      openPage("overview");
-      toast("Workspace imported", file.name);
-    } catch (error) {
-      toast("Import failed", error.message || "Unable to read workspace.");
-    } finally {
-      $("importInput").value = "";
-    }
   });
 
   function renderGlobalSearch(query) {
@@ -2754,7 +2113,6 @@
     if (!event.target.closest(".global-search-wrap")) $("searchResults").hidden = true;
   });
 
-
   function setAuthMessage(message, tone = "") {
     const box = $("authMessage");
     if (!box) return;
@@ -2768,8 +2126,7 @@
 
   function applyRoleAccess() {
     document.body.dataset.role = cloudRole;
-    const readOnly = cloudRole === "viewer";
-    const adminOnlyIds = ["clearAuditBtn"];
+    const readOnly = cloudRole === "viewer" || !window.OpsFusionCloud?.isCloudActive?.();
     const mutatingIds = [
       "addEndpointBtn","addAssetBtn","provisionUserBtn","runDiagBtn","diagCreateIncidentBtn",
       "addVlanBtn","addPortBtn","addChangeNoteBtn","evaluateComplianceBtn","newIncidentBtn",
@@ -2779,39 +2136,33 @@
     qsa("[data-remote-action],[data-remediate]").forEach((el) => {
       if (readOnly) el.disabled = true;
     });
-    adminOnlyIds.forEach((id) => { if ($(id)) $(id).disabled = !demoMode || readOnly; });
     // Viewers may close a modal but cannot activate any record-changing modal button.
     qsa("#modalBody button").forEach((el) => {
       if (readOnly && !["mCancel","mKbClose"].includes(el.id)) el.disabled = true;
     });
     // Unconnected cloud workspaces cannot execute simulated diagnostics or
     // remote actions, regardless of their database role.
-    if (!demoMode) {
+
       if ($("runDiagBtn")) $("runDiagBtn").disabled = true;
       if ($("evaluateComplianceBtn")) $("evaluateComplianceBtn").disabled = true;
       qsa("[data-remote-action]").forEach((el) => { el.disabled = true; });
-    }
+
   }
 
-  function updateModeUI(mode, role = "demo") {
+  function updateModeUI(mode, role = "signed-out") {
     const cloud = mode === "cloud";
-    if ($("sidebarModeLabel")) $("sidebarModeLabel").textContent = cloud ? "Cloud Workspace" : "Portfolio mode";
-    if ($("workspaceModeLabel")) $("workspaceModeLabel").textContent = cloud ? "CLOUD WORKSPACE" : "PORTFOLIO DEMO";
-    if ($("persistenceModeLabel")) $("persistenceModeLabel").textContent = cloud ? "SUPABASE" : "LOCAL";
-    showSaveStatus(cloud ? "Loaded from Supabase" : "Demo records only");
-    if ($("accessModeLabel")) $("accessModeLabel").textContent = String(role || "demo").toUpperCase();
-    if ($("heroPersistenceLabel")) $("heroPersistenceLabel").textContent = cloud ? "Supabase records" : "Local demo";
-    if ($("agentStatusLabel")) $("agentStatusLabel").textContent = cloud ? "NOT CONNECTED" : "DEMO ONLY";
-    if ($("agentStatusDetail")) $("agentStatusDetail").textContent = cloud ? "No live telemetry" : "Simulated operations";
-    if ($("signalTitle")) $("signalTitle").textContent = cloud ? "SUPABASE WORKSPACE RECORDS" : "DEMO OPERATIONS SIGNAL";
-    if ($("actionModelLabel")) $("actionModelLabel").textContent = cloud ? "Database records only" : "Demo simulation";
-    if ($("opsAccessDisclosure")) $("opsAccessDisclosure").textContent = cloud
-      ? "Signed-in data comes from this account's Supabase workspace. Live endpoint probes require a separate authorized agent."
-      : "Portfolio Demo uses browser-local sample data and simulated endpoint actions.";
+    if ($("workspaceModeLabel")) $("workspaceModeLabel").textContent = "CLOUD WORKSPACE";
+    if ($("persistenceModeLabel")) $("persistenceModeLabel").textContent = "SUPABASE";
+    showSaveStatus(cloud ? "Loaded from Supabase" : "Sign in required");
+    if ($("accessModeLabel")) $("accessModeLabel").textContent = String(role).toUpperCase();
+    if ($("heroPersistenceLabel")) $("heroPersistenceLabel").textContent = "Supabase records";
+    if ($("agentStatusLabel")) $("agentStatusLabel").textContent = "NOT CONNECTED";
+    if ($("agentStatusDetail")) $("agentStatusDetail").textContent = "No live telemetry";
+    if ($("signalTitle")) $("signalTitle").textContent = "SUPABASE WORKSPACE RECORDS";
+    if ($("actionModelLabel")) $("actionModelLabel").textContent = "Database records only";
     if ($("refreshCloudBtn")) $("refreshCloudBtn").hidden = !cloud;
-    if ($("importInput")) $("importInput").disabled = cloud;
     const controlSignal = document.querySelector(".system-strip .signal-dot");
-    if (controlSignal) controlSignal.classList.toggle("live", !cloud);
+    if (controlSignal) controlSignal.classList.remove("live");
   }
 
   function showCloudIdentity(user, role) {
@@ -2827,7 +2178,7 @@
     if (!window.OpsFusionCloud?.available) throw new Error("Supabase client is unavailable.");
     const result = await window.OpsFusionCloud.bootstrap(emptyCloudState(), displayName);
     workspaceSessionEpoch += 1;
-    demoMode = false;
+
     state = result.state && typeof result.state === "object" ? result.state : emptyCloudState();
     state.audit = result.audit || [];
     migrateUnifiedState();
@@ -2860,7 +2211,7 @@
       const latest = await window.OpsFusionCloud.refreshWorkspace();
       state = latest.state && typeof latest.state === "object" ? latest.state : emptyCloudState();
       state.audit = latest.audit || [];
-      demoMode = false;
+
       migrateUnifiedState();
       currentEndpointId = state.endpoints[0]?.id || null;
       selectedDiagnosticId = null;
@@ -2890,19 +2241,19 @@
     cloudSaveTimer = null;
     cloudSavePending = false;
     cloudSavePromise = Promise.resolve();
-    demoMode = false;
+
     state = emptyCloudState();
-    cloudRole = "demo";
+    cloudRole = "signed-out";
     if ($("cloudUser")) $("cloudUser").hidden = true;
     if ($("authGate")) $("authGate").hidden = false;
-    updateModeUI("demo", "demo");
+    updateModeUI("signed-out", "signed-out");
     setAuthMessage("Your cloud session has ended. Sign in to access your saved records.");
     renderAll();
   });
 
   async function initCloudAuth() {
     if (!window.OpsFusionCloud?.available) {
-      setAuthMessage("Cloud client could not load. Check your connection or choose the separate Portfolio Demo.", "error");
+      setAuthMessage("Cloud client could not load. Check your connection and reload the page.", "error");
       return;
     }
     try {
@@ -2999,22 +2350,6 @@
     }
   });
 
-  $("continueDemoBtn").addEventListener("click", () => {
-    workspaceSessionEpoch += 1;
-    demoMode = true;
-    state = loadState();
-    migrateUnifiedState();
-    currentEndpointId = state.endpoints[0]?.id || null;
-    selectedDiagnosticId = null;
-    cloudRole = "demo";
-    $("authGate").hidden = true;
-    $("cloudUser").hidden = true;
-    updateModeUI("demo", "demo");
-    renderAll();
-    applyRoleAccess();
-    toast("Demo Mode", "Sample data is browser-local and never copied into the cloud.");
-  });
-
   $("cloudChangePasswordBtn").addEventListener("click", () => {
     if (!window.OpsFusionCloud?.isCloudActive?.()) {
       toast("Sign in required", "Open your cloud workspace before changing your password.");
@@ -3080,13 +2415,13 @@
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = null;
     cloudSavePending = false;
-    demoMode = false;
+
     state = emptyCloudState();
-    cloudRole = "demo";
+    cloudRole = "signed-out";
     $("cloudUser").hidden = true;
     $("authGate").hidden = false;
-    updateModeUI("demo", "demo");
-    setAuthMessage("Signed out. Sign in again or continue in Demo Mode.");
+    updateModeUI("signed-out", "signed-out");
+    setAuthMessage("Signed out. Sign in again or open the Employee Support Portal.");
     applyRoleAccess();
   });
 
@@ -3107,7 +2442,7 @@
   migrateUnifiedState();
   saveState();
   renderAll();
-  updateModeUI("demo", "demo");
+  updateModeUI("signed-out", "signed-out");
   applyRoleAccess();
   initCloudAuth();
   try {

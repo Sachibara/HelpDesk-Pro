@@ -1,171 +1,151 @@
-# OpsFusion — Unified IT Operations Platform
+# OpsFusion — IT Operations & Employee Support
 
-**Canonical IT-operations flagship for the Sachibara portfolio.**
+A cloud-based platform for service desk, asset and identity management, audit logging, and scheduled alerts. Includes an employee portal for submitting requests, tracking progress, and messaging IT, plus Gemini-powered ticket assistance grounded in the Knowledge Base and approval-based work-note actions.
 
-OpsFusion is the product name; `Sachibara/HelpDesk-Pro` is its actively maintained source repository. [`Sachibara/opsfusion`](https://github.com/Sachibara/opsfusion) is an older September 2026 standalone snapshot and is not synchronized with this codebase.
+[IT Workspace ↗](https://opsfusion-it.vercel.app/) · [Employee Support Portal ↗](https://opsfusion-it.vercel.app/employee) · [Portfolio ↗](https://jimcamus.vercel.app/)
 
-**Live application:** https://opsfusion-it.vercel.app/
+**Canonical repository:** `Sachibara/HelpDesk-Pro`. OpsFusion is the product name. `Sachibara/opsfusion` is an older standalone snapshot, not the maintained source for this website.
 
-## Dedicated Supabase backend (OpsFusion only)
+## Two experiences, one system
 
-OpsFusion has its own Supabase project in Sachibara's Org, **OpsFusion** (`qyizwyvgbywkextsekpj`, Singapore). The browser frontend connects to this project using its own URL and publishable key in `cloud.js`. It does **not** connect to the older shared OmniShare/NetOps database.
+| Experience | Who uses it | What it provides |
+| --- | --- | --- |
+| IT Workspace | Authorized workspace staff | Service desk, inventory, assets, identity records, documentation, Knowledge Base, automation, AI assistance and audit history |
+| Employee Support Portal | Employees enrolled by the workspace owner | Guided support requests, own-request search and filters, status explanations, and public conversations with IT |
 
-- Project Auth manages OpsFusion user accounts independently.
-- `opsfusion_profiles`, `opsfusion_workspaces`, `opsfusion_memberships`, and `opsfusion_audit_events` have Row Level Security enabled.
-- Anonymous clients have no table access; authenticated clients have role-appropriate privileges. Workspace owner identifiers cannot be edited through the browser.
-- Reproducible first-time database setup: [`supabase/opsfusion_schema.sql`](supabase/opsfusion_schema.sql).
-- The public entry page links directly to the Employee Support Portal; staff workspace access requires authentication.
-- Cloud Workspace requires a confirmed Supabase Auth account. New accounts begin with an empty private workspace; email confirmation may be required depending on Auth settings.
-- **Do not rerun** the first-time SQL file on the already provisioned database because policy and table creation is not intended as an idempotent migration. Future database changes should use versioned migrations.
+Employees do not receive the raw workspace, other employees’ requests, asset inventory, staff Knowledge Base articles, AI tools, or internal work notes. Creating an employee account does not create a separate staff workspace or automatically grant company access.
 
-Existing OmniShare and NetOps projects were not modified by this migration.
+## Employee Support Portal
 
-## Endpoint IPv4 protection — browser and database
+The portal shares OpsFusion’s blue/indigo palette with a distinct, responsive layout designed for employees without IT knowledge.
 
-Managed endpoint registration checks canonical, assignable IPv4 input while typing, and the Add Endpoint button stays disabled until the required fields are valid. The frontend waits for Supabase to accept the new endpoint before showing a success message. Production static responses request no browser caching so outdated form code is not silently reused.
+- Sign in, register, resend confirmation emails, request password recovery, and enter a new password after a valid recovery link.
+- Clear onboarding: create an account, confirm the email, then ask the company’s IT contact to enable access.
+- **My requests / Ask for help** navigation, open/finished counts, search, status filters and load-more controls.
+- Guided request forms ask for a topic, short subject, problem description, effect on work and optional work location. Topic and impact are context in the description; the server controls priority, requester and ownership.
+- Plain-language status labels: Received, In progress, On hold, Resolved and Closed, with explanations of the next step.
+- Public replies are separate from staff-only work notes. Finished conversations are read-only and offer a new-request follow-up with the previous reference.
+- **Check for updates** refreshes both enrollment and requests. No automatic request-update emails are claimed.
+- Failed submissions retain unsent text on the page. Reply drafts survive refreshes in memory. Switching company or signing out clears private drafts.
+- A successful save followed by a failed reload is explicitly reported as saved, discouraging duplicate submission.
+- Form guidance, visible focus states, status/error announcements, FAQ explanations and responsive layouts support accessibility.
 
-A dedicated `opsfusion_enforce_endpoint_integrity` trigger on `public.opsfusion_workspaces` independently rejects newly entered invalid or non-assignable endpoint addresses and duplicate hostnames or IPs, including writes from older clients. This includes invalid octets, alternate leading-zero spellings, unspecified/loopback/link-local, shared CGNAT, multicast, reserved, documentation and benchmarking ranges. The CIDR documentation calculator remains separate and can describe reserved networks without registering them as endpoints.
+### Enroll an employee
 
-**Legacy test evidence:** The pre-fix `TEST-IP-VALIDATION` record using `0.0.0.0` was confirmed in Supabase. The database guard tolerates this specific existing invalid record only while its identifier, hostname, and address remain unchanged; it cannot be used to add further invalid endpoints. The owner plans to remove all test data and accounts in the **explicitly approved final interview reset**, not during active testing.
+1. The employee registers at `/employee` and confirms their account email.
+2. The workspace owner creates or selects the person’s **active** record under Identity & Access.
+3. In **Settings → Manage Employee Access**, the owner selects that identity and links the confirmed account email.
+4. The employee signs in or clicks **Check for updates**. If enrolled in multiple companies, they select the appropriate company.
+5. Staff open the submitted request in Service Desk and use **Reply visible to employee** to respond.
 
-**Scope:** A host's subnet network and directed broadcast address cannot be inferred reliably from an IPv4 address alone; reliable enforcement for those requires a known subnet/prefix. IPv4 validation also does not establish ownership of public IP addresses or verify actual network connectivity.
+Revoking enrollment or disabling/offboarding the identity removes portal access. Re-enrolling the same account and identity restores its portal-request history. Historical tickets created directly by staff are not automatically shared with the employee.
 
-## Real cloud automation (October 2026)
+Limits: 20 new requests per employee/workspace per rolling day, 180-character subjects, 4,000-character server descriptions, 2,000-character replies, and 100 public messages per request. The guided form limits free text to 3,200 characters to leave room for its additional context.
 
-OpsFusion's **Automation Center** is a live Supabase feature. PostgreSQL `pg_cron` runs an hourly scanner independently of browser sessions. It detects active tickets with overdue first-response or resolution SLAs, expiring/expired asset warranties, and upcoming/overdue scheduled maintenance tasks. Automation alerts and timestamped run history are stored in separate workspace-scoped, RLS-protected tables, and the in-app **Run Checks Now** button executes the same server-side scan. Alerts are deduplicated and automatically clear when their source conditions disappear; owners can acknowledge an alert and edit due-date lookahead rules. The Assets tab lets operators create and complete maintenance tasks.
+See [employee access, persistence and verification details](docs/EMPLOYEE_PORTAL_AND_KNOWLEDGE.md).
 
-This automation does **not** send emails or SMS, make AI decisions, run remote commands, or measure real endpoint telemetry. Those require separately configured integrations. See [presentation rehearsal](docs/AUTOMATION_PRESENTATION_20261014.md) for a live Oct 14–15 workflow and exact values.
+## IT workspace capabilities
 
-## Gemini AI Service Desk Assistant
+- **Service Desk:** tickets, impact/urgency-based priorities, SLA deadlines, assignees, linked requesters/assets/endpoints, work notes, public employee replies and activity history.
+- **Endpoints:** register and edit inventory records; validate canonical, assignable IPv4 addresses and reject duplicate hostnames/IPs. Agent status remains unverified without an authorized agent.
+- **Assets:** lifecycle and ownership records, valid active employee assignments, endpoint links, warranty dates and maintenance tasks. Registered assets cannot be duplicated or linked to multiple records through duplicate identifiers.
+- **Identity & Access:** workspace employee records, role templates, credential-review flags and offboarding workflows. Identity records are not actual Active Directory accounts or Supabase account-administration controls.
+- **Duplicate prevention:** normalized identity names/usernames and asset names/tags/serials/endpoint links are checked by the application and database. See [uniqueness rules](docs/UNIQUE_RECORDS.md).
+- **Network Documentation:** IP/VLAN, subnet and port records, CIDR calculation and change notes.
+- **Knowledge Base:** create, edit, search, archive and restore articles.
+- **Audit & search:** recorded workspace activity, filters, global search and JSON workspace export.
+- **Persistence:** queued, version-checked saves detect stale concurrent edits. Failures are reported; relevant record forms wait for database confirmation before showing success. Refresh loads the latest cloud records.
 
-The authenticated `opsfusion-ai-assistant` Edge Function provides ticket summaries, possible causes, recommended checks, priority/category suggestions, and draft work notes through Google Gemini. Limited ticket text is sent only when the workspace owner requests analysis. Provider secrets stay server-side; requests have quotas, bounded retries, and a fallback model. Live successful Gemini responses have been verified.
+Endpoint diagnostics, remote support and compliance views explicitly show missing live-agent integration; manually entered inventory is not treated as live telemetry.
 
-Analysis does not modify tickets. **Insert Draft Into Work Note** fills the editor; the user must review it and separately click **Add Work Note** to save. Use nonsensitive demo tickets and review the provider disclosure. See [AI deployment evidence](docs/AI_SERVICE_DESK_DEPLOYMENT.md).
+## Knowledge Base–connected AI
 
-## Approval-based AI tool calling
+The authenticated `opsfusion-ai-assistant` Edge Function uses Google Gemini for ticket summaries, possible causes, recommended checks, priority/category suggestions and draft work notes. Provider secrets stay server-side; owner authorization, quotas, bounded retries and model fallback remain enforced.
 
-Workspace owners can request **AI Propose Work Note** on a ticket. Gemini returns a native `add_work_note` function call, which is validated and stored as a pending proposal. The exact note is shown for **Approve & Add Note** or **Reject**. Approval executes through an authenticated database transaction and records an audit event; the model cannot execute the tool itself. Proposals expire after 15 minutes and are invalidated by workspace edits. Repeat approvals cannot add duplicate notes.
+Both analysis and work-note proposals retrieve up to three relevant active Knowledge Base articles from the authorized workspace. Retrieval uses deterministic keyword matching with title weighting and bounded redacted excerpts, **not vector search**. Archived articles are excluded. Ticket and article text are treated as untrusted reference material. Analysis displays retrieved article references and validates model citation IDs against those references; no-match results are disclosed.
 
-See [approval tool workflow and verification](docs/APPROVAL_TOOLS.md). This tool adds ticket work notes only; it does not run commands or control devices.
+Analysis does not change a ticket. **Insert Draft Into Work Note** fills an editor for separate review and saving. Recommendations do not prove diagnostics were performed or that an issue was fixed.
 
-## Password validation and security status
+### Approval-based tool calling
 
-Signup, password recovery, and password changes use a 12-character application minimum. Existing passwords and accounts were preserved. Server-side minimum enforcement remains unverified, and leaked-password protection remains an outstanding Auth setting. See [production security review](docs/OPS_FUSION_PRODUCTION_SECURITY_REVIEW.md).
+**AI Propose Work Note** asks Gemini for a native `add_work_note` function call. The validated proposal is stored for **Approve & Add Note** or **Reject**. The model cannot execute it directly. Approval runs through an authenticated database transaction with audit recording, 15-minute expiry, stale-state checks and replay protection. The tool writes work notes only; it cannot run commands, control endpoints or send messages externally.
 
-## Production functionality and remaining integrations
+See [approval workflow](docs/APPROVAL_TOOLS.md) and [earlier AI deployment evidence](docs/AI_SERVICE_DESK_DEPLOYMENT.md).
 
-OpsFusion is being hardened as a **working cloud-based IT service desk and inventory/documentation workspace**, not falsely represented as a complete endpoint-management platform.
+## Scheduled cloud automation
 
-- **Implemented:** Supabase email/password authentication, email recovery and signed-in password change, private RLS-protected workspace, ticket and incident management, device and asset record management, user records, IP/VLAN documentation, knowledge articles, record audit events, workspace JSON export, and cloud refresh.
-- **Cloud save reliability:** Saves are queued and version-checked against the last database `updated_at` value. A conflicting edit from another browser or device is blocked and reported; it is not silently overwritten. The interface shows the server save state and waits for pending changes before sign-out.
-- **Browser privacy:** Ending an authenticated session hides and clears private workspace data from the interface. Browsers that block requests to Supabase can still fail to connect; users should review their tracking protection settings.
-- **Not integrated:** Windows/macOS/Linux agent deployment, authenticated device pairing, verified CPU/RAM/OS/patch/AV heartbeats, real ping/traceroute/DNS probes, privileged service control, genuine Active Directory/identity-provider provisioning, external email delivery, and agent-driven infrastructure alerts. These depend on separately authorized systems and cannot be made real by hardcoded browser data.
-- **Recovery email setup:** The dedicated Supabase project's **Authentication > URL Configuration** must whitelist `https://opsfusion-it.vercel.app/**` and set its Site URL to `https://opsfusion-it.vercel.app`. Supabase's default email service has sending restrictions; a suitable SMTP provider may be required for unrestricted public registrations.
-- **Verification:** Source-code syntax checks and a mocked two-device save-conflict test passed. Vercel production deployments are checked separately. Full interactive account workflows and remote-agent functions require actual device/browser tests before being called production-verified.
+PostgreSQL `pg_cron` runs hourly independently of the browser. The Automation Center checks saved first-response/resolution deadlines, expiring/expired warranties and scheduled maintenance. It stores workspace-scoped alerts and run history, deduplicates repeated conditions, clears resolved conditions and reactivates recurring alerts. Owners can acknowledge alerts, change lookahead rules and invoke the same scanner through **Run Checks Now**.
 
-### Real-agent completion criteria
+Automation does not perform AI decisions, remote commands, endpoint measurements or external email/SMS delivery. See [automation workflow](docs/AUTOMATION_PRESENTATION_20261014.md).
 
-A future agent release must use per-device identity, enrollment approval, scoped permissions, signed updates, encrypted transport, heartbeat freshness, explicit action authorization, immutable audit trails, and a way to revoke access. Until then, Cloud Workspace labels monitoring as **not connected**, not online/offline.
+## Backend and security boundaries
 
-## Cloud Workspace: server-backed records only
+OpsFusion uses its dedicated Supabase project `qyizwyvgbywkextsekpj` (Singapore), separate from the older shared OmniShare/NetOps database.
 
-The **authenticated live site** never initializes a cloud workspace from portfolio demo data or from browser localStorage.
+- Supabase Auth, PostgreSQL and RLS protect workspace records. Public JavaScript contains only a publishable key, never a service-role or AI-provider secret.
+- Staff permissions use authenticated workspace membership/ownership. AI and employee enrollment are owner-controlled.
+- `opsfusion_employee_access` has RLS and no direct browser table privileges. The authenticated portal RPC delegates to a private implementation with explicit account, enrollment, active-identity, workspace and ticket-owner checks.
+- Employee writes lock the workspace row, append the request/reply and commit its audit entry atomically. Ordinary staff audit writes follow their state save and are not universally atomic with it.
+- Cloud sessions do not load browser-local sample records. Ending a session clears visible private state.
+- CSP, browser security headers, no-store responses and pinned Supabase JS dependencies are configured.
+- New-password forms use a 12-character minimum. Server-side minimum enforcement and leaked-password protection remain outstanding verification/configuration items.
 
-- Newly registered cloud accounts start with empty, private user, asset, endpoint and ticket records in the dedicated OpsFusion Supabase project. Three **configuration-only** role templates are available to create genuine workspace identity records (not AD accounts).
-- Asset and maintenance edits wait for Supabase confirmation, reject duplicate asset tags, and require valid active identity references. Database triggers enforce endpoint/asset integrity even against outdated clients.
-- A previously initialized workspace containing only the original demo records was safely archived in `public.opsfusion_legacy_demo_backups` (administrator-only) and reset to an empty inventory. Account/authentication and workspace identity were retained.
-- Cloud inventory, tickets, assets, identity records, documentation and knowledge-base entries are **user-managed records**, stored in Supabase and restored on sign-in. They are not automatically discovered infrastructure.
-- The **Refresh Cloud Data** button loads the latest saved server workspace and audit history; browser-local data does not override cloud records.
-- Until an authorized endpoint agent and telemetry ingestion service exist, Cloud Workspace displays **No telemetry / Not measured** instead of artificial uptime, health curves, compliance rates, diagnostics, or remote commands. Simulated endpoint execution, sample imports, and local reset paths have been removed.
-- The public cloud application must not be presented as active LAN monitoring, real remote control, real AD provisioning, or continuously streaming endpoint telemetry without those integrations.
+First-time schema: [`supabase/opsfusion_schema.sql`](supabase/opsfusion_schema.sql). **Do not rerun bootstrap schema files on an already provisioned database.** Additional SQL lives under `supabase/`, including employee access and approval tools. Review and apply only the changes needed for the target installation.
 
+Auth URL configuration must permit the employee confirmation and recovery destinations, including `/employee` and `/employee?flow=recovery`. Email delivery depends on Supabase Auth/SMTP settings; UI implementation alone does not verify delivery. See [security review](docs/OPS_FUSION_PRODUCTION_SECURITY_REVIEW.md).
 
+### Endpoint address validation
 
-**Portfolio:** https://jimcamus.vercel.app/
+Browser and database guards reject invalid octets, alternate leading-zero spellings, unspecified/loopback/link-local, shared CGNAT, multicast, reserved, documentation and benchmarking ranges. Existing legacy exceptions cannot be used to add new invalid endpoints. Network/broadcast addresses require a known subnet/prefix to validate fully; an accepted IP does not establish ownership or connectivity. The CIDR documentation tool can describe reserved ranges without registering an endpoint.
 
-OpsFusion consolidates the strongest workflows from:
+## Update history — October 2026
 
-- HelpDesk Pro
-- IT Asset Manager
-- AD User Provisioning Simulator
-- LAN Deployment & Remote Support Console
-- Patch & Endpoint Compliance Dashboard
-- endpoint troubleshooting and operational documentation workflows
+| Update | Delivered changes |
+| --- | --- |
+| Cloud and record hardening | Dedicated backend, account/workspace isolation, queued version-checked saves, endpoint IPv4 validation, identity/asset uniqueness, editable records, maintenance and offboarding workflows |
+| Scheduled automation | Hourly SLA/warranty/maintenance scans, run history, deduplicated alerts, clearance/reactivation and owner controls |
+| AI assistance and approvals | Gemini ticket analysis, reviewed work-note drafts and approval-based `add_work_note` proposals |
+| Employee portal | Owner-managed enrollment, restricted request API, employee submissions/status/replies and staff public-reply controls |
+| Knowledge-backed AI | Active-article retrieval, bounded excerpts, source references and citation validation in ticket analysis; article context in tool proposals |
+| Demo removal | Deleted `INTERVIEW_DEMO.md` and `demo-data.js`; removed demo launch, local sample storage, fake endpoint execution, demo import/reset handlers and local-backend sample seeding. Entry button opens Employee Support Portal |
+| Employee experience | Blue/indigo redesign, guided forms, account recovery/resend, request search/filters, plain-language statuses, FAQs, access refresh and clearer save/error behavior |
+| Layout improvements | Larger readable controls/text, responsive workspace layout, header spacing, clearer workspace-record and telemetry text; removed obsolete workspace/footer and portfolio-mode labels |
+| 16 October release presentation | Removed **PHASE 3** from login. Updated project/profile/portfolio descriptions; OpsFusion remains the second flagship with IT Workspace, Employee Support Portal and GitHub links |
 
-## Shared operational model
+Existing cloud accounts and records were preserved during the portal and demo-removal updates. Historical administrator-only database backups were retained; deleting demo source code did not delete production records.
 
-`Identity → Asset → Endpoint → Diagnostic/Compliance/Remote Support → Service Desk Ticket → Audit`
+## Verification
 
-The platform uses a shared record model so incidents, assets, identities, endpoints, compliance findings, remote-support actions, and audits stay connected.
+**174 automated Node tests passed** for the portal release checked on 16 October 2026 (Asia/Singapore). The suite covers record validation, save/session handling, AI authorization/retries/proposals, Knowledge Base retrieval/citations, and employee request/account UI logic using service doubles.
 
-## Modules
+```sh
+node --test tests/*.test.mjs
+node --check app.js
+node --check cloud.js
+node --check employee.js
+node --check employee-model.js
+```
 
-- Executive / Operations Overview
-- Service Desk / ITSM
-- Endpoint Inventory
-- IT Asset Lifecycle
-- Identity & Access
-- Endpoint Troubleshooting
-- Remote Support
-- Patch & Endpoint Compliance
-- Knowledge Base
-- Audit & Global Search
+Rollback-only database tests in [`tests/employee-portal-database.sql`](tests/employee-portal-database.sql) previously passed for employee access, ownership enforcement, restricted projections, cross-workspace denial, inactive identities and revocation. Production entry-to-portal navigation, portal rendering and FAQ navigation were checked in a browser. Earlier service and AI verification is documented separately; it is not a claim that every newly changed path has been exercised with live accounts.
 
-## Access
+**Remaining acceptance:** signed-in owner/employee browser workflows, real confirmation/recovery email delivery for the refreshed portal, and a live knowledge-backed Gemini response. Automated and mocked tests do not establish complete production correctness.
 
-### Employee Support Portal
-Open `/employee` from the entry-page button. Confirm an account, then have the workspace owner link it to an active employee identity. Employees submit and track their own requests and exchange public replies with staff.
+## Not yet integrated
 
-### Cloud Workspace
-Supabase Auth + RLS-protected persistent workspace. The frontend contains only a Supabase publishable key and never a service-role/secret key.
+- Authenticated device enrollment/agents, verified CPU/RAM/patch/AV heartbeats, real network probes or privileged service control.
+- Real Active Directory or external identity-provider provisioning.
+- Automated employee invitations, attachments, automatic request-update emails or external automation-alert delivery.
+- Employee access to staff Knowledge Base articles or AI tools, vector retrieval, autonomous device diagnosis/remediation.
 
-### Preserved local backend
-This repository retains the original HelpDesk Pro `backend/` code for local/persistent service-desk operation. It now starts with empty tables and no sample users, tickets, assets, or knowledge articles. The public unified frontend remains separated from privileged/private infrastructure access.
+## Stack and source layout
 
-## Security principles
+Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreSQL · Edge Functions (TypeScript/Deno) · Google Gemini · Vercel**.
 
-- role-based cloud workspace model
-- Supabase RLS
-- publishable key only in public client code
-- no arbitrary shell/command runner
-- authenticated access to private workspace records
-- CSP and browser security headers
-- pinned Supabase JS client version
+- `index.html`, `styles.css`, `app.js`, `cloud.js`, `automation.js`: staff workspace.
+- `employee.html`, `employee.css`, `employee.js`, `employee-model.js`: employee experience.
+- `employee-admin.js`: owner enrollment controls.
+- `supabase/`: schema, integrity rules, portal/approval APIs and AI functions.
+- `tests/`: automated regressions and database acceptance scripts.
+- `backend/`: retained Python/FastAPI/SQLite backend; starts empty, and is not the public site’s production data service.
 
-## Stack
-
-Current cloud application: HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreSQL · Supabase Edge Functions (TypeScript/Deno) · Google Gemini API · Vercel.
-
-Preserved local backend: Python · FastAPI · SQLite.
-
-## Developer
-
-**Jim Rodmark Camus**  
-BSIT — Network Technology  
-GitHub: [@Sachibara](https://github.com/Sachibara)
-
-## October 14–15 release qualification
-
-As of October 13, 2026 (Philippines): **129 automated regression tests pass** locally after adding approval-based tools. GitHub Actions checks previously passed for the password-validation release `c992e9b`. Tests include mocked integrations and do not replace a complete live browser rehearsal.
-
-Verified evidence includes cloud persistence, endpoint/asset validation, live hourly SLA/warranty/maintenance scans, alert clearing/reactivation, and successful Gemini responses. Custom SMTP signup/recovery delivery was verified in the earlier acceptance session.
-
-Before presenting, rehearse the exact deployed workflow: sign in, open a sample ticket and its linked asset, request AI analysis, review and save a work note, refresh to confirm persistence, and show scheduled automation history. Separate-account UI permissions and simultaneous-save conflicts remain part of the final browser acceptance checklist. See [production security review](docs/OPS_FUSION_PRODUCTION_SECURITY_REVIEW.md) for current evidence and outstanding controls.
-
-**Additional integrations:** Authenticated endpoint agents, OS/service control, live network probes, real AD provisioning, and external automation-alert delivery are not implemented. AI assistance is implemented; autonomous device diagnosis/remediation is not.
-
-## Employee portal and knowledge-backed AI
-
-The [employee portal](https://opsfusion-it.vercel.app/employee) supports owner-managed enrollment, employee-only support requests, status tracking and public replies separated from internal work notes. In Settings, use **Manage Employee Access** to link a confirmed employee account to an active identity.
-
-AI ticket analysis and work-note proposals now retrieve relevant active Knowledge Base articles. Analysis shows the retrieved references and validated model citation IDs. Retrieval uses bounded keyword matching, not vector search. Existing owner authorization and approval controls remain enforced.
-
-See [setup, security, verification and acceptance limitations](docs/EMPLOYEE_PORTAL_AND_KNOWLEDGE.md). Run `node --test tests/*.test.mjs` for the current regression suite. `INTERVIEW_DEMO.md` has been removed.
-
-## Removal of Portfolio Demo
-
-The entry-page **Employee Support Portal** button opens `/employee`. The browser-local workspace, sample data, simulated endpoint execution, demo reset/import handlers, and `demo-data.js` have been removed. Cloud accounts and records are unchanged. Historical administrator-only database backups are retained; this release does not delete database records.
-
-### Employee-friendly support experience
-
-The employee portal includes guided request forms, plain-language progress explanations, request search and filters, public conversations, confirmation-email resend, and in-portal password recovery. Its responsive blue/indigo design shares OpsFusion branding without exposing the staff dashboard. Access remains owner-managed and restricted to the employee’s own portal requests.
+**Developer:** Jim Rodmark Camus · BSIT — Network Technology · [@Sachibara](https://github.com/Sachibara)

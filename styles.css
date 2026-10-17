@@ -1069,3 +1069,21 @@ input,select,textarea{max-width:100%;min-width:0}
 .trend-empty>div{max-width:100%;box-sizing:border-box;padding:16px 20px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#17233a;text-align:center;box-shadow:0 2px 8px #17233a0d;overflow-wrap:anywhere}
 .trend-empty strong{display:block;font-size:.85rem;line-height:1.4}
 .trend-empty span{display:block;margin-top:6px;font-size:.7rem;line-height:1.5;color:#475569}
+
+/* Shared typography: consistent roles across workspace, forms and dialogs. */
+:root{--control-font-size:14px;--text-body:14px;--text-small:12px;--text-heading:18px}
+body,dialog{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:var(--text-body);line-height:1.5}
+button,input,select,textarea,option,optgroup{font-family:inherit}
+input,select,textarea,.btn,.mini-btn{font-size:var(--control-font-size);line-height:1.5}
+select option,select optgroup{font-size:var(--control-font-size);background:#fff;color:#17233a}
+.panel-head h3,.panel>h3,.employee-access-dialog h3{font-size:var(--text-heading);line-height:1.35;font-weight:700}
+.panel-head p,.section-head p:not(.eyebrow),.panel>p,.cell-sub,.stack-row small,.empty,.auth-footnote,.employee-access-dialog p{font-size:var(--text-body);line-height:1.6;color:var(--muted)}
+.field>span,.check-row span{font-size:var(--text-small);line-height:1.5;font-weight:600}
+table th{font-size:var(--text-small)}table td,.cell-title,.stack-row strong{font-size:var(--text-body)}
+.employee-access-dialog{max-width:700px;width:calc(100% - 32px);max-height:85vh;overflow:auto;border:1px solid #dfe7f0;border-radius:16px;padding:24px;color:var(--ink);background:#fff;box-shadow:0 20px 60px #17233a30}
+.employee-access-dialog::backdrop{background:#17233a66}
+.employee-access-dialog h2{font-size:22px;line-height:1.35;margin:0 0 16px;font-weight:700}
+.access-form{display:grid;gap:16px}.access-form .field{margin:0}.access-hint{margin:0}
+.access-actions,.access-enrollment{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.access-enrollments{margin:24px 0}.access-enrollment{padding:12px 0;border-bottom:1px solid #dfe7f0}.access-enrollment span{overflow-wrap:anywhere;flex:1;min-width:160px}
+.access-status{min-height:1.6em}

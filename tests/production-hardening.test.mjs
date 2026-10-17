@@ -51,7 +51,9 @@ test("Identity record creation is transparently record-only and has templates",(
  const source=app.slice(app.indexOf('  $("provisionUserBtn")'),app.indexOf('  function renderTroubleshooting()'));
  assert.ok(source.includes("Add Identity Record (workspace only)"));
  assert.ok(source.includes('await commitWorkspaceChange('));
- assert.ok(source.includes("External directory is not connected."));
+ assert.ok(source.includes("Link a confirmed portal account in Settings."));
+  assert.ok(source.includes('username:"",upn:""'));
+  assert.ok(!source.includes('username+"@corp.local"'));
 });
 test("Server asset integrity trigger enforces duplicate tags and links",()=>{
  assert.match(assetsSql,/CREATE TRIGGER opsfusion_enforce_asset_integrity/);

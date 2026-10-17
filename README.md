@@ -149,3 +149,10 @@ Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreS
 - `backend/`: retained Python/FastAPI/SQLite backend; starts empty, and is not the public site’s production data service.
 
 **Developer:** Jim Rodmark Camus · BSIT — Network Technology · [@Sachibara](https://github.com/Sachibara)
+
+## 17 October — employee identity and control consistency
+
+- New identity records no longer generate a username, `@corp.local` address, or password-reset claim. Identity views show an email only from a confirmed portal enrollment; unlinked records show “No linked portal account”.
+- Employee access management includes a selection prompt, active/unlinked identity filtering, prerequisite explanations, refresh, form validation, and revoke/re-enroll support. Confirmed portal accounts and workspace identities must both exist before the owner grants access. Owners/staff cannot enroll as employees in the same workspace.
+- Workspace and portal controls share a font family and 14px control text. Settings descriptions, form labels, table text, dropdown options and the employee access dialog use consistent role-based typography.
+- 180 automated tests passed. Database integration checks passed with rolled-back fixtures; this does not replace signed-in browser acceptance or live email/AI-provider testing. No live records were changed by these tests.

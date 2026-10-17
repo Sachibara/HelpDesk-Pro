@@ -1098,13 +1098,19 @@
     }
   };
 
+  function identityAccountEmail(identity) {
+    return window.OpsFusionEmployeeAccounts?.emailFor(identity.id) || "";
+  }
+
+  window.addEventListener("opsfusion:employee-access-updated", () => renderIdentity());
+
   function renderIdentity() {
     const sf=$("identityStatusFilter"), df=$("identityDepartmentFilter");
     setFilterOptions(sf,"All identity states",state.identities.map((u)=>u.status));
     setFilterOptions(df,"All departments",state.identities.map((u)=>u.department));
     const q=$("identitySearch").value.trim().toLowerCase();
     const rows=state.identities.filter((u)=>{
-      const hay=[u.displayName,u.username,u.upn,u.department,u.title,u.manager].join(" ").toLowerCase();
+      const hay=[u.displayName,identityAccountEmail(u),u.department,u.title,u.manager].join(" ").toLowerCase();
       return(!q||hay.includes(q))&&(!sf.value||u.status===sf.value)&&(!df.value||u.department===df.value);
     });
     $("idUsers").textContent=state.identities.length;
@@ -1116,7 +1122,7 @@
       const tpl=templateById(u.templateId);
       const assets=state.assets.filter((a)=>a.assignedUserId===u.id);
       const tone=u.status==="Active"?"green":u.status==="Disabled"?"red":u.status==="Offboarded"?"purple":"amber";
-      return "<tr><td><span class=\"cell-title\">"+esc(u.displayName)+"</span><span class=\"cell-sub\">"+esc(u.upn)+(u.mustResetPassword?" · password reset required":"")+"</span></td>"+
+      return "<tr><td><span class=\"cell-title\">"+esc(u.displayName)+"</span><span class=\"cell-sub\">"+esc(identityAccountEmail(u) || "No linked portal account")+"</span></td>"+
         "<td>"+esc(u.department)+"</td><td>"+esc(u.title)+"</td><td>"+badge(u.status,tone)+"</td><td>"+esc(tpl?tpl.name:"Custom")+"</td><td>"+esc((u.groups||[]).length)+"</td><td>"+esc(assets.length)+"</td>"+
         '<td><button class="mini-btn" data-open-identity="'+esc(u.id)+'">Open</button></td></tr>';
     }).join(""):'<tr><td colspan="8" class="empty">No identities match the current filters.</td></tr>';
@@ -1147,7 +1153,7 @@
     const assets=state.assets.filter((item)=>item.assignedUserId===user.id);
     const groups=(user.groups||[]).map(groupById).filter(Boolean);
     showModal("Identity · "+user.displayName,
-      '<div class="endpoint-card"><h3>'+esc(user.displayName)+'</h3><p>'+esc(user.upn+" · "+user.title)+'</p><div class="endpoint-meta">'+
+      '<div class="endpoint-card"><h3>'+esc(user.displayName)+'</h3><p>'+esc([identityAccountEmail(user),user.title].filter(Boolean).join(" · "))+'</p><div class="endpoint-meta">'+
       '<div><span>Status</span><strong>'+esc(user.status)+'</strong></div><div><span>Department</span><strong>'+esc(user.department)+'</strong></div>'+
       '<div><span>Template</span><strong>'+esc(tpl?tpl.name:"Custom")+'</strong></div><div><span>Manager</span><strong>'+esc(user.manager||"—")+'</strong></div>'+
       '<div><span>Groups</span><strong>'+esc(groups.map((g)=>g.name).join(", ")||"None")+'</strong></div><div><span>Assigned assets</span><strong>'+esc(assets.map((a)=>a.tag).join(", ")||"None")+'</strong></div></div></div>'+
@@ -1164,7 +1170,7 @@
               if(!record)throw new Error("Identity record not found.");
               record.mustResetPassword=true;
             });
-            audit("Identity","Credential review flagged",user.username,"Workspace reminder only; no real account password was changed.");
+            audit("Identity","Credential review flagged",user.displayName,"Workspace reminder only; no real account password was changed.");
             closeModal();renderIdentity();toast("Credential review flagged",user.displayName);
           }catch(error){button.disabled=false;toast("Identity not saved",error.message);}
         };
@@ -1180,7 +1186,7 @@
               record.status=enable?"Active":"Disabled";
               if(!enable) released=releaseIdentityAssets(draft,id);
             });
-            audit("Identity",user.enabled?"Identity disabled":"Identity enabled",user.username,
+            audit("Identity",user.enabled?"Identity disabled":"Identity enabled",user.displayName,
               user.displayName+" · "+released+" asset(s) released");
             closeModal();renderIdentity();renderAssets();renderEndpoints();renderOverview();renderIncidents();
             toast("Workspace identity updated",user.displayName+(released?" · "+released+" asset(s) released":""));
@@ -1209,7 +1215,7 @@
           draft.incidents.unshift(ticket);
         }
       });
-      audit("Identity","Identity record offboarded",user.username,
+      audit("Identity","Identity record offboarded",user.displayName,
         user.displayName+" · "+released+" asset(s) released. External directory not connected.");
       closeModal();renderIdentity();renderAssets();renderEndpoints();renderIncidents();renderOverview();
       toast("Workspace identity offboarded",user.displayName);
@@ -1228,7 +1234,7 @@
       '</select></label>'+
       '<label class="field"><span>Job title</span><input id="mIdTitle" placeholder="Analyst"></label><label class="field"><span>Manager</span><input id="mIdManager"></label>'+
       '<label class="field"><span>Expiry (optional)</span><input id="mIdExpiry" type="date"></label></div>'+
-      '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Provision</button></div>',
+      '<div class="modal-actions"><button class="btn secondary" id="mCancel">Cancel</button><button class="btn primary" id="mSave">Add Identity Record</button></div>',
       ()=>{
         $("mCancel").onclick=closeModal;
         const updateIdentityForm = () => {
@@ -1243,8 +1249,7 @@
         $("mSave").onclick=async()=>{
           const first=$("mIdFirst").value.trim(),last=$("mIdLast").value.trim(),tpl=templateById($("mIdTemplate").value);
           if(!first||!last||!tpl){toast("Missing details","First name, last name, and template are required.");return;}
-          const username=usernameFor(first,last);
-          const user={id:uid("USR"),firstName:first,lastName:last,displayName:first+" "+last,username,upn:username+"@corp.local",department:tpl.department==="Corporate"?"General":tpl.department,title:$("mIdTitle").value.trim()||"Employee",manager:$("mIdManager").value.trim()||"Unassigned",status:"Active",enabled:true,templateId:tpl.id,groups:[...tpl.groups],expiry:$("mIdExpiry").value,mustResetPassword:true,createdAt:now()};
+          const user={id:uid("USR"),firstName:first,lastName:last,displayName:first+" "+last,username:"",upn:"",department:tpl.department==="Corporate"?"General":tpl.department,title:$("mIdTitle").value.trim()||"Employee",manager:$("mIdManager").value.trim()||"Unassigned",status:"Active",enabled:true,templateId:tpl.id,groups:[...tpl.groups],expiry:$("mIdExpiry").value,mustResetPassword:false,createdAt:now()};
           const button=$("mSave");
           button.disabled=true;
           try {
@@ -1259,9 +1264,9 @@
                 description:"Confirm organizational approvals and external directory actions separately."});
               draft.incidents.unshift(review);
             });
-            audit("Identity","Identity record created",user.username,user.displayName+" · "+tpl.name);
+            audit("Identity","Identity record created",user.displayName,user.displayName+" · "+tpl.name);
             closeModal();renderIdentity();renderIncidents();renderOverview();
-            toast("Identity record saved",user.upn+" · External directory is not connected.");
+            toast("Identity record saved",user.displayName+" · Link a confirmed portal account in Settings.");
           } catch(error) {
             toast("Identity not saved",error.message||"Unable to save identity record.");
             button.disabled=false;
@@ -2084,8 +2089,8 @@
       if(hay.includes(q)) hits.push({type:"asset",id:a.id,title:a.tag+" · "+a.hostname,detail:a.status+" · "+(user?user.displayName:"Unassigned")});
     });
     state.identities.forEach((u) => {
-      const hay=[u.displayName,u.username,u.upn,u.department,u.title,u.status].join(" ").toLowerCase();
-      if(hay.includes(q)) hits.push({type:"identity",id:u.id,title:u.displayName,detail:u.upn+" · "+u.department+" · "+u.status});
+      const hay=[u.displayName,identityAccountEmail(u),u.department,u.title,u.status].join(" ").toLowerCase();
+      if(hay.includes(q)) hits.push({type:"identity",id:u.id,title:u.displayName,detail:[identityAccountEmail(u),u.department,u.status].filter(Boolean).join(" · ")});
     });
     state.vlans.forEach((v) => {
       const hay = [v.site, v.vlan, v.name, v.cidr, v.gateway].join(" ").toLowerCase();
@@ -2187,6 +2192,7 @@
     $("authGate").hidden = true;
     showCloudIdentity(result.user, result.role);
     renderAll();
+    window.OpsFusionEmployeeAccounts?.refresh();
     toast("Cloud workspace connected", result.workspaceName + " · " + result.role);
   }
 
@@ -2216,6 +2222,7 @@
       currentEndpointId = state.endpoints[0]?.id || null;
       selectedDiagnosticId = null;
       renderAll();
+      window.OpsFusionEmployeeAccounts?.refresh();
       toast("Cloud records refreshed", "Loaded the latest saved records from Supabase.");
     } catch (error) {
       toast("Refresh failed", error.message || "Unable to contact Supabase.");

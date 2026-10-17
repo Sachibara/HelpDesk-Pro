@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#f4f7fb">
   <meta name="description" content="OpsFusion unified IT operations workspace integrating troubleshooting, remote support, documentation, endpoint compliance, incidents, and audit history.">
   <title>OpsFusion Unified IT Operations Platform</title>
-  <link rel="stylesheet" href="./styles.css?v=20261015-telemetry-text-v1">
+  <link rel="stylesheet" href="./styles.css?v=20261017-access-typography">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="./cloud.js?v=20261015-portal-only" defer></script>
-  <script src="./app.js?v=20261015-portal-only" defer></script>
+  <script src="./app.js?v=20261017-access-typography" defer></script>
   <script src="./automation.js?v=20261015-portal-only" defer></script>
-  <script src="./employee-admin.js?v=20261015-portal-v1" defer></script>
+  <script src="./employee-admin.js?v=20261017-access-typography" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -741,7 +741,7 @@
   </div>
 </div>
 
-<dialog id="employeeAccessDialog" style="max-width:700px;width:calc(100% - 32px);max-height:85vh;overflow:auto;border:1px solid #cbd5e1;border-radius:12px;padding:24px"><h2>Employee Portal Access</h2><div id="employeeAccessBody"></div><button class="btn secondary" id="employeeAccessClose">Close</button></dialog>
+<dialog id="employeeAccessDialog" class="employee-access-dialog" aria-labelledby="employeeAccessTitle"><h2 id="employeeAccessTitle">Employee Portal Access</h2><div id="employeeAccessBody"></div><button class="btn secondary" id="employeeAccessClose">Close</button></dialog>
 <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 </body>
 </html>

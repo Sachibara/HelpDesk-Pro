@@ -156,3 +156,22 @@ Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreS
 - Employee access management includes a selection prompt, active/unlinked identity filtering, prerequisite explanations, refresh, form validation, and revoke/re-enroll support. Confirmed portal accounts and workspace identities must both exist before the owner grants access. Owners/staff cannot enroll as employees in the same workspace.
 - Workspace and portal controls share a font family and 14px control text. Settings descriptions, form labels, table text, dropdown options and the employee access dialog use consistent role-based typography.
 - 180 automated tests passed. Database integration checks passed with rolled-back fixtures; this does not replace signed-in browser acceptance or live email/AI-provider testing. No live records were changed by these tests.
+
+## Shared IT staff access — 17 October 2026
+
+The workspace owner can now open **Settings → Manage IT Staff** to grant, change or revoke membership for a confirmed account. Each technician uses their own credentials and accesses the same workspace records, service queue and internal notes. Authorized non-viewer staff appear in ticket assignment choices. Server audit events retain the acting user ID; the UI resolves current staff IDs to email addresses.
+
+1. Ask the staff member to register and confirm their account using the Employee Support Portal registration page. No employee enrollment is needed for staff.
+2. As owner, select the intended workspace and open **Manage IT Staff**. Enter the confirmed email and choose Technician, Administrator or Viewer.
+3. The staff member signs in at the IT Workspace. If they have access to multiple existing workspaces, **Settings → Current workspace** selects the intended company.
+4. Revoke staff membership to block subsequent server reads and writes. Already downloaded information cannot be recalled; role changes are reflected in controls after signing in again.
+
+Technicians and administrators currently have the same broad record-editing permissions; viewers can read the full IT workspace but cannot edit it. Owner-only staff/employee enrollment, AI approvals and automation administration remain owner-only. Fine-grained per-module permissions are not implemented. Employee enrollment and staff membership are mutually exclusive within one workspace.
+
+Public IT signup is no longer offered, bootstrap no longer creates workspaces, and database grants prohibit browser workspace creation and direct membership mutation. Existing workspaces and owners were preserved. Previously created private workspaces are not automatically deleted or merged.
+
+Verification: **184 automated tests passed**, plus transaction-rollback database checks covering technician reads/writes, viewer restrictions, owner-only grants, self-escalation denial, workspace-creation denial, revocation, employee separation, and audit actor attribution. Employee portal database regression checks also passed. A signed-in multi-browser acceptance rehearsal is still required; these checks do not prove every provider integration.
+
+The employee portal supports registration/recovery, owner enrollment, own-request submission/search/status, public replies and access refresh. Remaining additions include attachments, ticket-update email notifications, employee-facing Knowledge Base access, automated invitations, and satisfaction feedback. No new email notifications are sent by staff enrollment.
+
+Security review: the new staff RPC uses a private implementation with authenticated owner/membership checks and an invoker API wrapper. Existing advisor warnings include leaked-password protection disabled ([configuration guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)) and existing explicitly guarded SECURITY DEFINER APIs ([review guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)).

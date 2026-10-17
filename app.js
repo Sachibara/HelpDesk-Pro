@@ -186,6 +186,7 @@
   function audit(module, action, target, detail) {
     const event = {
       id: uid("AUD"),
+      actorId: window.OpsFusionCloud?.getUser?.()?.id || "",
       module: String(module || "System"),
       action: String(action || "Action"),
       target: String(target || ""),
@@ -247,7 +248,9 @@
       id: u.id, name: u.displayName, role: u.title || "IT Support",
       specialty: "Workspace identity record; no external directory connection"
     }));
-    return [...known, ...identityTechs];
+    const staff = typeof window !== "undefined" ? window.OpsFusionStaff?.members() || [] : [];
+    const staffTechs = staff.filter(m => m.role !== "viewer").map(m => ({id:m.user_id,name:m.name || m.email,role:m.role,specialty:"Authorized workspace staff"}));
+    return [...staffTechs, ...known, ...identityTechs].filter((t,i,all)=>all.findIndex(x=>x.id===t.id)===i);
   }
 
   function technicianById(id) {
@@ -1829,7 +1832,7 @@
               if(!record || record.firstResponseAt)throw new Error("First response already recorded or ticket missing.");
               record.firstResponseAt=now();record.updatedAt=now();
               record.activities=Array.isArray(record.activities)?record.activities:[];
-              record.activities.push({at:now(),actor:"Service Desk",action:"First response",note:"First-response timestamp recorded."});
+              record.activities.push({at:now(),actor:window.OpsFusionCloud?.getUser?.()?.email || "IT staff",action:"First response",note:"First-response timestamp recorded."});
             });
             audit("Service Desk","First response recorded",id,t.title);
             closeModal();renderIncidents();toast("First response recorded",id);
@@ -1843,7 +1846,7 @@
               const record=draft.incidents.find((row)=>row.id===id);
               if(!record)throw new Error("Ticket was not found.");
               record.updatedAt=now();record.activities=Array.isArray(record.activities)?record.activities:[];
-              record.activities.push({at:now(),actor:"Service Desk",action:"Work note",note});
+              record.activities.push({at:now(),actor:window.OpsFusionCloud?.getUser?.()?.email || "IT staff",action:"Work note",note});
             });
             audit("Service Desk","Work note added",id,note);
             closeModal();renderIncidents();toast("Work note added",id);
@@ -1891,7 +1894,7 @@
           item.status=updated;item.updatedAt=now();
           if(["Resolved","Closed"].includes(updated) && !item.resolvedAt)item.resolvedAt=now();
           item.activities = Array.isArray(item.activities) ? item.activities : [];
-          item.activities.push({at:now(),actor:"Service Desk",action:"Status changed",note:previous+" → "+updated});
+          item.activities.push({at:now(),actor:window.OpsFusionCloud?.getUser?.()?.email || "IT staff",action:"Status changed",note:previous+" → "+updated});
         });
         audit("Service Desk","Ticket status changed",id,previous+" → "+updated);
         renderIncidents();renderOverview();
@@ -1999,7 +2002,7 @@
     return entries.length ? entries.map((row) =>
       '<div class="audit-entry"><time>' + esc(fmtDate(row.createdAt)) + '</time><span class="module">' + esc(row.module) +
       '</span><div><strong>' + esc(row.action + (row.target ? " · " + row.target : "")) +
-      '</strong><small>' + esc(row.detail || "") + "</small></div></div>"
+      '</strong><small>' + esc((row.detail || "") + (row.actorId ? " · Actor: " + (window.OpsFusionStaff?.members().find(m=>m.user_id===row.actorId)?.email || row.actorId) : "")) + "</small></div></div>"
     ).join("") : '<div class="empty">No audit events.</div>';
   }
 
@@ -2179,9 +2182,9 @@
     applyRoleAccess();
   }
 
-  async function bootstrapCloud(displayName = "") {
+  async function bootstrapCloud(displayName = "", preferredWorkspaceId) {
     if (!window.OpsFusionCloud?.available) throw new Error("Supabase client is unavailable.");
-    const result = await window.OpsFusionCloud.bootstrap(emptyCloudState(), displayName);
+    const result = await window.OpsFusionCloud.bootstrap(emptyCloudState(), displayName, preferredWorkspaceId);
     workspaceSessionEpoch += 1;
 
     state = result.state && typeof result.state === "object" ? result.state : emptyCloudState();
@@ -2191,7 +2194,12 @@
     selectedDiagnosticId = null;
     $("authGate").hidden = true;
     showCloudIdentity(result.user, result.role);
+    const picker=$("staffWorkspaceSelect");
+    picker.innerHTML=result.workspaces.map(w=>'<option value="'+esc(w.id)+'">'+esc(w.name)+'</option>').join('');
+    picker.value=result.workspaceId;
+    picker.disabled=result.workspaces.length<2;
     renderAll();
+    window.OpsFusionStaff?.refresh();
     window.OpsFusionEmployeeAccounts?.refresh();
     toast("Cloud workspace connected", result.workspaceName + " · " + result.role);
   }
@@ -2222,6 +2230,7 @@
       currentEndpointId = state.endpoints[0]?.id || null;
       selectedDiagnosticId = null;
       renderAll();
+      window.OpsFusionStaff?.refresh();
       window.OpsFusionEmployeeAccounts?.refresh();
       toast("Cloud records refreshed", "Loaded the latest saved records from Supabase.");
     } catch (error) {
@@ -2286,7 +2295,7 @@
     $("signInForm").hidden = signup;
     $("signUpForm").hidden = !signup;
     $("resetPasswordForm").hidden = true;
-    setAuthMessage(signup ? "Create a Supabase Auth account for persistent cloud data." : "Sign in to load your persistent OpsFusion workspace.");
+    setAuthMessage(signup ? "Register an account, then ask your owner to authorize IT access." : "Sign in to load your persistent OpsFusion workspace.");
   }));
 
   $("forgotPasswordBtn").addEventListener("click", async () => {
@@ -2430,6 +2439,17 @@
     updateModeUI("signed-out", "signed-out");
     setAuthMessage("Signed out. Sign in again or open the Employee Support Portal.");
     applyRoleAccess();
+  });
+
+  window.addEventListener("opsfusion:staff-updated",()=>{renderIncidents();renderAudit();});
+  $("staffWorkspaceSelect").addEventListener("change",async()=>{
+    const picker=$("staffWorkspaceSelect"),previous=window.OpsFusionCloud.getWorkspaceId(),next=picker.value;
+    picker.disabled=true;
+    try {
+      await workspaceCommitQueue;await cloudSavePromise;
+      if(cloudSavePending)throw new Error("Wait for pending changes to save before switching workspaces.");
+      await bootstrapCloud("",next);
+    } catch(error){picker.value=previous;picker.disabled=false;toast("Workspace switch failed",error.message);}
   });
 
   function renderAll() {

@@ -75,5 +75,6 @@ test("Endpoint modal has inline real-time IP feedback", () => {
   assert.ok(source.includes('mIp").setCustomValidity'));
 });
 test("Cloud bootstrap starts with empty records, never seeded demo records", () => {
-  assert.ok(source.includes("OpsFusionCloud.bootstrap(emptyCloudState(), displayName)"));
+  assert.ok(source.includes("OpsFusionCloud.bootstrap(emptyCloudState(), displayName, preferredWorkspaceId)"));
 });
+

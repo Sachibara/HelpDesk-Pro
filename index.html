@@ -8,9 +8,10 @@
   <title>OpsFusion Unified IT Operations Platform</title>
   <link rel="stylesheet" href="./styles.css?v=20261017-access-typography">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
-  <script src="./cloud.js?v=20261015-portal-only" defer></script>
-  <script src="./app.js?v=20261017-access-typography" defer></script>
+  <script src="./cloud.js?v=20261017-staff-20261015-portal-only" defer></script>
+  <script src="./app.js?v=20261017-shared-staff" defer></script>
   <script src="./automation.js?v=20261015-portal-only" defer></script>
+  <script src="./staff-admin.js?v=20261017-staff" defer></script>
   <script src="./employee-admin.js?v=20261017-access-typography" defer></script>
 </head>
 <body>
@@ -632,6 +633,7 @@
     </section>
 
     <section class="page" data-panel="settings">
+      <article class="panel"><div class="panel-head"><div><h3>IT Staff &amp; Workspace</h3><p>Each staff member uses their own login. The owner controls access to this shared workspace.</p></div></div><label class="field"><span>Current workspace</span><select id="staffWorkspaceSelect" aria-label="Current workspace"></select></label><button class="btn primary" id="staffAccessOpen">Manage IT Staff</button></article>
       <article class="panel"><div class="panel-head"><div><h3>Employee Portal Access</h3><p>Enable employees to submit and track their own support requests.</p></div></div><a class="btn secondary" href="/employee">Open Employee Portal</a> <button class="btn primary" id="employeeAccessOpen">Manage Employee Access</button></article>
       <div class="section-head">
         <div>
@@ -709,10 +711,10 @@
         </div>
         <p class="eyebrow">Supabase-backed cloud workspace</p>
         <h2>Choose your operating mode.</h2>
-        <p class="auth-copy">Sign in to manage your IT workspace, or open the Employee Support Portal to submit and track support requests.</p>
+        <p class="auth-copy">Authorized IT staff can sign in to their shared workspace. Employees should use the Employee Support Portal.</p>
         <div class="auth-tabs">
           <button class="auth-tab active" data-auth-tab="signin">Sign In</button>
-          <button class="auth-tab" data-auth-tab="signup">Create Account</button>
+
         </div>
         <form id="signInForm" class="auth-form">
           <label class="field"><span>Email</span><input id="authEmail" type="email" autocomplete="email" required placeholder="operator@company.com"></label>
@@ -724,7 +726,7 @@
           <label class="field"><span>Display name</span><input id="authDisplayName" autocomplete="name" required placeholder="IT Operator"></label>
           <label class="field"><span>Email</span><input id="authSignupEmail" type="email" autocomplete="email" required placeholder="operator@company.com"></label>
           <label class="field"><span>Password (12+ characters)</span><input id="authSignupPassword" type="password" autocomplete="new-password" minlength="12" required placeholder="12+ characters"></label>
-          <button class="btn primary wide" type="submit">Create Cloud Workspace</button>
+          <button class="btn primary wide" type="submit">Register Account (approval required)</button>
         </form>
         <form id="resetPasswordForm" class="auth-form" hidden>
           <p class="auth-copy">Set a new password for your verified OpsFusion account.</p>
@@ -742,6 +744,7 @@
 </div>
 
 <dialog id="employeeAccessDialog" class="employee-access-dialog" aria-labelledby="employeeAccessTitle"><h2 id="employeeAccessTitle">Employee Portal Access</h2><div id="employeeAccessBody"></div><button class="btn secondary" id="employeeAccessClose">Close</button></dialog>
+<dialog id="staffAccessDialog" class="employee-access-dialog" aria-labelledby="staffAccessTitle"><h2 id="staffAccessTitle">IT Staff Access</h2><div id="staffAccessBody"></div><button class="btn secondary" id="staffAccessClose">Close</button></dialog>
 <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 </body>
 </html>

@@ -103,7 +103,7 @@
     role = "signed-out";
   }
 
-  async function bootstrap(initialState, displayName) {
+  async function bootstrap(initialState, displayName, preferredWorkspaceId) {
     const { data: authData, error: authError } = await client.auth.getUser();
     if (authError) throw authError;
     const user = authData.user;
@@ -136,33 +136,12 @@
     let { data: workspaces, error: workspaceReadError } = await client
       .from("opsfusion_workspaces")
       .select("id, owner_id, name, state, created_at, updated_at")
-      .order("created_at", { ascending: true })
-      .limit(1);
+      .order("created_at", { ascending: true });
     if (workspaceReadError) throw workspaceReadError;
 
-    let workspace = workspaces?.[0] || null;
-
+    const workspace = preferredWorkspaceId ? workspaces?.find(w => w.id === preferredWorkspaceId) : workspaces?.[0];
     if (!workspace) {
-      const { data: created, error: workspaceCreateError } = await client
-        .from("opsfusion_workspaces")
-        .insert({
-          owner_id: user.id,
-          name: initialState?.meta?.workspaceName || "OpsFusion Unified",
-          state: initialState || {}
-        })
-        .select("id, owner_id, name, state, created_at, updated_at")
-        .single();
-      if (workspaceCreateError) throw workspaceCreateError;
-      workspace = created;
-
-      const { error: membershipError } = await client
-        .from("opsfusion_memberships")
-        .insert({
-          workspace_id: workspace.id,
-          user_id: user.id,
-          role: "admin"
-        });
-      if (membershipError) throw membershipError;
+      throw new Error("IT workspace access is not authorized. Ask the workspace owner to grant staff access, or use the Employee Support Portal.");
     }
 
     workspaceId = workspace.id;
@@ -181,7 +160,7 @@
 
     const { data: serverAudit, error: auditError } = await client
       .from("opsfusion_audit_events")
-      .select("id, module, action, target, detail, created_at")
+      .select("id, actor_id, module, action, target, detail, created_at")
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false })
       .limit(250);
@@ -191,10 +170,11 @@
       user,
       role,
       workspaceId,
+      workspaces: workspaces.map(w => ({id:w.id,name:w.name})),
       workspaceName: workspace.name,
       state: workspace.state && Object.keys(workspace.state).length ? workspace.state : initialState,
       audit: (serverAudit || []).map((row) => ({
-        id: row.id,
+        id: row.id, actorId: row.actor_id,
         module: row.module,
         action: row.action,
         target: row.target,
@@ -268,7 +248,7 @@
     workspaceUpdatedAt = workspace.updated_at;
     const { data: audit, error: auditError } = await client
       .from("opsfusion_audit_events")
-      .select("id, module, action, target, detail, created_at")
+      .select("id, actor_id, module, action, target, detail, created_at")
       .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false })
       .limit(250);
@@ -276,7 +256,7 @@
     return {
       state: workspace.state,
       audit: (audit || []).map((row) => ({
-        id: row.id, module: row.module, action: row.action,
+        id: row.id, actorId: row.actor_id, module: row.module, action: row.action,
         target: row.target, detail: row.detail, createdAt: row.created_at
       })),
       updatedAt: workspace.updated_at

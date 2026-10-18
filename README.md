@@ -1,6 +1,6 @@
 # OpsFusion — IT Operations & Employee Support
 
-A cloud-based platform for service desk, asset and identity management, audit logging, and scheduled alerts. Includes an employee portal for submitting requests, tracking progress, and messaging IT, plus Gemini-powered ticket assistance grounded in the Knowledge Base and approval-based work-note actions.
+OpsFusion connects a shared IT operations workspace with an employee support portal. Workspace owners manage individual staff accounts; authorized members handle tickets, inventory, Knowledge Base articles, AI-assisted work notes and scheduled alerts. Employees submit and track their own requests through a separate portal.
 
 [IT Workspace ↗](https://opsfusion-it.vercel.app/) · [Employee Support Portal ↗](https://opsfusion-it.vercel.app/employee) · [Portfolio ↗](https://jimcamus.vercel.app/)
 
@@ -13,7 +13,7 @@ A cloud-based platform for service desk, asset and identity management, audit lo
 | IT Workspace | Authorized workspace staff | Service desk, inventory, assets, identity records, documentation, Knowledge Base, automation, AI assistance and audit history |
 | Employee Support Portal | Employees enrolled by the workspace owner | Guided support requests, own-request search and filters, status explanations, and public conversations with IT |
 
-Employees do not receive the raw workspace, other employees’ requests, asset inventory, staff Knowledge Base articles, AI tools, or internal work notes. Creating an employee account does not create a separate staff workspace or automatically grant company access.
+Portal-only employees do not receive the raw workspace, other employees’ requests, asset inventory, staff Knowledge Base articles, AI tools, or internal work notes. Creating an employee account does not create a separate staff workspace or automatically grant company access.
 
 ## Employee Support Portal
 
@@ -53,14 +53,14 @@ See [employee access, persistence and verification details](docs/EMPLOYEE_PORTAL
 - **Duplicate prevention:** normalized identity names/usernames and asset names/tags/serials/endpoint links are checked by the application and database. See [uniqueness rules](docs/UNIQUE_RECORDS.md).
 - **Network Documentation:** IP/VLAN, subnet and port records, CIDR calculation and change notes.
 - **Knowledge Base:** create, edit, search, archive and restore articles.
-- **Audit & search:** recorded workspace activity, filters, global search and JSON workspace export.
+- **Audit & search:** server-derived actor name/email snapshots and account IDs, preserved attribution after member removal, filters, global search and JSON workspace export.
 - **Persistence:** queued, version-checked saves detect stale concurrent edits. Failures are reported; relevant record forms wait for database confirmation before showing success. Refresh loads the latest cloud records.
 
 Endpoint diagnostics, remote support and compliance views explicitly show missing live-agent integration; manually entered inventory is not treated as live telemetry.
 
 ## Knowledge Base–connected AI
 
-The authenticated `opsfusion-ai-assistant` Edge Function uses Google Gemini for ticket summaries, possible causes, recommended checks, priority/category suggestions and draft work notes. Provider secrets stay server-side; owner authorization, quotas, bounded retries and model fallback remain enforced.
+The authenticated `opsfusion-ai-assistant` Edge Function uses Google Gemini for ticket summaries, possible causes, recommended checks, priority/category suggestions and draft work notes. Provider secrets stay server-side; owner/editor authorization, quotas, bounded retries and model fallback remain enforced.
 
 Both analysis and work-note proposals retrieve up to three relevant active Knowledge Base articles from the authorized workspace. Retrieval uses deterministic keyword matching with title weighting and bounded redacted excerpts, **not vector search**. Archived articles are excluded. Ticket and article text are treated as untrusted reference material. Analysis displays retrieved article references and validates model citation IDs against those references; no-match results are disclosed.
 
@@ -74,7 +74,7 @@ See [approval workflow](docs/APPROVAL_TOOLS.md) and [earlier AI deployment evide
 
 ## Scheduled cloud automation
 
-PostgreSQL `pg_cron` runs hourly independently of the browser. The Automation Center checks saved first-response/resolution deadlines, expiring/expired warranties and scheduled maintenance. It stores workspace-scoped alerts and run history, deduplicates repeated conditions, clears resolved conditions and reactivates recurring alerts. Owners can acknowledge alerts, change lookahead rules and invoke the same scanner through **Run Checks Now**.
+PostgreSQL `pg_cron` runs hourly independently of the browser. The Automation Center checks saved first-response/resolution deadlines, expiring/expired warranties and scheduled maintenance. It stores workspace-scoped alerts and run history, deduplicates repeated conditions, clears resolved conditions and reactivates recurring alerts. Owners and authorized editors can acknowledge alerts, change lookahead rules and invoke the same scanner through **Run Checks Now**.
 
 Automation does not perform AI decisions, remote commands, endpoint measurements or external email/SMS delivery. See [automation workflow](docs/AUTOMATION_PRESENTATION_20261014.md).
 
@@ -83,7 +83,7 @@ Automation does not perform AI decisions, remote commands, endpoint measurements
 OpsFusion uses its dedicated Supabase project `qyizwyvgbywkextsekpj` (Singapore), separate from the older shared OmniShare/NetOps database.
 
 - Supabase Auth, PostgreSQL and RLS protect workspace records. Public JavaScript contains only a publishable key, never a service-role or AI-provider secret.
-- Staff permissions use authenticated workspace membership/ownership. AI and employee enrollment are owner-controlled.
+- Staff permissions use authenticated workspace membership/ownership. Staff/employee account management is owner-only; authorized editors can use AI and automation controls.
 - `opsfusion_employee_access` has RLS and no direct browser table privileges. The authenticated portal RPC delegates to a private implementation with explicit account, enrollment, active-identity, workspace and ticket-owner checks.
 - Employee writes lock the workspace row, append the request/reply and commit its audit entry atomically. Ordinary staff audit writes follow their state save and are not universally atomic with it.
 - Cloud sessions do not load browser-local sample records. Ending a session clears visible private state.
@@ -116,7 +116,7 @@ Existing cloud accounts and records were preserved during the portal and demo-re
 
 ## Verification
 
-**174 automated Node tests passed** for the portal release checked on 16 October 2026 (Asia/Singapore). The suite covers record validation, save/session handling, AI authorization/retries/proposals, Knowledge Base retrieval/citations, and employee request/account UI logic using service doubles.
+**191 automated Node tests passed** in the latest check on 18 October 2026 (Asia/Singapore). The suite covers record validation, save/session handling, AI authorization/retries/proposals, Knowledge Base retrieval/citations, and employee request/account UI logic using service doubles.
 
 ```sh
 node --test tests/*.test.mjs
@@ -135,7 +135,7 @@ Rollback-only database tests in [`tests/employee-portal-database.sql`](tests/emp
 - Authenticated device enrollment/agents, verified CPU/RAM/patch/AV heartbeats, real network probes or privileged service control.
 - Real Active Directory or external identity-provider provisioning.
 - Automated employee invitations, attachments, automatic request-update emails or external automation-alert delivery.
-- Employee access to staff Knowledge Base articles or AI tools, vector retrieval, autonomous device diagnosis/remediation.
+- Employee-facing portal Knowledge Base articles or AI tools, vector retrieval, autonomous device diagnosis/remediation.
 
 ## Stack and source layout
 
@@ -144,6 +144,7 @@ Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreS
 - `index.html`, `styles.css`, `app.js`, `cloud.js`, `automation.js`: staff workspace.
 - `employee.html`, `employee.css`, `employee.js`, `employee-model.js`: employee experience.
 - `employee-admin.js`: owner enrollment controls.
+- `staff-admin.js`: owner member management, shared staff roster and existing-account onboarding.
 - `supabase/`: schema, integrity rules, portal/approval APIs and AI functions.
 - `tests/`: automated regressions and database acceptance scripts.
 - `backend/`: retained Python/FastAPI/SQLite backend; starts empty, and is not the public site’s production data service.
@@ -153,7 +154,7 @@ Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreS
 ## 17 October — employee identity and control consistency
 
 - New identity records no longer generate a username, `@corp.local` address, or password-reset claim. Identity views show an email only from a confirmed portal enrollment; unlinked records show “No linked portal account”.
-- Employee access management includes a selection prompt, active/unlinked identity filtering, prerequisite explanations, refresh, form validation, and revoke/re-enroll support. Confirmed portal accounts and workspace identities must both exist before the owner grants access. Owners/staff cannot enroll as employees in the same workspace.
+- Employee access management includes a selection prompt, active/unlinked identity filtering, prerequisite explanations, refresh, form validation, and revoke/re-enroll support. Confirmed portal accounts and workspace identities must both exist before the owner grants access. The employee-enrollment flow rejects existing owners/staff. An already-enrolled portal account can subsequently receive explicit staff membership; portal enrollment alone never grants it.
 - Workspace and portal controls share a font family and 14px control text. Settings descriptions, form labels, table text, dropdown options and the employee access dialog use consistent role-based typography.
 - 180 automated tests passed. Database integration checks passed with rolled-back fixtures; this does not replace signed-in browser acceptance or live email/AI-provider testing. No live records were changed by these tests.
 
@@ -173,7 +174,7 @@ Audit entries store server-derived actor name/email snapshots plus the authentic
 
 Deployment sources: `supabase/staff-access.sql`, then `supabase/workspace-ownership.sql`; Edge Functions `opsfusion-staff-account`, `opsfusion-ai-assistant`, and `opsfusion-ai-tools`. Functions authenticate bearer tokens with Supabase Auth and check current workspace ownership/membership; service keys stay server-side.
 
-Verification: **191 automated tests passed**. Rollback-only database tests passed for independent creation, retry idempotence, technician operations, owner-only account management, tenant isolation, audit name snapshots, removal, legacy viewer restrictions and employee/staff separation. No test accounts or workspace fixtures were retained. Signed-in multi-browser onboarding and password-change acceptance remain to be rehearsed; unit tests are not a claim of complete production verification.
+Verification: **191 automated tests passed**. Rollback-only database tests passed for independent creation, retry idempotence, technician operations, owner-only account management, tenant isolation, audit name snapshots, removal, legacy viewer restrictions and portal-only restrictions and explicit portal-to-member grants. No test accounts or workspace fixtures were retained. Signed-in multi-browser onboarding and password-change acceptance remain to be rehearsed; unit tests are not a claim of complete production verification.
 
 The employee portal supports registration/recovery, owner enrollment, own-request submission/search/status, public replies and access refresh. Remaining additions include attachments, ticket-update email notifications, employee-facing Knowledge Base access, automated invitations and satisfaction feedback.
 

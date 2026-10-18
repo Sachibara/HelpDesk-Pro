@@ -38,6 +38,10 @@
     const { data, error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw error;
     session = data.session || null;
+    workspaceId = null;
+    workspaceOwnerId = null;
+    workspaceUpdatedAt = null;
+    role = "signed-out";
     return data;
   }
 
@@ -140,7 +144,7 @@
     if (workspaceReadError) throw workspaceReadError;
 
     // Signup intent only requests creation of the caller's OWN workspace; it never grants access to another workspace.
-    if (!workspaces?.length && user.user_metadata?.create_workspace === true) {
+    if (!workspaces?.length && user.app_metadata?.opsfusion_owner_signup === true) {
       const {data: created, error: createError} = await client.rpc("opsfusion_create_workspace", {p_name: profileName + "'s workspace"});
       if (createError) throw createError;
       workspaces = [created];

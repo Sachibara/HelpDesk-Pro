@@ -2,7 +2,7 @@ begin;
 do $test$
 declare owner uuid:=gen_random_uuid(); member uuid:=gen_random_uuid(); wid uuid; result jsonb; n int; denied boolean;
 begin
- insert into auth.users(id,email,email_confirmed_at) values(owner,'owner-'||owner||'@example.invalid',now()),(member,'member-'||member||'@example.invalid',now());
+ insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values(owner,'owner-'||owner||'@example.invalid',now(),'{"create_workspace":true}'),(member,'member-'||member||'@example.invalid',now(),'{"create_workspace":true}');
  insert into public.opsfusion_profiles(user_id,display_name) values(owner,'Fixture Owner'),(member,'Fixture Member');
  perform set_config('request.jwt.claim.sub',owner::text,true);execute 'set local role authenticated';
  result:=public.opsfusion_create_workspace('Rollback workspace');wid:=(result->>'id')::uuid;

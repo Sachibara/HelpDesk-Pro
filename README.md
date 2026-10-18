@@ -178,3 +178,7 @@ Verification: **191 automated tests passed**. Rollback-only database tests passe
 The employee portal supports registration/recovery, owner enrollment, own-request submission/search/status, public replies and access refresh. Remaining additions include attachments, ticket-update email notifications, employee-facing Knowledge Base access, automated invitations and satisfaction feedback.
 
 Security review: new APIs use guarded private implementations or server Auth checks. Existing advisor notices remain for explicitly guarded SECURITY DEFINER APIs ([review guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)) and disabled leaked-password protection ([configuration guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)).
+
+### Portal / IT access boundary
+
+Portal registration authenticates an employee but grants no IT workspace access. The IT site requires ownership or explicit staff membership. Owner signup eligibility is captured once in server-controlled Auth app metadata; changing profile/user metadata cannot convert a portal account into a workspace creator. The workspace-creation RPC also enforces this boundary. Apply `supabase/portal-staff-boundary.sql` after the workspace ownership migration. Existing owners remain owners. Employee enrollment remains separate from staff membership.

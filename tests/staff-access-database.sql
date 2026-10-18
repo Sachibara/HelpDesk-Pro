@@ -37,9 +37,10 @@ begin
  if not denied then raise exception 'Revoked staff still reads roster';end if;
  execute 'reset role';perform set_config('request.jwt.claim.sub',owner::text,true);
  insert into public.opsfusion_employee_access(workspace_id,user_id,identity_id) values(wid,staff,'fixture');
- denied:=false;begin perform public.opsfusion_staff_access('grant',wid,jsonb_build_object('email',mail,'role','technician'));exception when raise_exception then denied:=true;end;
- if not denied then raise exception 'Employee/staff role conflict accepted';end if;
+ perform public.opsfusion_staff_access('grant',wid,jsonb_build_object('email',mail,'role','technician'));
+ if not exists(select 1 from public.opsfusion_memberships where workspace_id=wid and user_id=staff) then raise exception 'Explicit portal-account membership failed';end if;
+ if not exists(select 1 from public.opsfusion_employee_access where workspace_id=wid and user_id=staff) then raise exception 'Portal enrollment was lost';end if;
  if has_function_privilege('anon','public.opsfusion_staff_access(text,uuid,jsonb)','EXECUTE') then raise exception 'Anonymous execution permitted';end if;
 end $test$;
 rollback;
-select 'PASS: shared technician access, viewer read-only, owner-only membership, no self-escalation, no workspace creation, revoke enforcement, employee separation and actor audit. Fixtures rolled back.' as verification;
+select 'PASS: shared technician access, viewer read-only, owner-only membership, no self-escalation, no workspace creation, revoke enforcement, explicit employee-to-member grant and actor audit. Fixtures rolled back.' as verification;

@@ -24,7 +24,6 @@ begin
   select id into target from auth.users where lower(email)=lower(trim(p_payload->>'email')) and email_confirmed_at is not null;
   if target is null then raise exception 'A confirmed account is required. Register through the portal and confirm the email first.';end if;
   if target=owner then raise exception 'Owner access cannot be changed';end if;
-  if exists(select 1 from public.opsfusion_employee_access where workspace_id=p_workspace and user_id=target) then raise exception 'Revoke employee portal enrollment before granting staff access';end if;
   insert into public.opsfusion_memberships(workspace_id,user_id,role) values(p_workspace,target,chosen_role) on conflict(workspace_id,user_id) do update set role=excluded.role;
  elsif p_action='revoke' then
   target:=(p_payload->>'user_id')::uuid;

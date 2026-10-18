@@ -182,3 +182,7 @@ Security review: new APIs use guarded private implementations or server Auth che
 ### Portal / IT access boundary
 
 Portal registration authenticates an employee but grants no IT workspace access. The IT site requires ownership or explicit staff membership. Owner signup eligibility is captured once in server-controlled Auth app metadata; changing profile/user metadata cannot convert a portal account into a workspace creator. The workspace-creation RPC also enforces this boundary. Apply `supabase/portal-staff-boundary.sql` after the workspace ownership migration. Existing owners remain owners. Employee enrollment remains separate from staff membership.
+
+### Existing portal accounts as members
+
+An owner can explicitly add an already-enrolled portal account through Add / Manage Members. Portal enrollment is retained. Portal registration by itself still grants no IT access. Membership success/errors appear beside the submit button. The reverse employee-enrollment flow continues to reject accounts already assigned as staff; enroll in the portal first when both are needed.

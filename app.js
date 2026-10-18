@@ -1753,7 +1753,7 @@
   function openTicketModal(id) {
     const t=incidentById(id);if(!t)return;
     const ticket=normalizeTicket(t),ep=endpointById(ticket.endpointId),asset=assetById(ticket.assetId),requester=identityById(ticket.requesterId),tech=technicianById(ticket.assigneeId),sla=ticketSlaState(ticket);
-    const canAnalyze = window.OpsFusionCloud?.isWorkspaceOwner?.();
+    const canAnalyze = window.OpsFusionCloud?.isCloudActive?.() && cloudRole !== "viewer";
     showModal("Ticket · "+ticket.id,
       '<div class="endpoint-card"><h3>'+esc(ticket.title)+'</h3><p>'+esc(ticket.type+" · "+ticket.category+" · "+ticket.source)+'</p><div class="endpoint-meta">'+
       '<div><span>Requester</span><strong>'+esc(requester?requester.displayName:"Unassigned")+'</strong></div><div><span>Assignee</span><strong>'+esc(tech?tech.name:"Unassigned")+'</strong></div>'+
@@ -2002,7 +2002,7 @@
     return entries.length ? entries.map((row) =>
       '<div class="audit-entry"><time>' + esc(fmtDate(row.createdAt)) + '</time><span class="module">' + esc(row.module) +
       '</span><div><strong>' + esc(row.action + (row.target ? " · " + row.target : "")) +
-      '</strong><small>' + esc((row.detail || "") + (row.actorId ? " · Actor: " + (window.OpsFusionStaff?.members().find(m=>m.user_id===row.actorId)?.email || row.actorId) : "")) + "</small></div></div>"
+      '</strong><small>' + esc((row.detail || "") + (row.actorId ? " · Actor: " + (row.actorName || window.OpsFusionStaff?.members().find(m=>m.user_id===row.actorId)?.name || row.actorEmail || row.actorId) + " [" + row.actorId + "]" : "")) + "</small></div></div>"
     ).join("") : '<div class="empty">No audit events.</div>';
   }
 
@@ -2013,7 +2013,7 @@
     const query = $("auditSearch").value.trim().toLowerCase();
     const module = select.value;
     const rows = state.audit.filter((row) => {
-      const haystack = [row.module, row.action, row.target, row.detail].join(" ").toLowerCase();
+      const haystack = [row.module, row.action, row.target, row.detail, row.actorName, row.actorEmail, row.actorId].join(" ").toLowerCase();
       return (!query || haystack.includes(query)) && (!module || row.module === module);
     });
     $("auditRows").innerHTML = renderAuditEntries(rows);
@@ -2134,6 +2134,7 @@
 
   function applyRoleAccess() {
     document.body.dataset.role = cloudRole;
+    for (const id of ["staffAccessOpen", "employeeAccessOpen"]) if ($(id)) $(id).hidden = !window.OpsFusionCloud?.isWorkspaceOwner?.();
     const readOnly = cloudRole === "viewer" || !window.OpsFusionCloud?.isCloudActive?.();
     const mutatingIds = [
       "addEndpointBtn","addAssetBtn","provisionUserBtn","runDiagBtn","diagCreateIncidentBtn",

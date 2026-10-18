@@ -57,9 +57,13 @@ Deno.serve(async (req) => {
   if (authError || !user?.id) return respond(401,{error:"Your sign-in session expired.",code:"AUTH_REQUIRED"});
   // Fetch authoritative ticket details only from an owned workspace, never from the submitted JSON.
   const {data:workspace,error:workspaceError} = await service.from("opsfusion_workspaces")
-    .select("id,owner_id,state,updated_at").eq("id",workspaceId).eq("owner_id",user.id).maybeSingle();
+    .select("id,owner_id,state,updated_at").eq("id",workspaceId).maybeSingle();
   if (workspaceError) return respond(503,{error:"Workspace lookup unavailable.",code:"WORKSPACE_UNAVAILABLE"});
-  if (!workspace) return respond(403,{error:"Only the workspace owner can request AI assistance for its tickets.",code:"ACCESS_DENIED"});
+  if (!workspace) return respond(403,{error:"Workspace access required.",code:"ACCESS_DENIED"});
+  if(workspace.owner_id !== user.id){
+    const {data:member,error:memberError}=await service.from("opsfusion_memberships").select("role").eq("workspace_id",workspaceId).eq("user_id",user.id).maybeSingle();
+    if(memberError || !member || !["admin","technician"].includes(member.role))return respond(403,{error:"Workspace editor access required.",code:"ACCESS_DENIED"});
+  }
   const tickets = Array.isArray(workspace.state?.incidents) ? workspace.state.incidents : [];
   const ticket = tickets.find((t)=>t?.id===ticketId);
   if (!ticket) return respond(404,{error:"Ticket not found in this workspace.",code:"TICKET_NOT_FOUND"});

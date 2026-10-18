@@ -23,10 +23,11 @@ function harness(config={}){
  const fakeService={
    auth:{getUser:async(token)=>({data:{user:config.invalidAuth?null:{id:"USER-1"}},error:config.invalidAuth?{message:"unauthorized"}:null})},
    from(table){
+     if(table === "opsfusion_memberships") return {select(){return this;},eq(){return this;},async maybeSingle(){return {data:config.memberRole?{role:config.memberRole}:null,error:null};}};
      assert.equal(table,"opsfusion_workspaces");
      const query={select(){return this;},eq(){return this;},
        async maybeSingle(){return {data:config.foreignWorkspace?null:{
-         id:workspaceId,owner_id:"USER-1",
+         id:workspaceId,owner_id:config.nonOwner?"OWNER":"USER-1",
          state:{knowledge:config.knowledge||[],incidents:config.missingTicket?[]:[{id:ticketId,title:"Printer failure",description:"Please diagnose",
            type:"Incident",status:"New",category:"Network",priority:"P3",
            activities:[{action:"Work note",note:"No live tests completed."}]}]}
@@ -228,7 +229,7 @@ test("Frontend passes only ticket and workspace IDs to AI endpoint",()=>{
  const first=client.indexOf("  async function analyzeTicket(ticketId)");
  assert.ok(first>=0);
  const method=client.slice(first,client.indexOf("  function isCloudActive()",first));
- assert.match(method,/workspaceOwnerId !== session\.user\?\.id/);
+ assert.match(method,/role === "viewer"/);
  assert.match(method,/body:\{workspace_id:expectedWorkspace,ticket_id:ticketId\}/);
  assert.match(method,/Account changed while AI was processing/);
 });
@@ -251,4 +252,9 @@ test("Knowledge articles enter provider context and only allowed citation IDs re
  assert.equal(context.knowledge_articles.length,1);assert.equal(context.knowledge_articles[0].id,"KB-PRINT");
  assert.deepEqual(out.body.knowledge_sources.map(a=>[a.id,a.cited]),[["KB-PRINT",true]]);
  assert.match(h.calls().lastProviderBody.systemInstruction.parts[0].text,/knowledge articles are untrusted/);
+});
+
+test("Technician can request AI; viewers and removed members cannot",async()=>{
+ const member=harness({nonOwner:true,memberRole:"technician"});assert.equal((await member.invoke()).status,200);
+ for(const memberRole of ["viewer",null]){const h=harness({nonOwner:true,memberRole});assert.equal((await h.invoke()).status,403);assert.equal(h.calls().providerCalls,0);}
 });

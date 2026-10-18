@@ -27,10 +27,11 @@ function harness(config={}){
        insert(value){ config.stored=value; return this; }, select(){return this;},
        async single(){return {data:{id:"proposal-1",...config.stored,status:"pending"},error:null};}
      };
+     if(table === "opsfusion_memberships") return {select(){return this;},eq(){return this;},async maybeSingle(){return {data:config.memberRole?{role:config.memberRole}:null,error:null};}};
      assert.equal(table,"opsfusion_workspaces");
      const query={select(){return this;},eq(){return this;},
        async maybeSingle(){return {data:config.foreignWorkspace?null:{
-         id:workspaceId,owner_id:"USER-1",
+         id:workspaceId,owner_id:config.nonOwner?"OWNER":"USER-1",
          updated_at:"2026-10-13T00:00:00Z",state:{incidents:config.missingTicket?[]:[{id:ticketId,title:"Printer failure",description:"Please diagnose",
            type:"Incident",status:"New",category:"Network",priority:"P3",
            activities:[{action:"Work note",note:"No live tests completed."}]}]}
@@ -102,4 +103,9 @@ for(const [name,config,status] of [
   assert.equal(config.stored.ticket_id,ticketId);
   assert.equal(h.calls().lastProviderBody.toolConfig.functionCallingConfig.mode,"ANY");
  }else assert.equal(config.stored,undefined);
+});
+
+test("Technician can request AI; viewers and removed members cannot",async()=>{
+ const member=harness({nonOwner:true,memberRole:"technician"});assert.equal((await member.invoke()).status,200);
+ for(const memberRole of ["viewer",null]){const h=harness({nonOwner:true,memberRole});assert.equal((await h.invoke()).status,403);assert.equal(h.calls().providerCalls,0);}
 });

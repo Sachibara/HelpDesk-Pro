@@ -1,0 +1,32 @@
+begin;
+do $test$
+declare owner uuid:=gen_random_uuid(); member uuid:=gen_random_uuid(); wid uuid; result jsonb; n int; denied boolean;
+begin
+ insert into auth.users(id,email,email_confirmed_at) values(owner,'owner-'||owner||'@example.invalid',now()),(member,'member-'||member||'@example.invalid',now());
+ insert into public.opsfusion_profiles(user_id,display_name) values(owner,'Fixture Owner'),(member,'Fixture Member');
+ perform set_config('request.jwt.claim.sub',owner::text,true);execute 'set local role authenticated';
+ result:=public.opsfusion_create_workspace('Rollback workspace');wid:=(result->>'id')::uuid;
+ if result->>'owner_id'<>owner::text then raise exception 'Wrong owner';end if;
+ if public.opsfusion_create_workspace('Again')->>'id'<>wid::text then raise exception 'Duplicate signup created another workspace';end if;
+ perform public.opsfusion_staff_access('grant',wid,jsonb_build_object('email','member-'||member||'@example.invalid','role','technician'));
+ perform set_config('request.jwt.claim.sub',member::text,true);
+ if not public.opsfusion_can_edit(wid) then raise exception 'Member cannot operate';end if;
+ update public.opsfusion_automation_settings set warranty_days=44 where workspace_id=wid;get diagnostics n=row_count;
+ if n<>1 then raise exception 'Member cannot edit automation settings';end if;
+ insert into public.opsfusion_audit_events(workspace_id,actor_id,module,action,actor_name) values(wid,member,'Test','Member action','Forged Name');
+ if not exists(select 1 from public.opsfusion_audit_events where workspace_id=wid and actor_id=member and actor_name='Fixture Member') then raise exception 'Server attribution missing';end if;
+ denied:=false;begin perform public.opsfusion_staff_access('revoke',wid,jsonb_build_object('user_id',owner));exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Member changed accounts';end if;
+ perform set_config('request.jwt.claim.sub',owner::text,true);
+ perform public.opsfusion_staff_access('revoke',wid,jsonb_build_object('user_id',member));
+ if not exists(select 1 from public.opsfusion_audit_events where workspace_id=wid and actor_id=member and actor_name='Fixture Member') then raise exception 'Removal lost audit identity';end if;
+ perform set_config('request.jwt.claim.sub',member::text,true);
+ if public.opsfusion_can_edit(wid) then raise exception 'Removed member can edit';end if;
+ result:=public.opsfusion_create_workspace('Independent workspace');
+ if result->>'id'=wid::text or result->>'owner_id'<>member::text then raise exception 'Workspace isolation failed';end if;
+ if exists(select 1 from public.opsfusion_workspaces where id=wid) then raise exception 'Independent owner sees another workspace';end if;
+ execute 'reset role';
+ if has_function_privilege('anon','public.opsfusion_create_workspace(text)','EXECUTE') then raise exception 'Anonymous creation allowed';end if;
+end $test$;
+rollback;
+select 'PASS: independent creation, retry idempotence, member operations, owner-only accounts, durable server audit names, revocation and tenant isolation. All fixtures rolled back.' as verification;

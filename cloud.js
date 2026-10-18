@@ -53,7 +53,7 @@
       email,
       password,
       options: {
-        data: { display_name: displayName || "OpsFusion User" },
+        data: { display_name: displayName || "OpsFusion User", create_workspace: true },
         // This is a public domain, not a secret. Also whitelist it in
         // Supabase Authentication > URL Configuration.
         emailRedirectTo: "https://opsfusion-it.vercel.app/"
@@ -139,6 +139,12 @@
       .order("created_at", { ascending: true });
     if (workspaceReadError) throw workspaceReadError;
 
+    // Signup intent only requests creation of the caller's OWN workspace; it never grants access to another workspace.
+    if (!workspaces?.length && user.user_metadata?.create_workspace === true) {
+      const {data: created, error: createError} = await client.rpc("opsfusion_create_workspace", {p_name: profileName + "'s workspace"});
+      if (createError) throw createError;
+      workspaces = [created];
+    }
     const workspace = preferredWorkspaceId ? workspaces?.find(w => w.id === preferredWorkspaceId) : workspaces?.[0];
     if (!workspace) {
       throw new Error("IT workspace access is not authorized. Ask the workspace owner to grant staff access, or use the Employee Support Portal.");
@@ -160,7 +166,7 @@
 
     const { data: serverAudit, error: auditError } = await client
       .from("opsfusion_audit_events")
-      .select("id, actor_id, module, action, target, detail, created_at")
+      .select("id, actor_id, actor_name, actor_email, module, action, target, detail, created_at")
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false })
       .limit(250);
@@ -174,7 +180,7 @@
       workspaceName: workspace.name,
       state: workspace.state && Object.keys(workspace.state).length ? workspace.state : initialState,
       audit: (serverAudit || []).map((row) => ({
-        id: row.id, actorId: row.actor_id,
+        id: row.id, actorId: row.actor_id, actorName: row.actor_name, actorEmail: row.actor_email,
         module: row.module,
         action: row.action,
         target: row.target,
@@ -248,7 +254,7 @@
     workspaceUpdatedAt = workspace.updated_at;
     const { data: audit, error: auditError } = await client
       .from("opsfusion_audit_events")
-      .select("id, actor_id, module, action, target, detail, created_at")
+      .select("id, actor_id, actor_name, actor_email, module, action, target, detail, created_at")
       .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false })
       .limit(250);
@@ -256,7 +262,7 @@
     return {
       state: workspace.state,
       audit: (audit || []).map((row) => ({
-        id: row.id, actorId: row.actor_id, module: row.module, action: row.action,
+        id: row.id, actorId: row.actor_id, actorName: row.actor_name, actorEmail: row.actor_email, module: row.module, action: row.action,
         target: row.target, detail: row.detail, createdAt: row.created_at
       })),
       updatedAt: workspace.updated_at
@@ -277,8 +283,8 @@
   }
 
   async function saveAutomationRules(input) {
-    if (!session || !workspaceId || workspaceOwnerId !== session.user.id) {
-      throw new Error("Only the workspace owner can change automation rules.");
+    if (!session || !workspaceId || role === "viewer") {
+      throw new Error("Workspace editor access is required to change automation rules.");
     }
     const days = Number(input.warranty_days),maintenance = Number(input.maintenance_days);
     if(!Number.isInteger(days)||days<1||days>365||!Number.isInteger(maintenance)||maintenance<0||maintenance>90) {
@@ -304,8 +310,8 @@
   }
 
   async function acknowledgeAutomation(eventKey) {
-    if (!session || !workspaceId || workspaceOwnerId !== session.user.id) {
-      throw new Error("Only a workspace owner can acknowledge automation alerts.");
+    if (!session || !workspaceId || role === "viewer") {
+      throw new Error("Workspace editor access is required to acknowledge alerts.");
     }
     const {data,error}=await client.from("opsfusion_automation_alerts")
       .update({status:"acknowledged"})
@@ -316,7 +322,7 @@
   }
 
   async function ticketToolRequest(ticketId, mode = "propose", proposalId = null) {
-    if (!isWorkspaceOwner()) throw new Error("Sign in as the workspace owner.");
+    if (!session || !workspaceId || role === "viewer") throw new Error("Workspace editor access required.");
     const userId = session.user.id, workspace = workspaceId;
     let result;
     if (mode === "propose") {
@@ -340,8 +346,8 @@
   }
 
   async function analyzeTicket(ticketId) {
-    if (!session || !workspaceId || workspaceOwnerId !== session.user?.id) {
-      throw new Error("Sign in as the workspace owner to use AI assistance.");
+    if (!session || !workspaceId || role === "viewer") {
+      throw new Error("Workspace editor access is required to use AI assistance.");
     }
     if (!/^INC-[A-Za-z0-9-]{1,40}$/.test(String(ticketId || ""))) {
       throw new Error("Select a valid Service Desk ticket.");

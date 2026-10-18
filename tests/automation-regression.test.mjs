@@ -37,7 +37,7 @@ test("Settings UI snapshots before the render loop",()=>{
 test("Cloud automation uses authenticated workspace-scoped queries",()=>{
   assert.match(cloud,/\.rpc\("opsfusion_run_automations"/);
   assert.match(cloud,/\.eq\("workspace_id",workspaceId\)/);
-  assert.match(cloud,/workspaceOwnerId !== session\.user\.id/);
+  assert.match(cloud,/role === "viewer"/);
 });
 test("Maintenance tasks can be created and completed via Assets",()=>{
   assert.match(html,/id="addMaintenanceTaskBtn"/);
@@ -62,9 +62,9 @@ test("Fix covers JSON operator precedence and UTC date comparisons",()=>{
   assert.doesNotMatch(patchedScanner,/pg_catalog\.current_date/);
 });
 
-test("Automation rule editing requires the actual workspace owner",()=>{
+test("Automation rule editing permits workspace editors",()=>{
   assert.match(cloud,/function isWorkspaceOwner\(\)/);
-  assert.match(ui,/cloud\(\)\?\.isWorkspaceOwner\?\.\(\) === true/);
+  assert.match(ui,/cloud\(\)\?\.getRole\?\.\(\) !== "viewer"/);
 });
 test("Cloud audit writes require an authenticated non-viewer session",()=>{
   assert.match(app,/if \(window\.OpsFusionCloud\?\.isCloudActive\?\.\(\) && cloudRole !== "viewer"\)/);

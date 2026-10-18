@@ -103,7 +103,7 @@ Browser and database guards reject invalid octets, alternate leading-zero spelli
 | Update | Delivered changes |
 | --- | --- |
 | Cloud and record hardening | Dedicated backend, account/workspace isolation, queued version-checked saves, endpoint IPv4 validation, identity/asset uniqueness, editable records, maintenance and offboarding workflows |
-| Scheduled automation | Hourly SLA/warranty/maintenance scans, run history, deduplicated alerts, clearance/reactivation and owner controls |
+| Scheduled automation | Hourly SLA/warranty/maintenance scans, run history, deduplicated alerts, clearance/reactivation and workspace-editor controls |
 | AI assistance and approvals | Gemini ticket analysis, reviewed work-note drafts and approval-based `add_work_note` proposals |
 | Employee portal | Owner-managed enrollment, restricted request API, employee submissions/status/replies and staff public-reply controls |
 | Knowledge-backed AI | Active-article retrieval, bounded excerpts, source references and citation validation in ticket analysis; article context in tool proposals |
@@ -157,21 +157,24 @@ Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreS
 - Workspace and portal controls share a font family and 14px control text. Settings descriptions, form labels, table text, dropdown options and the employee access dialog use consistent role-based typography.
 - 180 automated tests passed. Database integration checks passed with rolled-back fixtures; this does not replace signed-in browser acceptance or live email/AI-provider testing. No live records were changed by these tests.
 
-## Shared IT staff access — 17 October 2026
+## Independent workspaces and owner-managed members — 18 October 2026
 
-The workspace owner can now open **Settings → Manage IT Staff** to grant, change or revoke membership for a confirmed account. Each technician uses their own credentials and accesses the same workspace records, service queue and internal notes. Authorized non-viewer staff appear in ticket assignment choices. Server audit events retain the acting user ID; the UI resolves current staff IDs to email addresses.
+**Create Account** on the IT login page registers a workspace creator. After email confirmation, the first IT sign-in creates a blank independent workspace. Creation is idempotent and cannot assign another account as owner. Ordinary employee/member login never automatically creates a workspace.
 
-1. Ask the staff member to register and confirm their account using the Employee Support Portal registration page. No employee enrollment is needed for staff.
-2. As owner, select the intended workspace and open **Manage IT Staff**. Enter the confirmed email and choose Technician, Administrator or Viewer.
-3. The staff member signs in at the IT Workspace. If they have access to multiple existing workspaces, **Settings → Current workspace** selects the intended company.
-4. Revoke staff membership to block subsequent server reads and writes. Already downloaded information cannot be recalled; role changes are reflected in controls after signing in again.
+Owners open **Settings → Add / Manage Members**:
 
-Technicians and administrators currently have the same broad record-editing permissions; viewers can read the full IT workspace but cannot edit it. Owner-only staff/employee enrollment, AI approvals and automation administration remain owner-only. Fine-grained per-module permissions are not implemented. Employee enrollment and staff membership are mutually exclusive within one workspace.
+1. **Add Existing Account:** enter a confirmed account email.
+2. **Create New Member Account:** enter a name, designated email and initial password (12–128 characters). The authenticated, owner-checked server provisions the account and grants member access. Existing accounts/passwords cannot be overwritten. This administrative provisioning marks the email confirmed; it does not verify mailbox possession, create an email inbox or send credentials. Verify the intended recipient and share initial credentials privately.
+3. Members sign in with their own credentials and can change their password through Settings. They edit shared operational records, use AI analysis and approval tools, and manage automation settings. Only owners can manage staff or employee access. Legacy viewer memberships remain read-only.
+4. **Remove Member** revokes access to this workspace. It does not globally delete the Auth account or another workspace the person owns. Audit history remains. Already downloaded data cannot be recalled.
+5. **Current workspace** selects among workspaces the account is authorized to access. Ownership and membership are checked separately for each workspace. Account-management buttons are hidden from members; server checks also reject direct unauthorized requests.
 
-Public IT signup is no longer offered, bootstrap no longer creates workspaces, and database grants prohibit browser workspace creation and direct membership mutation. Existing workspaces and owners were preserved. Previously created private workspaces are not automatically deleted or merged.
+Audit entries store server-derived actor name/email snapshots plus the authenticated account ID. Names remain visible after membership removal; the immutable account ID distinguishes people with the same name. Existing resolvable audit entries were backfilled. The UI searches names/emails/IDs as well as event details.
 
-Verification: **184 automated tests passed**, plus transaction-rollback database checks covering technician reads/writes, viewer restrictions, owner-only grants, self-escalation denial, workspace-creation denial, revocation, employee separation, and audit actor attribution. Employee portal database regression checks also passed. A signed-in multi-browser acceptance rehearsal is still required; these checks do not prove every provider integration.
+Deployment sources: `supabase/staff-access.sql`, then `supabase/workspace-ownership.sql`; Edge Functions `opsfusion-staff-account`, `opsfusion-ai-assistant`, and `opsfusion-ai-tools`. Functions authenticate bearer tokens with Supabase Auth and check current workspace ownership/membership; service keys stay server-side.
 
-The employee portal supports registration/recovery, owner enrollment, own-request submission/search/status, public replies and access refresh. Remaining additions include attachments, ticket-update email notifications, employee-facing Knowledge Base access, automated invitations, and satisfaction feedback. No new email notifications are sent by staff enrollment.
+Verification: **191 automated tests passed**. Rollback-only database tests passed for independent creation, retry idempotence, technician operations, owner-only account management, tenant isolation, audit name snapshots, removal, legacy viewer restrictions and employee/staff separation. No test accounts or workspace fixtures were retained. Signed-in multi-browser onboarding and password-change acceptance remain to be rehearsed; unit tests are not a claim of complete production verification.
 
-Security review: the new staff RPC uses a private implementation with authenticated owner/membership checks and an invoker API wrapper. Existing advisor warnings include leaked-password protection disabled ([configuration guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)) and existing explicitly guarded SECURITY DEFINER APIs ([review guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)).
+The employee portal supports registration/recovery, owner enrollment, own-request submission/search/status, public replies and access refresh. Remaining additions include attachments, ticket-update email notifications, employee-facing Knowledge Base access, automated invitations and satisfaction feedback.
+
+Security review: new APIs use guarded private implementations or server Auth checks. Existing advisor notices remain for explicitly guarded SECURITY DEFINER APIs ([review guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)) and disabled leaked-password protection ([configuration guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)).

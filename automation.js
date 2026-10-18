@@ -15,7 +15,7 @@
   const cloud = () => window.OpsFusionCloud;
   const connected = () => !!cloud()?.isCloudActive?.()
     && $("workspaceModeLabel")?.textContent?.trim() === "CLOUD WORKSPACE";
-  const owner = () => connected() && cloud()?.isWorkspaceOwner?.() === true;
+  const owner = () => connected() && cloud()?.getRole?.() !== "viewer";
   const status = (message) => { if ($("automationStatus")) $("automationStatus").textContent = message; };
 
   function render() {
@@ -109,7 +109,7 @@
       maintenance_days:Number($("automationMaintenanceDays").value)
     };
     return doTask($("automationSaveRulesBtn"),async()=>{
-      if(!owner())throw new Error("Only the workspace owner can change automation settings.");
+      if(!owner())throw new Error("Workspace editor access is required.");
       await cloud().saveAutomationRules(input);
       await refresh();
       status("Cloud automation rules saved. Future hourly and manual scans will use them.");

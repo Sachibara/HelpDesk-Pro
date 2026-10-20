@@ -2134,7 +2134,7 @@
 
   function applyRoleAccess() {
     document.body.dataset.role = cloudRole;
-    for (const id of ["staffAccessOpen", "employeeAccessOpen"]) if ($(id)) $(id).hidden = !window.OpsFusionCloud?.isWorkspaceOwner?.();
+    for (const id of ["staffAccessOpen", "employeeAccessOpen", "inviteEmployeeOpen"]) if ($(id)) $(id).hidden = !window.OpsFusionCloud?.isWorkspaceOwner?.();
     const readOnly = cloudRole === "viewer" || !window.OpsFusionCloud?.isCloudActive?.();
     const mutatingIds = [
       "addEndpointBtn","addAssetBtn","provisionUserBtn","runDiagBtn","diagCreateIncidentBtn",

@@ -1,0 +1,19 @@
+(() => {
+ 'use strict';
+ const $=id=>document.getElementById(id),el=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n;};
+ const client=window.supabase.createClient('https://qyizwyvgbywkextsekpj.supabase.co','sb_publishable_lfqzmccDSsdjlHbMD2MJ2w_r8g3sYni');
+ let busy=false,needsPassword=true,epoch=0;
+ const say=text=>$('notice').textContent=text;
+ const rpc=async(action,payload={})=>{const {data,error}=await client.rpc('opsfusion_invitations_manage',{p_action:action,p_payload:payload});if(error)throw error;return data;};
+ async function run(fn){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();}catch(e){say(e.message||'Unable to continue. Please retry.');}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);document.querySelectorAll('[data-accept]').forEach(b=>b.disabled=needsPassword);}}
+ async function load(){const version=++epoch;const {data,error}=await client.auth.getUser();if(version!==epoch)return;$('invitations').replaceChildren();$('setup').hidden=true;$('signedOut').hidden=!!data?.user;$('signedIn').hidden=!data?.user;if(error||!data?.user){say('Sign in with the email that received your invitation.');return;}$('account').textContent='Signed in as '+data.user.email;
+  const result=await rpc('mine');if(version!==epoch)return;needsPassword=result.needs_password;$('setup').hidden=!needsPassword||!result.invitations.length;
+  say(result.invitations.length?'Review the workspace and access type before accepting.':'No active invitations for this account. An invitation may have expired, been cancelled, or already been accepted.');
+  for(const i of result.invitations){const card=el('article','');card.className='conversation';const title=el('h3',i.workspace),detail=el('p',i.kind==='staff'?'IT member: operate shared tickets, inventory, AI and automation. Account management stays owner-only.':'Employee portal: submit and follow your own support requests. This does not grant IT workspace access.');const accept=el('button','Accept invitation');accept.className='primary';accept.dataset.accept='true';accept.disabled=needsPassword;accept.onclick=()=>run(async()=>{const r=await rpc('accept',{id:i.id});await load();say(r.already_accepted?'This invitation was already used. Ask the owner if you need access restored.':'Invitation accepted. You can open your workspace below.');const link=el('a',r.kind==='staff'?'Open IT workspace':'Open employee support');link.href=r.kind==='staff'?'/':'/employee';$('invitations').append(link);});card.append(title,detail,el('p','Accept by '+new Date(i.expires_at).toLocaleString()),accept);$('invitations').append(card);}
+ }
+ $('loginForm').onsubmit=e=>{e.preventDefault();run(async()=>{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('password').value='';if(error)throw error;await load();});};
+ $('setup').onsubmit=e=>{e.preventDefault();run(async()=>{const password=$('newPassword').value;if(password.length<12||password.length>128||password!==$('confirmPassword').value)throw Error('Enter matching passwords of 12–128 characters.');const {error}=await client.auth.updateUser({password});$('newPassword').value=$('confirmPassword').value='';if(error)throw error;await load();say('Password saved. You can now accept your invitation.');});};
+ $('signOut').onclick=()=>run(async()=>{const {error}=await client.auth.signOut();if(error)throw error;await load();});$('refresh').onclick=()=>run(load);
+ client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){epoch++;$('invitations').replaceChildren();$('setup').reset();$('setup').hidden=true;$('signedIn').hidden=true;$('signedOut').hidden=false;}});
+ run(async()=>{await client.auth.getSession();history.replaceState(null,'',location.pathname);await load();});
+})();

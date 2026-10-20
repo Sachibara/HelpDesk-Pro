@@ -116,7 +116,7 @@ Existing cloud accounts and records were preserved during the portal and demo-re
 
 ## Verification
 
-**191 automated Node tests passed** in the latest check on 18 October 2026 (Asia/Singapore). The suite covers record validation, save/session handling, AI authorization/retries/proposals, Knowledge Base retrieval/citations, and employee request/account UI logic using service doubles.
+**194 automated Node tests passed** in the latest check on 20 October 2026 (Asia/Singapore). The suite covers record validation, save/session handling, AI authorization/retries/proposals, Knowledge Base retrieval/citations, and employee request/account UI logic using service doubles.
 
 ```sh
 node --test tests/*.test.mjs
@@ -134,7 +134,7 @@ Rollback-only database tests in [`tests/employee-portal-database.sql`](tests/emp
 
 - Authenticated device enrollment/agents, verified CPU/RAM/patch/AV heartbeats, real network probes or privileged service control.
 - Real Active Directory or external identity-provider provisioning.
-- Automated employee invitations, attachments, automatic request-update emails or external automation-alert delivery.
+- Attachments, automatic request-update emails or external automation-alert delivery.
 - Employee-facing portal Knowledge Base articles or AI tools, vector retrieval, autonomous device diagnosis/remediation.
 
 ## Stack and source layout
@@ -164,19 +164,21 @@ Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreS
 
 Owners open **Settings → Add / Manage Members**:
 
-1. **Add Existing Account:** enter a confirmed account email.
-2. **Create New Member Account:** enter a name, designated email and initial password (12–128 characters). The authenticated, owner-checked server provisions the account and grants member access. Existing accounts/passwords cannot be overwritten. This administrative provisioning marks the email confirmed; it does not verify mailbox possession, create an email inbox or send credentials. Verify the intended recipient and share initial credentials privately.
-3. Members sign in with their own credentials and can change their password through Settings. They edit shared operational records, use AI analysis and approval tools, and manage automation settings. Only owners can manage staff or employee access. Legacy viewer memberships remain read-only.
-4. **Remove Member** revokes access to this workspace. It does not globally delete the Auth account or another workspace the person owns. Audit history remains. Already downloaded data cannot be recalled.
-5. **Current workspace** selects among workspaces the account is authorized to access. Ownership and membership are checked separately for each workspace. Account-management buttons are hidden from members; server checks also reject direct unauthorized requests.
+1. **Invite IT Member:** enter the recipient’s email. OpsFusion requests a Supabase Auth email link and creates a pending invitation. The recipient verifies the email, chooses a password if their account has none, and explicitly accepts IT member access.
+2. **Invitation history:** inspect delivery state, expiry and acceptance; resend after 60 seconds or cancel a pending invitation. Invitations expire after 48 hours. Email login links have their own shorter Auth expiry. Delivery “sent” means the provider accepted the send request, not inbox delivery.
+3. Members use their own credentials and operate shared records, AI and automation. Only the owner manages account access. Existing account passwords remain unchanged. Owner-created initial passwords are retired; the former account-creation endpoint returns HTTP 410.
+4. **Remove Member** revokes workspace access while preserving the Auth account, portal enrollment and audit history. Replaying a previously accepted invitation never restores revoked membership.
+5. **Current workspace** selects among authorized workspaces. Account-management controls are hidden from members and checked on the server.
+
+For employees, use **Settings → Invite Employee**, choose an active identity and supply the recipient’s email. Acceptance creates portal enrollment only. Existing confirmed accounts can still be linked or revoked through **Manage Employee Access**. Identity records never create credentials automatically.
 
 Audit entries store server-derived actor name/email snapshots plus the authenticated account ID. Names remain visible after membership removal; the immutable account ID distinguishes people with the same name. Existing resolvable audit entries were backfilled. The UI searches names/emails/IDs as well as event details.
 
-Deployment sources: `supabase/staff-access.sql`, then `supabase/workspace-ownership.sql`; Edge Functions `opsfusion-staff-account`, `opsfusion-ai-assistant`, and `opsfusion-ai-tools`. Functions authenticate bearer tokens with Supabase Auth and check current workspace ownership/membership; service keys stay server-side.
+Deployment sources: `supabase/staff-access.sql`, then `supabase/workspace-ownership.sql`; Edge Functions `opsfusion-invitations`, `opsfusion-ai-assistant`, and `opsfusion-ai-tools`; `opsfusion-staff-account` is retired. Functions authenticate bearer tokens with Supabase Auth and check current workspace ownership/membership; service keys stay server-side.
 
 Verification: **191 automated tests passed**. Rollback-only database tests passed for independent creation, retry idempotence, technician operations, owner-only account management, tenant isolation, audit name snapshots, removal, legacy viewer restrictions and portal-only restrictions and explicit portal-to-member grants. No test accounts or workspace fixtures were retained. Signed-in multi-browser onboarding and password-change acceptance remain to be rehearsed; unit tests are not a claim of complete production verification.
 
-The employee portal supports registration/recovery, owner enrollment, own-request submission/search/status, public replies and access refresh. Remaining additions include attachments, ticket-update email notifications, employee-facing Knowledge Base access, automated invitations and satisfaction feedback.
+The employee portal supports registration/recovery, owner enrollment, own-request submission/search/status, public replies and access refresh. Remaining additions include attachments, ticket-update email notifications, employee-facing Knowledge Base access and satisfaction feedback.
 
 Security review: new APIs use guarded private implementations or server Auth checks. Existing advisor notices remain for explicitly guarded SECURITY DEFINER APIs ([review guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)) and disabled leaked-password protection ([configuration guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)).
 
@@ -187,3 +189,14 @@ Portal registration authenticates an employee but grants no IT workspace access.
 ### Existing portal accounts as members
 
 An owner can explicitly add an already-enrolled portal account through Add / Manage Members. Portal enrollment is retained. Portal registration by itself still grants no IT access. Membership success/errors appear beside the submit button. The reverse employee-enrollment flow continues to reject accounts already assigned as staff; enroll in the portal first when both are needed.
+
+## Secure invitations — 20 October 2026
+
+- `supabase/invitations.sql` stores pending invitations behind RLS with no direct browser table grants. A private function checks current workspace ownership, confirmed recipient email, any pre-existing recipient ID, delivery, expiry, identity status and single-use acceptance. Only minimal invitation details are visible to the recipient.
+- The owner can request staff or employee invitation emails, inspect the last 100 invitations, resend and cancel. Requests are limited to 100 attempts per workspace per day and at least 60 seconds between resends.
+- `invitations.html/js` provide recipient sign-in, password setup and explicit acceptance. Passwords go directly to Supabase Auth and are never supplied to the owner or stored in application tables.
+- `opsfusion-invitations` authenticates the caller, reserves a pending invitation and requests a single-use Auth email link. Failed delivery is visible and retryable; it never activates access.
+- Supabase Auth must allow `https://opsfusion-it.vercel.app/invitations` as a redirect. If Auth falls back to the site root, `invitation-entry.js` routes invitation/magic-link fragments to the acceptance page. Existing confirmation links also have access to the acceptance page.
+- Database acceptance checks use rollback-only fixtures; no real membership is granted by those checks. Live inbox delivery and recipient password entry require a real recipient rehearsal.
+
+Verification for the invitation release: 194 Node tests passed, including six email-dispatch authorization/failure cases and the retired credential endpoint. `tests/invitations-database.sql` passed with rollback-only fixtures for owner restrictions, recipient matching, pending/expired/cancelled denial, resend throttling, acceptance, replay after revocation, employee-only access, password setup gating and table isolation. The owner/member/employee browser rehearsal on 19 October passed ticket replies, private-note filtering, member writes, audit attribution, revocation and continued portal access; it predates invitation onboarding. No real invitation email or new password was submitted during the automated checks.

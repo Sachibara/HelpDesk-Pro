@@ -1087,3 +1087,6 @@ table th{font-size:var(--text-small)}table td,.cell-title,.stack-row strong{font
 .access-actions,.access-enrollment{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .access-enrollments{margin:24px 0}.access-enrollment{padding:12px 0;border-bottom:1px solid #dfe7f0}.access-enrollment span{overflow-wrap:anywhere;flex:1;min-width:160px}
 .access-status{min-height:1.6em}
+
+/* Invitation controls share workspace dialog typography. */
+#invitationDialog{width:min(760px,94vw);max-height:90vh;overflow:auto;border:1px solid #d8dfec;border-radius:18px;padding:28px;color:#172234;background:#fff;font:inherit}#invitationDialog::backdrop{background:rgba(15,23,42,.4)}#invitationBody p{line-height:1.6}#invitationBody .access-enrollment{flex-wrap:wrap;gap:10px}

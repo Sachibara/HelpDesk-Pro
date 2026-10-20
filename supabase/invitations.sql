@@ -28,13 +28,35 @@ create index opsfusion_invitation_recipient on public.opsfusion_invitations(emai
 create index opsfusion_invitation_inviter on public.opsfusion_invitations(invited_by);
 create index opsfusion_invitation_recipient_id on public.opsfusion_invitations(recipient_id);
 
+-- OTP signup can populate an unknown random password. Track invited signup separately.
+create table opsfusion_invite_private.password_setup_required (
+ user_id uuid primary key references auth.users(id) on delete cascade
+);
+alter table opsfusion_invite_private.password_setup_required enable row level security;
+revoke all on opsfusion_invite_private.password_setup_required from public,anon,authenticated;
+create function opsfusion_invite_private.track_password_setup()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ if TG_OP='INSERT' then
+  if exists(select 1 from public.opsfusion_invitations where email=lower(new.email) and status='pending') then
+   insert into opsfusion_invite_private.password_setup_required(user_id) values(new.id) on conflict do nothing;
+  end if;
+ elsif new.encrypted_password is distinct from old.encrypted_password and coalesce(new.encrypted_password,'')<>'' then
+  delete from opsfusion_invite_private.password_setup_required where user_id=new.id;
+ end if;
+ return new;
+end $$;
+revoke all on function opsfusion_invite_private.track_password_setup() from public,anon,authenticated;
+create trigger opsfusion_invited_password_setup after insert or update of encrypted_password on auth.users
+ for each row execute function opsfusion_invite_private.track_password_setup();
+
 create function opsfusion_invite_private.manage(p_action text,p_workspace uuid default null,p_payload jsonb default '{}')
 returns jsonb language plpgsql security definer set search_path='' as $$
 declare who uuid:=auth.uid(); mail text; confirmed boolean; has_password boolean; w public.opsfusion_workspaces%rowtype;
  inv public.opsfusion_invitations%rowtype; target uuid; v_kind text; ident text; result jsonb;
 begin
  if who is null then raise exception 'Sign in required' using errcode='42501';end if;
- select lower(email),email_confirmed_at is not null,coalesce(encrypted_password,'')<>'' into mail,confirmed,has_password from auth.users where id=who;
+ select lower(email),email_confirmed_at is not null,coalesce(encrypted_password,'')<>'' and not exists(select 1 from opsfusion_invite_private.password_setup_required r where r.user_id=who) into mail,confirmed,has_password from auth.users where id=who;
  if not coalesce(confirmed,false) then raise exception 'Verify your email first' using errcode='42501';end if;
  if p_action='mine' then
   return jsonb_build_object('needs_password',not has_password,'invitations',coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'workspace',s.name,'kind',i.kind,'expires_at',i.expires_at)) from public.opsfusion_invitations i join public.opsfusion_workspaces s on s.id=i.workspace_id where i.email=mail and (i.recipient_id is null or i.recipient_id=who) and i.status='pending' and i.delivery='sent' and i.expires_at>clock_timestamp() and i.invited_by=s.owner_id),'[]'));

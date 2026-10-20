@@ -2,8 +2,8 @@ begin;
 do $test$
 declare owner uuid; recipient uuid; mail text; wid uuid:=gen_random_uuid(); inv jsonb; iid uuid; denied boolean; result jsonb; fresh uuid:=gen_random_uuid(); freshmail text;
 begin
- select id into strict owner from auth.users where email='markcamus06@gmail.com';
- select id,email into strict recipient,mail from auth.users where email='mecobuendia1@gmail.com';
+ owner:=gen_random_uuid();recipient:=gen_random_uuid();mail:='recipient-'||recipient||'@example.invalid';
+ insert into auth.users(id,email,email_confirmed_at,encrypted_password,raw_user_meta_data) values(owner,'owner-'||owner||'@example.invalid',now(),'existing-password-fixture','{}'),(recipient,mail,now(),'existing-password-fixture','{}');
  insert into public.opsfusion_workspaces(id,owner_id,name,state) values(wid,owner,'ROLLBACK invitation test','{"identities":[{"id":"INV-EMP","displayName":"Fixture","status":"Active"}]}');
  perform set_config('request.jwt.claim.sub',recipient::text,true);execute 'set local role authenticated';
  denied:=false;begin perform public.opsfusion_invitations_manage('create',wid,jsonb_build_object('email',mail,'kind','staff'));exception when insufficient_privilege then denied:=true;end;if not denied then raise exception 'Nonowner invited';end if;

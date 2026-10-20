@@ -200,3 +200,12 @@ An owner can explicitly add an already-enrolled portal account through Add / Man
 - Database acceptance checks use rollback-only fixtures; no real membership is granted by those checks. Live inbox delivery and recipient password entry require a real recipient rehearsal.
 
 Verification for the invitation release: 194 Node tests passed, including six email-dispatch authorization/failure cases and the retired credential endpoint. `tests/invitations-database.sql` passed with rollback-only fixtures for owner restrictions, recipient matching, pending/expired/cancelled denial, resend throttling, acceptance, replay after revocation, employee-only access, password setup gating and table isolation. The owner/member/employee browser rehearsal on 19 October passed ticket replies, private-note filtering, member writes, audit attribution, revocation and continued portal access; it predates invitation onboarding. No real invitation email or new password was submitted during the automated checks.
+
+## Invitation password setup hardening — 20 October 2026
+
+- Invited accounts created through email OTP must explicitly choose a password before accepting access. A nonempty internal Auth password hash is not treated as proof of user password setup.
+- A private, RLS-protected server record tracks setup requirements. Only an actual Auth password change clears the requirement; editable user metadata cannot bypass it.
+- Existing password accounts keep their sign-in flow. Employee invitations do not grant IT membership.
+- Verification: 194 local automated tests passed; live rollback invitation regression and portal/staff access-boundary tests passed. Test fixtures are rolled back.
+- Verification limits: live inbox-to-password-to-login completion still requires the recipient to enter their chosen password. This is not a claim of exhaustive production certification. Supabase compromised-password protection is currently disabled; review [password security](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+

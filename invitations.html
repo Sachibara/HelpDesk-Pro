@@ -1,5 +1,77 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Accept your invitation • OpsFusion</title><link rel="stylesheet" href="/employee.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script><script src="/invitations.js" defer></script></head><body>
-<header class="topbar"><a class="brand" href="/">OpsFusion</a><nav class="header-actions"><a href="/">IT workspace</a> · <a href="/employee">Employee support</a></nav></header>
-<main style="max-width:720px;margin:40px auto;padding:24px"><p class="eyebrow">YOU’RE INVITED</p><h1>Your access, your choice.</h1><p>Verify your email, choose your own password if you’re new, then accept the workspace access your owner offered.</p><p id="notice" class="notice" role="status">Checking your invitation…</p>
-<section class="card" id="signedOut" hidden><h2>Sign in to review invitations</h2><p>Open the email link from OpsFusion or sign in with the invited email. Never share your password with your workspace owner.</p><form id="loginForm"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><button class="primary full" type="submit">Sign in</button></form><p><a href="/employee">Create an account or reset your password</a></p></section>
-<section class="card" id="signedIn" hidden><p id="account"></p><button id="signOut" class="secondary">Use another account</button><form id="setup" hidden><h2>Choose your password</h2><p>Use 12–128 characters. Only you should know this password.</p><label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><button class="primary full" type="submit">Save my password</button></form><h2>Pending invitations</h2><div id="invitations"></div><button id="refresh" class="secondary">Check invitations</button></section></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>Review your invitation · OpsFusion</title>
+  <link rel="stylesheet" href="/employee.css">
+  <link rel="stylesheet" href="/invitations.css?v=20261020-ui">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
+  <script src="/invitations.js?v=20261020-ui" defer></script>
+</head>
+<body class="invitation-page">
+  <a class="skip" href="#main">Skip to invitation</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="OpsFusion home">
+      <span class="brand-mark" aria-hidden="true">OF</span>
+      <span><strong>OpsFusion</strong><small>SECURE ACCESS</small></span>
+    </a>
+    <nav class="header-actions" aria-label="Other OpsFusion pages">
+      <a href="/">IT workspace</a>
+      <a href="/employee">Employee support</a>
+    </nav>
+  </header>
+
+  <main id="main" class="invite-shell">
+    <section class="invite-intro" aria-labelledby="inviteTitle">
+      <span class="invite-kicker"><span aria-hidden="true">✦</span> Workspace invitation</span>
+      <h1 id="inviteTitle">Review your invitation</h1>
+      <p class="invite-lead">Confirm that this access is meant for you. You’ll choose your own password if this is a new account.</p>
+      <div class="invite-points" aria-label="Invitation details">
+        <div><span class="invite-point-icon" aria-hidden="true">01</span><span><strong>Verified email</strong><small>Access is tied to the invited address.</small></span></div>
+        <div><span class="invite-point-icon" aria-hidden="true">02</span><span><strong>Clear access scope</strong><small>Review whether this is IT or employee access.</small></span></div>
+        <div><span class="invite-point-icon" aria-hidden="true">03</span><span><strong>48-hour link</strong><small>Ask the workspace owner to resend an expired invite.</small></span></div>
+      </div>
+      <p class="invite-privacy"><span aria-hidden="true">●</span> Your password stays private. Workspace owners cannot view it.</p>
+    </section>
+
+    <section class="invite-card" aria-label="Invitation account access">
+      <p id="notice" class="notice" role="status" aria-live="polite">Checking your invitation…</p>
+
+      <section id="signedOut" class="invite-panel" hidden aria-labelledby="signInTitle">
+        <div class="invite-panel-heading"><span class="invite-step">ACCOUNT ACCESS</span><h2 id="signInTitle">Sign in to continue</h2><p>Use the email address that received the invitation.</p></div>
+        <form id="loginForm" class="invite-form">
+          <label for="email">Email address</label>
+          <input id="email" type="email" autocomplete="username" inputmode="email" required>
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" required>
+          <button class="primary full" type="submit">Sign in securely <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="invite-help">New to OpsFusion or need to reset your password? <a href="/employee">Continue through account setup</a>.</p>
+        <p class="invite-security"><span aria-hidden="true">⌑</span> Never share your password with your workspace owner.</p>
+      </section>
+
+      <section id="signedIn" class="invite-panel" hidden aria-labelledby="pendingTitle">
+        <div class="invite-account-row"><div class="invite-avatar" aria-hidden="true">✓</div><p id="account" class="invite-account"></p><button id="signOut" class="secondary" type="button">Switch account</button></div>
+        <form id="setup" class="password-setup" hidden>
+          <span class="invite-step">ONE-TIME SETUP</span>
+          <h2>Choose your password</h2>
+          <p>Set a private password for this account. Use 12–128 characters.</p>
+          <label for="newPassword">New password</label>
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <label for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <button class="primary full" type="submit">Save password <span aria-hidden="true">→</span></button>
+        </form>
+        <div class="invite-panel-heading invite-list-heading"><span class="invite-step">YOUR ACCESS</span><h2 id="pendingTitle">Pending invitations</h2><p>Review the workspace and access type before accepting.</p></div>
+        <div id="invitations" class="invite-list" aria-live="polite"></div>
+        <button id="refresh" class="secondary refresh-button" type="button"><span aria-hidden="true">↻</span> Check again</button>
+      </section>
+    </section>
+  </main>
+
+  <footer class="invite-footer"><span>OpsFusion · Secure workspace access</span><span>Invitation links expire after 48 hours.</span></footer>
+</body>
+</html>

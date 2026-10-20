@@ -1,23 +1,209 @@
 (() => {
- const $=id=>document.getElementById(id),el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
- window.OpsFusionInvitations={open:async(kind='staff')=>{
-  const c=window.OpsFusionCloud;if(!c?.isWorkspaceOwner())return;
-  const workspace=c.getWorkspaceId(),user=c.getUser().id,dialog=$('invitationDialog'),body=$('invitationBody');body.replaceChildren();dialog.showModal();
-  const current=()=>dialog.open&&c.isWorkspaceOwner()&&workspace===c.getWorkspaceId()&&user===c.getUser()?.id;
-  const status=el('p','Loading invitations…','access-status');status.setAttribute('role','status');
-  const form=el('form',undefined,'access-form'),email=el('input'),identity=el('select'),submit=el('button','Send Invitation','btn primary'),rows=el('div',undefined,'access-enrollments');
-  email.type='email';email.required=true;email.autocomplete='email';email.maxLength=254;const label=el('label',undefined,'field');label.append(el('span','Recipient email'),email);form.append(label);
-  if(kind==='employee'){identity.required=true;const l=el('label',undefined,'field');l.append(el('span','Employee identity'),identity);form.append(l);}
-  submit.type='submit';form.append(submit,status);body.append(el('p',kind==='staff'?'Invite an IT member. They receive full operational access only after accepting; only the owner manages account access.':'Invite an employee to their own support portal. Select their active identity record. This does not grant IT workspace access.'),el('p','Invitations expire in 48 hours. New recipients verify their email and choose their own password. Existing passwords remain unchanged. Delivery status means the email provider accepted the request, not proof it reached the inbox.'),form,rows);
-  let busy=false;const validate=()=>{email.disabled=identity.disabled=busy;submit.disabled=busy||!current()||!email.checkValidity()||(kind==='employee'&&!identity.value);};form.oninput=validate;
-  const rpc=async(action,payload={})=>{if(!current())throw Error('Workspace session changed');const {data,error}=await c.client.rpc('opsfusion_invitations_manage',{p_action:action,p_workspace:workspace,p_payload:payload});if(error)throw error;if(!current())throw Error('Workspace session changed');return data;};
-  const send=async(action,extra={})=>{const {data,error}=await c.client.functions.invoke('opsfusion-invitations',{body:{action,workspace_id:workspace,...extra}});if(error){let message=error.message;try{message=(await error.context.json()).error||message;}catch{}throw Error(message);}if(!data?.ok)throw Error('Invitation could not be confirmed');return data;};
-  const refresh=async()=>{const invites=await rpc('list');rows.replaceChildren(el('h3','Invitation history'));if(kind==='employee'){const {data,error}=await c.client.from('opsfusion_workspaces').select('state').eq('id',workspace).single();if(error)throw error;const {data:enrolled,error:e}=await c.client.rpc('opsfusion_employee_portal',{p_action:'access_list',p_workspace:workspace,p_payload:{}});if(e)throw e;if(!current())return;const previous=identity.value;identity.replaceChildren();const placeholder=el('option','Choose an active employee identity');placeholder.value='';identity.append(placeholder);for(const u of data.state.identities||[]){if(u.status==='Active'&&!enrolled.some(a=>a.identity_id===u.id)&&!invites.some(i=>i.kind==='employee'&&i.identity_id===u.id&&['pending','expired'].includes(i.status))){const o=el('option',u.displayName);o.value=u.id;identity.append(o);}}identity.value=Array.from(identity.options).some(o=>o.value===previous)?previous:'';}
-   for(const i of invites.filter(i=>i.kind===kind)){const row=el('div',undefined,'access-enrollment'),copy=el('span',i.email+' · '+i.status+' · email '+i.delivery+' · expires '+new Date(i.expires_at).toLocaleString());row.append(copy);if(['pending','expired'].includes(i.status)){for(const [action,title] of [['resend','Resend'],['cancel','Cancel Invitation']]){const b=el('button',title,'btn secondary');b.type='button';b.onclick=()=>act(async()=>{if(action==='resend')await send(action,{id:i.id});else await rpc(action,{id:i.id});await refresh();status.textContent=action==='resend'?'Invitation email requested again.':'Invitation cancelled. It cannot grant access.';});row.append(b);}}rows.append(row);}validate();};
-  const act=async(fn)=>{if(busy||!current())return;busy=true;validate();rows.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();}catch(e){status.textContent=e.message;try{await refresh();}catch{}}finally{busy=false;validate();rows.querySelectorAll('button').forEach(b=>b.disabled=false);}};
-  form.onsubmit=e=>{e.preventDefault();if(!form.reportValidity())return;act(async()=>{status.textContent='Sending invitation…';await send('create',{email:email.value.trim(),kind,identity_id:kind==='employee'?identity.value:undefined});email.value='';await refresh();status.textContent='Invitation email requested. Access stays pending until acceptance.';});};
-  try{await refresh();status.textContent='The recipient must accept before gaining access.';}catch(e){status.textContent=e.message;}validate();
- }};
- $('invitationClose').onclick=()=>$('invitationDialog').close();
- $('inviteEmployeeOpen').onclick=()=>window.OpsFusionInvitations.open('employee');
+  const $ = id => document.getElementById(id);
+  const el = (tag, text, className) => {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  };
+
+  window.OpsFusionInvitations = {
+    open: async (kind = 'staff') => {
+      const cloud = window.OpsFusionCloud;
+      if (!cloud?.isWorkspaceOwner()) return;
+
+      const workspace = cloud.getWorkspaceId();
+      const userId = cloud.getUser().id;
+      const dialog = $('invitationDialog');
+      const body = $('invitationBody');
+      body.replaceChildren();
+      dialog.showModal();
+
+      const isCurrent = () => dialog.open && cloud.isWorkspaceOwner()
+        && workspace === cloud.getWorkspaceId() && userId === cloud.getUser()?.id;
+      const status = el('p', 'Loading invitations…', 'access-status invitation-status');
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+
+      const form = el('form', undefined, 'access-form');
+      const email = el('input');
+      const identity = el('select');
+      const submit = el('button', 'Send invitation', 'btn primary');
+      const rows = el('div', undefined, 'access-enrollments');
+      email.type = 'email';
+      email.required = true;
+      email.autocomplete = 'email';
+      email.inputMode = 'email';
+      email.maxLength = 254;
+      email.setAttribute('aria-label', 'Recipient email');
+      const emailLabel = el('label', undefined, 'field');
+      emailLabel.append(el('span', 'Recipient email'), email);
+      form.append(emailLabel);
+
+      if (kind === 'employee') {
+        identity.required = true;
+        identity.setAttribute('aria-label', 'Employee identity');
+        const identityLabel = el('label', undefined, 'field');
+        identityLabel.append(el('span', 'Employee identity'), identity);
+        form.append(identityLabel);
+      }
+      submit.type = 'submit';
+      form.append(submit, status);
+
+      const intro = el('p', kind === 'staff'
+        ? 'Invite an IT member to work with the shared workspace. Access begins only after the recipient accepts; account management stays with the owner.'
+        : 'Invite an employee to their own support portal. Select their active identity record. This invitation does not grant IT workspace access.',
+      'invitation-intro-copy');
+      const help = el('p', 'Invitations expire after 48 hours. New recipients verify their email and choose their own password. Existing passwords stay unchanged. “Email accepted” means the provider accepted the request; it does not confirm inbox delivery.', 'invitation-help-copy');
+      body.append(intro, help, form, rows);
+
+      let busy = false;
+      const validate = () => {
+        email.disabled = identity.disabled = busy;
+        submit.disabled = busy || !isCurrent() || !email.checkValidity()
+          || (kind === 'employee' && !identity.value);
+      };
+      form.oninput = validate;
+
+      const rpc = async (action, payload = {}) => {
+        if (!isCurrent()) throw new Error('Workspace session changed. Reopen this dialog to continue.');
+        const { data, error } = await cloud.client.rpc('opsfusion_invitations_manage', {
+          p_action: action,
+          p_workspace: workspace,
+          p_payload: payload
+        });
+        if (error) throw error;
+        if (!isCurrent()) throw new Error('Workspace session changed. Reopen this dialog to continue.');
+        return data;
+      };
+      const send = async (action, extra = {}) => {
+        const { data, error } = await cloud.client.functions.invoke('opsfusion-invitations', {
+          body: { action, workspace_id: workspace, ...extra }
+        });
+        if (error) {
+          let message = error.message;
+          try { message = (await error.context.json()).error || message; } catch { /* Keep the SDK message. */ }
+          throw new Error(message);
+        }
+        if (!data?.ok) throw new Error('Invitation could not be confirmed. Please check the list and try again.');
+        return data;
+      };
+
+      const refresh = async () => {
+        const invitations = await rpc('list');
+        rows.replaceChildren(el('h3', 'Invitation history', 'invitation-history-title'));
+        if (kind === 'employee') {
+          const { data, error } = await cloud.client.from('opsfusion_workspaces')
+            .select('state').eq('id', workspace).single();
+          if (error) throw error;
+          const { data: enrolled, error: accessError } = await cloud.client.rpc('opsfusion_employee_portal', {
+            p_action: 'access_list', p_workspace: workspace, p_payload: {}
+          });
+          if (accessError) throw accessError;
+          if (!isCurrent()) return;
+
+          const previous = identity.value;
+          identity.replaceChildren();
+          const placeholder = el('option', 'Choose an active employee identity');
+          placeholder.value = '';
+          identity.append(placeholder);
+          for (const person of data.state.identities || []) {
+            const alreadyEnrolled = enrolled.some(access => access.identity_id === person.id);
+            const hasOpenInvite = invitations.some(invite => invite.kind === 'employee'
+              && invite.identity_id === person.id && ['pending', 'expired'].includes(invite.status));
+            if (person.status === 'Active' && !alreadyEnrolled && !hasOpenInvite) {
+              const option = el('option', person.displayName);
+              option.value = person.id;
+              identity.append(option);
+            }
+          }
+          identity.value = Array.from(identity.options).some(option => option.value === previous) ? previous : '';
+        }
+
+        const relevant = invitations.filter(invite => invite.kind === kind);
+        if (!relevant.length) {
+          rows.append(el('p', 'No invitations in this list yet.', 'invitation-history-empty'));
+        }
+        for (const invite of relevant) {
+          const row = el('article', undefined, 'access-enrollment invitation-admin-row');
+          const details = el('div', undefined, 'invitation-admin-details');
+          details.append(el('strong', invite.email, 'invitation-admin-email'));
+          const metadata = el('div', undefined, 'invitation-admin-meta');
+          metadata.append(
+            el('span', invite.status, `invitation-state ${invite.status}`),
+            el('span', `Email ${invite.delivery}`, `invitation-delivery ${invite.delivery}`),
+            el('span', `Expires ${new Date(invite.expires_at).toLocaleString()}`, 'invitation-expiry')
+          );
+          details.append(metadata);
+          row.append(details);
+
+          if (['pending', 'expired'].includes(invite.status)) {
+            const actions = el('div', undefined, 'invitation-admin-actions');
+            for (const [action, label] of [['resend', 'Resend'], ['cancel', 'Cancel']]) {
+              const button = el('button', label, `btn ${action === 'cancel' ? 'secondary' : 'primary'}`);
+              button.type = 'button';
+              button.onclick = () => act(async () => {
+                if (action === 'resend') await send(action, { id: invite.id });
+                else await rpc(action, { id: invite.id });
+                await refresh();
+                setStatus(action === 'resend' ? 'Invitation email requested again.' : 'Invitation cancelled. It cannot grant access.', 'success');
+              });
+              actions.append(button);
+            }
+            row.append(actions);
+          }
+          rows.append(row);
+        }
+        validate();
+      };
+
+      const setStatus = (message, type = 'info') => {
+        status.textContent = message;
+        status.className = `access-status invitation-status${type === 'error' ? ' is-error' : type === 'success' ? ' is-success' : ''}`;
+      };
+      const act = async action => {
+        if (busy || !isCurrent()) return;
+        busy = true;
+        validate();
+        rows.querySelectorAll('button').forEach(button => { button.disabled = true; });
+        try {
+          await action();
+        } catch (error) {
+          setStatus(error.message, 'error');
+          try { await refresh(); } catch { /* Keep the original failure visible. */ }
+        } finally {
+          busy = false;
+          validate();
+          rows.querySelectorAll('button').forEach(button => { button.disabled = false; });
+        }
+      };
+
+      form.onsubmit = event => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        act(async () => {
+          setStatus('Sending invitation…');
+          await send('create', {
+            email: email.value.trim(),
+            kind,
+            identity_id: kind === 'employee' ? identity.value : undefined
+          });
+          email.value = '';
+          await refresh();
+          setStatus('Invitation email requested. Access remains pending until the recipient accepts.', 'success');
+        });
+      };
+
+      try {
+        await refresh();
+        setStatus('The recipient must accept the invitation before access begins.');
+      } catch (error) {
+        setStatus(error.message, 'error');
+      }
+      validate();
+    }
+  };
+
+  $('invitationClose').onclick = () => $('invitationDialog').close();
+  $('inviteEmployeeOpen').onclick = () => window.OpsFusionInvitations.open('employee');
 })();

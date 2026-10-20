@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#f4f7fb">
   <meta name="description" content="OpsFusion unified IT operations workspace integrating troubleshooting, remote support, documentation, endpoint compliance, incidents, and audit history.">
   <title>OpsFusion Unified IT Operations Platform</title>
-  <link rel="stylesheet" href="./styles.css?v=20261020-invitation-ui">
+  <link rel="stylesheet" href="./styles.css?v=20261020-system-ui">
   <script src="/invitation-entry.js?v=20261019"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="./cloud.js?v=20261017-staff-20261015-portal-only" defer></script>
-  <script src="./app.js?v=20261019-invitations" defer></script>
+  <script src="./app.js?v=20261020-system-ui" defer></script>
   <script src="./automation.js?v=20261015-portal-only" defer></script>
   <script src="./invitation-admin.js?v=20261020-ui" defer></script>
   <script src="./staff-admin.js?v=20261019-invitations" defer></script>
@@ -38,19 +38,19 @@
 
     <div class="rail-label">SERVICE WORKSPACE</div>
     <nav class="side-nav" aria-label="Primary navigation">
-      <button class="nav-link active" data-page="overview"><span class="nav-code">OV</span><span>Service Overview</span></button>
-      <button class="nav-link" data-page="incidents"><span class="nav-code">SD</span><span>Service Desk</span></button>
-      <button class="nav-link" data-page="endpoints"><span class="nav-code">EP</span><span>Endpoints</span></button>
-      <button class="nav-link" data-page="assets"><span class="nav-code">AM</span><span>Assets</span></button>
-      <button class="nav-link" data-page="identity"><span class="nav-code">ID</span><span>Identity & Access</span></button>
-      <button class="nav-link" data-page="troubleshooting"><span class="nav-code">NT</span><span>Endpoint Diagnostics</span></button>
-      <button class="nav-link" data-page="remote"><span class="nav-code">RS</span><span>Remote Support</span></button>
-      <button class="nav-link" data-page="documentation"><span class="nav-code">ND</span><span>Network Documentation</span></button>
-      <button class="nav-link" data-page="knowledge"><span class="nav-code">KB</span><span>Knowledge Base</span></button>
-      <button class="nav-link" data-page="compliance"><span class="nav-code">PC</span><span>Compliance</span></button>
-      <button class="nav-link" data-page="automation"><span class="nav-code">AT</span><span>Automation</span></button>
-      <button class="nav-link" data-page="audit"><span class="nav-code">AU</span><span>Audit Log</span></button>
-      <button class="nav-link" data-page="settings"><span class="nav-code">ST</span><span>Settings</span></button>
+      <button class="nav-link active" data-page="overview" aria-current="page"><span class="nav-code" aria-hidden="true">OV</span><span>Service Overview</span></button>
+      <button class="nav-link" data-page="incidents"><span class="nav-code" aria-hidden="true">SD</span><span>Service Desk</span></button>
+      <button class="nav-link" data-page="endpoints"><span class="nav-code" aria-hidden="true">EP</span><span>Endpoints</span></button>
+      <button class="nav-link" data-page="assets"><span class="nav-code" aria-hidden="true">AM</span><span>Assets</span></button>
+      <button class="nav-link" data-page="identity"><span class="nav-code" aria-hidden="true">ID</span><span>Identity &amp; Access</span></button>
+      <button class="nav-link" data-page="troubleshooting"><span class="nav-code" aria-hidden="true">NT</span><span>Endpoint Diagnostics</span></button>
+      <button class="nav-link" data-page="remote"><span class="nav-code" aria-hidden="true">RS</span><span>Remote Support</span></button>
+      <button class="nav-link" data-page="documentation"><span class="nav-code" aria-hidden="true">ND</span><span>Network Documentation</span></button>
+      <button class="nav-link" data-page="knowledge"><span class="nav-code" aria-hidden="true">KB</span><span>Knowledge Base</span></button>
+      <button class="nav-link" data-page="compliance"><span class="nav-code" aria-hidden="true">PC</span><span>Compliance</span></button>
+      <button class="nav-link" data-page="automation"><span class="nav-code" aria-hidden="true">AT</span><span>Automation</span></button>
+      <button class="nav-link" data-page="audit"><span class="nav-code" aria-hidden="true">AU</span><span>Audit Log</span></button>
+      <button class="nav-link" data-page="settings"><span class="nav-code" aria-hidden="true">ST</span><span>Settings</span></button>
     </nav>
 
   </aside>
@@ -61,12 +61,12 @@
         <span class="topbar-index">SERVICE OPS</span>
         <div>
           <p class="eyebrow" id="pageEyebrow">Enterprise IT service workspace</p>
-          <h1 id="pageTitle">Overview</h1>
+          <h1 id="pageTitle" aria-live="polite">Overview</h1>
         </div>
       </div>
       <div class="top-actions">
         <div class="global-search-wrap">
-          <input id="globalSearch" type="search" placeholder="Search endpoint, IP, ticket, site...">
+          <input id="globalSearch" type="search" aria-label="Search the workspace" placeholder="Search endpoints, tickets, assets...">
           <div id="searchResults" class="search-results" hidden></div>
         </div>
         <button class="btn secondary" id="refreshCloudBtn" type="button" hidden>Refresh Cloud Data</button>
@@ -87,7 +87,7 @@
       <div><span class="strip-key">AGENT</span><b id="agentStatusLabel">NOT CONNECTED</b><small id="agentStatusDetail">No live telemetry</small></div>
     </div>
 
-    <section class="page active" data-panel="overview">
+    <section class="page active" data-panel="overview" aria-label="Service overview">
       <div class="hero">
         <div class="hero-copy">
           <div class="hero-sequence"><span>01</span><i></i><span>EMPLOYEE & ENDPOINT SERVICE OPERATIONS</span></div>
@@ -234,7 +234,7 @@
       </article>
     </section>
 
-    <section class="page" data-panel="endpoints">
+    <section class="page" data-panel="endpoints" aria-label="Endpoint inventory">
       <div class="section-head">
         <div>
           <p class="eyebrow">Shared source of truth</p>
@@ -268,7 +268,7 @@
     </section>
 
 
-    <section class="page" data-panel="assets">
+    <section class="page" data-panel="assets" aria-label="Asset lifecycle">
       <div class="section-head">
         <div>
           <p class="eyebrow">IT Asset Manager integration</p>
@@ -313,7 +313,7 @@
       </div>
     </section>
 
-    <section class="page" data-panel="identity">
+    <section class="page" data-panel="identity" aria-label="Identity and access">
       <div class="section-head">
         <div>
           <p class="eyebrow">Workspace identity records</p>
@@ -358,7 +358,7 @@
       </div>
     </section>
 
-    <section class="page" data-panel="troubleshooting">
+    <section class="page" data-panel="troubleshooting" aria-label="Endpoint diagnostics">
       <div class="section-head">
         <div>
           <p class="eyebrow">Network Troubleshooting Toolkit</p>
@@ -407,7 +407,7 @@
       </article>
     </section>
 
-    <section class="page" data-panel="remote">
+    <section class="page" data-panel="remote" aria-label="Remote support">
       <div class="section-head">
         <div>
           <p class="eyebrow">LAN Deployment & Remote Support Console</p>
@@ -442,7 +442,7 @@
       </article>
     </section>
 
-    <section class="page" data-panel="documentation">
+    <section class="page" data-panel="documentation" aria-label="Network documentation">
       <div class="section-head">
         <div>
           <p class="eyebrow">Network Documentation Generator</p>
@@ -498,7 +498,7 @@
       </div>
     </section>
 
-    <section class="page" data-panel="compliance">
+    <section class="page" data-panel="compliance" aria-label="Endpoint compliance">
       <div class="section-head">
         <div>
           <p class="eyebrow">Patch & Endpoint Compliance Dashboard</p>
@@ -523,7 +523,7 @@
       </article>
     </section>
 
-    <section class="page" data-panel="incidents">
+    <section class="page" data-panel="incidents" aria-label="Service desk">
       <div class="section-head">
         <div>
           <p class="eyebrow">HelpDesk Pro integration</p>
@@ -562,13 +562,13 @@
       </div>
     </section>
 
-    <section class="page" data-panel="knowledge">
+    <section class="page" data-panel="knowledge" aria-label="Knowledge base">
       <div class="section-head"><div><p class="eyebrow">Support reference</p><h2>Knowledge Base</h2><p>Create and maintain reviewed troubleshooting guides for your workspace.</p></div><button class="btn primary" id="addKnowledgeBtn">New Article</button></div>
       <div class="toolbar"><input id="knowledgeSearch" type="search" aria-label="Search knowledge articles" placeholder="Search title, category or article text..."><label class="check-row"><input id="knowledgeArchived" type="checkbox"><span>Show archived articles</span></label></div>
       <article class="panel"><div id="knowledgeLibraryRows" class="stack"></div></article>
     </section>
 
-    <section class="page" data-panel="audit">
+    <section class="page" data-panel="audit" aria-label="Audit log">
       <div class="section-head">
         <div>
           <p class="eyebrow">Governance</p>
@@ -587,7 +587,7 @@
     </section>
 
 
-    <section class="page" data-panel="automation">
+    <section class="page" data-panel="automation" aria-label="Automation center">
       <div class="section-head">
         <div>
           <p class="eyebrow">Real cloud schedules · Supabase PostgreSQL</p>
@@ -635,9 +635,12 @@
       </div>
     </section>
 
-    <section class="page" data-panel="settings">
-      <article class="panel"><div class="panel-head"><div><h3>IT Staff &amp; Workspace</h3><p>Each staff member uses their own login. The owner controls access to this shared workspace.</p></div></div><label class="field"><span>Current workspace</span><select id="staffWorkspaceSelect" aria-label="Current workspace"></select></label><button class="btn primary" id="staffAccessOpen" hidden>Add / Manage Members</button></article>
-      <article class="panel"><div class="panel-head"><div><h3>Employee Portal Access</h3><p>Enable employees to submit and track their own support requests.</p></div></div><a class="btn secondary" href="/employee">Open Employee Portal</a> <button class="btn primary" id="inviteEmployeeOpen" hidden>Invite Employee</button> <button class="btn secondary" id="employeeAccessOpen" hidden>Manage Employee Access</button></article>
+    <section class="page" data-panel="settings" aria-label="Workspace settings">
+      <div class="section-head"><div><p class="eyebrow">Workspace access</p><h2>People &amp; access</h2><p>Manage who can work in this shared IT workspace and how employees reach support.</p></div></div>
+      <div class="grid two settings-access-grid">
+        <article class="panel settings-access-card"><div class="panel-head"><div><h3>IT staff &amp; workspace</h3><p>Each IT member signs in with their own account. The owner manages workspace access.</p></div></div><label class="field"><span>Current workspace</span><select id="staffWorkspaceSelect" aria-label="Current workspace"></select></label><div class="settings-actions"><button class="btn primary" id="staffAccessOpen" hidden>Add / manage members</button></div></article>
+        <article class="panel settings-access-card"><div class="panel-head"><div><h3>Employee support portal</h3><p>Employees can submit and track their own support requests.</p></div></div><div class="settings-actions"><a class="btn secondary" href="/employee">Open employee portal</a><button class="btn primary" id="inviteEmployeeOpen" hidden>Invite employee</button><button class="btn secondary" id="employeeAccessOpen" hidden>Manage employee access</button></div></article>
+      </div>
       <div class="section-head">
         <div>
           <p class="eyebrow">Configuration</p>

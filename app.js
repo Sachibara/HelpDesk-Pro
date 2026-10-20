@@ -428,7 +428,12 @@
 
   function openPage(page) {
     qsa("[data-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === page));
-    qsa("[data-page]").forEach((button) => button.classList.toggle("active", button.dataset.page === page));
+    qsa("[data-page]").forEach((button) => {
+      const active = button.dataset.page === page;
+      button.classList.toggle("active", active);
+      if (active) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
     if (pageMeta[page]) {
       $("pageEyebrow").textContent = pageMeta[page][0];
       $("pageTitle").textContent = pageMeta[page][1];

@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#f4f7fb">
+  <meta name="theme-color" content="#0b0d11">
   <title>Review your invitation · OpsFusion</title>
-  <link rel="stylesheet" href="/employee.css">
-  <link rel="stylesheet" href="/invitations.css?v=20261020-ui">
+  <link rel="stylesheet" href="/employee.css?v=20261114-camus-system">
+  <link rel="stylesheet" href="/invitations.css?v=20261114-camus-system">
+  <script src="/ui.js?v=20261114"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="/invitations.js?v=20261020-ui" defer></script>
 </head>
@@ -16,11 +17,12 @@
   <header class="topbar">
     <a class="brand" href="/" aria-label="OpsFusion home">
       <span class="brand-mark" aria-hidden="true">OF</span>
-      <span><strong>OpsFusion</strong><small>SECURE ACCESS</small></span>
+      <span><strong>Ops<em>Fusion</em></strong><small>SECURE ACCESS</small></span>
     </a>
     <nav class="header-actions" aria-label="Other OpsFusion pages">
       <a href="/">IT workspace</a>
       <a href="/employee">Employee support</a>
+      <button class="secondary" type="button" data-theme-toggle aria-pressed="false"><span class="theme-icon" aria-hidden="true"></span><span data-theme-label>Light</span></button>
     </nav>
   </header>
 

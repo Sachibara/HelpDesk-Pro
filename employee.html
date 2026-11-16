@@ -4,14 +4,16 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Get help with work technology, follow your requests, and talk with your IT support team.">
 <title>Employee Support • OpsFusion</title>
-<link rel="stylesheet" href="./employee.css?v=20261017-access-typography">
+<meta name="theme-color" content="#0b0d11">
+<link rel="stylesheet" href="./employee.css?v=20261114-camus-system">
+<script src="./ui.js?v=20261114"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
 <script src="./employee-model.js?v=20261015-support-v2" defer></script>
 <script src="./employee.js?v=20261015-support-v2" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to main content</a>
-<header class="topbar"><a class="brand" href="/employee" aria-label="OpsFusion employee support home"><span class="brand-mark">OF</span><span><strong>OpsFusion</strong><small>EMPLOYEE SUPPORT</small></span></a><div class="header-actions"><a href="#help">How it works</a><a href="/invitations">Invitations</a><a class="staff-link" href="/">IT staff sign-in <span aria-hidden="true">↗</span></a><button class="secondary" id="signOut" hidden>Sign out</button></div></header>
+<header class="topbar"><a class="brand" href="/employee" aria-label="OpsFusion employee support home"><span class="brand-mark">OF</span><span><strong>Ops<em>Fusion</em></strong><small>EMPLOYEE SUPPORT</small></span></a><div class="header-actions"><a href="#help">How it works</a><a href="/invitations">Invitations</a><a class="staff-link" href="/">IT staff sign-in <span aria-hidden="true">↗</span></a><button class="secondary" type="button" data-theme-toggle aria-pressed="false"><span class="theme-icon" aria-hidden="true"></span><span data-theme-label>Light</span></button><button class="secondary" id="signOut" hidden>Sign out</button></div></header>
 <main id="main" tabindex="-1">
 <div id="message" class="notice" role="status" aria-live="polite" hidden></div>
 <div id="loading" class="loading" role="status">Getting your support space ready…</div>

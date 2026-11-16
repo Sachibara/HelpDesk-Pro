@@ -78,6 +78,15 @@ PostgreSQL `pg_cron` runs hourly independently of the browser. The Automation Ce
 
 Automation does not perform AI decisions, remote commands, endpoint measurements or external email/SMS delivery. See [automation workflow](docs/AUTOMATION_PRESENTATION_20261014.md).
 
+## Interface design
+
+The UI shares one design language with the [portfolio](https://jimcamus.vercel.app/) and [CamusOS](https://github.com/Sachibara/CamusOS): charcoal surfaces, a single amber accent, Barlow Condensed display type, DM Sans for reading and DM Mono for labels.
+
+- **Tokens first.** Every colour, radius and shadow is a CSS custom property at the top of the stylesheet; the light theme only swaps tokens.
+- **Dark by default, light on request.** The toggle in the top bar stores the choice in `localStorage` (`camus-theme`); `ui.js` applies it before first paint and drives the mobile navigation drawer. The staff workspace (`styles.css`), employee portal (`employee.css`) and invitation page (`invitations.css`) all use the same tokens. No inline scripts or remote fonts were added, so the existing Content-Security-Policy is unchanged.
+- **Self-hosted fonts.** Font files live in `assets/fonts/` (SIL Open Font License, see `assets/fonts/FONTS.md`), so there are no third-party font requests.
+- **Responsive.** The sidebar becomes a drawer on small screens, tables scroll inside their panels, and motion respects `prefers-reduced-motion`.
+
 ## Backend and security boundaries
 
 OpsFusion uses its dedicated Supabase project `qyizwyvgbywkextsekpj` (Singapore), separate from the older shared OmniShare/NetOps database.
@@ -142,6 +151,7 @@ Rollback-only database tests in [`tests/employee-portal-database.sql`](tests/emp
 Current cloud system: **HTML5 · CSS3 · JavaScript · Supabase Auth · PostgreSQL · Edge Functions (TypeScript/Deno) · Google Gemini · Vercel**.
 
 - `index.html`, `styles.css`, `app.js`, `cloud.js`, `automation.js`: staff workspace.
+- `ui.js`, `assets/fonts/`: shared theme/navigation behaviour and self-hosted typefaces.
 - `employee.html`, `employee.css`, `employee.js`, `employee-model.js`: employee experience.
 - `employee-admin.js`: owner enrollment controls.
 - `staff-admin.js`: owner member management, shared staff roster and existing-account onboarding.

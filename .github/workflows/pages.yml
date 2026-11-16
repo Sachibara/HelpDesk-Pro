@@ -26,7 +26,8 @@ jobs:
       - name: Prepare browser app
         run: |
           mkdir -p public
-          cp index.html styles.css app.js cloud.js automation.js employee.html employee.css employee.js employee-model.js employee-admin.js public/
+          cp index.html styles.css app.js cloud.js automation.js employee.html employee.css employee.js employee-model.js employee-admin.js ui.js public/
+          cp -r assets public/
           touch public/.nojekyll
 
       - name: Configure Pages

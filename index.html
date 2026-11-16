@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f4f7fb">
+  <meta name="theme-color" content="#0b0d11">
   <meta name="description" content="OpsFusion unified IT operations workspace integrating troubleshooting, remote support, documentation, endpoint compliance, incidents, and audit history.">
   <title>OpsFusion Unified IT Operations Platform</title>
-  <link rel="stylesheet" href="./styles.css?v=20261020-system-ui">
+  <link rel="preload" href="./assets/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./assets/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./styles.css?v=20261114-camus-system">
+<script src="./ui.js?v=20261114"></script>
   <script src="/invitation-entry.js?v=20261019"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="./cloud.js?v=20261017-staff-20261015-portal-only" defer></script>
@@ -19,11 +22,11 @@
 </head>
 <body>
 <div class="app-shell">
-  <aside class="sidebar">
+  <aside class="sidebar" id="primaryNav" data-nav-drawer>
     <div class="brand">
       <div class="brand-mark">OF</div>
       <div>
-        <strong>OpsFusion</strong>
+        <strong>Ops<em>Fusion</em></strong>
         <span>Enterprise Service Workspace</span>
       </div>
     </div>
@@ -58,6 +61,7 @@
   <main class="main">
     <header class="topbar">
       <div class="topbar-heading">
+        <button class="btn secondary icon-only menu-toggle" type="button" data-nav-toggle aria-controls="primaryNav" aria-expanded="false" aria-label="Open navigation">☰</button>
         <span class="topbar-index">SERVICE OPS</span>
         <div>
           <p class="eyebrow" id="pageEyebrow">Enterprise IT service workspace</p>
@@ -71,6 +75,7 @@
         </div>
         <button class="btn secondary" id="refreshCloudBtn" type="button" hidden>Refresh Cloud Data</button>
         <button class="btn secondary" id="exportBtn">Export Workspace</button>
+        <button class="btn secondary" type="button" data-theme-toggle aria-pressed="false"><span class="theme-icon" aria-hidden="true"></span><span data-theme-label>Light</span></button>
         <div class="cloud-user" id="cloudUser" hidden>
           <span id="cloudUserLabel">Cloud user</span>
           <b id="cloudRoleLabel">admin</b>
@@ -674,6 +679,8 @@
   </main>
 </div>
 
+<div class="nav-scrim" data-nav-scrim hidden></div>
+
 <div class="modal-backdrop" id="modalBackdrop" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-head"><h2 id="modalTitle">Dialog</h2><button class="icon-btn" id="modalCloseBtn" aria-label="Close">×</button></div>
@@ -712,7 +719,7 @@
         <div class="auth-panel-head">
           <div class="brand auth-brand">
             <div class="brand-mark">OF</div>
-            <div><strong>OpsFusion</strong><span>Unified IT Operations</span></div>
+            <div><strong>Ops<em>Fusion</em></strong><span>Unified IT Operations</span></div>
           </div>
         </div>
         <p class="eyebrow">Supabase-backed cloud workspace</p>

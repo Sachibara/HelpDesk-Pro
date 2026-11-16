@@ -2,7 +2,7 @@
    Kept separate from application logic so it can never affect data handling. */
 (() => {
   "use strict";
-  const KEY = "camus-theme";
+  const KEY = "opsfusion-theme";
   const root = document.documentElement;
 
   function readTheme() {
@@ -12,7 +12,7 @@
     if (theme === "light") root.setAttribute("data-theme", "light");
     else root.removeAttribute("data-theme");
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "light" ? "#f2eee6" : "#0b0d11");
+    if (meta) meta.setAttribute("content", theme === "light" ? "#f3f7fd" : "#111e32");
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
       const light = theme === "light";
       button.setAttribute("aria-pressed", String(light));
@@ -23,10 +23,10 @@
   }
 
   // Apply as early as possible to avoid a flash of the wrong theme.
-  applyTheme(readTheme() === "light" ? "light" : "dark");
+  applyTheme(readTheme() === "dark" ? "dark" : "light");
 
   document.addEventListener("DOMContentLoaded", () => {
-    applyTheme(readTheme() === "light" ? "light" : "dark");
+    applyTheme(readTheme() === "dark" ? "dark" : "light");
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
       button.addEventListener("click", () => {
         const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";

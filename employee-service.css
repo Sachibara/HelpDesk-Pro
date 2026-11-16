@@ -1,0 +1,88 @@
+/* OpsFusion employee & invitation pages · warm, accessible service identity */
+:root,:root[data-theme="light"] {
+  color-scheme:light;
+  --bg:#f4f8fe;--sidebar-bg:#fff;
+  --surface:#fff;--surface-2:#edf4ff;--surface-3:#deebf9;
+  --text:#172e4e;--muted:#627897;--faint:#7b8fa9;
+  --line:#dbe6f4;--line-strong:#bfd3ed;
+  --accent:#2563e8;--accent-dark:#1a4ecb;--accent-text:#fff;
+  --accent-ink:#2356cc;--accent-soft:rgba(37,99,232,.1);
+  --accent-line:rgba(37,99,232,.25);
+  --ok:#14816f;--ok-soft:rgba(20,129,111,.1);
+  --danger:#bf4661;--danger-soft:rgba(191,70,97,.1);
+  --warn:#a76b14;--warn-soft:rgba(167,107,20,.1);
+  --info:#2377c3;--violet:#7356b9;
+  --shadow:0 18px 48px rgba(32,81,145,.1);
+  --shadow-sm:0 6px 18px rgba(32,81,145,.07);
+  --radius:20px;--radius-sm:12px;
+  --display:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+}
+:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#132139;--sidebar-bg:#14253f;
+  --surface:#1d304e;--surface-2:#263c5b;--surface-3:#324b69;
+  --text:#edf4ff;--muted:#b3c5e2;--faint:#849cbd;
+  --line:#385374;--line-strong:#567195;
+  --accent:#87b5ff;--accent-dark:#729ef1;--accent-text:#132642;
+  --accent-ink:#a0c6ff;--accent-soft:rgba(135,181,255,.13);
+  --accent-line:rgba(135,181,255,.3);
+  --ok:#5ee0b0;--ok-soft:rgba(94,224,176,.14);
+  --danger:#ff9bb0;--danger-soft:rgba(255,155,176,.14);
+  --warn:#f5c783;--warn-soft:rgba(245,199,131,.13);
+  --info:#84c6ff;--violet:#c5b3ff;
+  --shadow:0 24px 54px rgba(0,8,26,.3);
+  --shadow-sm:0 8px 23px rgba(0,8,26,.2);
+}
+body{
+  background:radial-gradient(circle at 12% 4%,rgba(75,145,238,.09),transparent 36%),var(--bg);
+  font-family:"DM Sans",system-ui,sans-serif;
+}
+h1,h2{font-family:var(--display);letter-spacing:-.055em;text-transform:none;line-height:1.12}
+h1{font-weight:800;font-size:clamp(36px,5.2vw,64px)}
+h2{font-size:clamp(22px,2.5vw,31px);font-weight:750}
+.topbar{
+  min-height:80px;background:color-mix(in srgb,var(--surface) 94%,transparent);
+  box-shadow:0 2px 14px rgba(32,81,145,.04)
+}
+.brand-mark{
+  background:linear-gradient(145deg,#2563e8,#16a5b5);color:#fff;
+  border-radius:15px;font:800 16px/1 var(--display);
+  box-shadow:0 9px 24px rgba(37,99,232,.18)
+}
+.brand strong{font:800 23px/1.15 var(--display);letter-spacing:-.06em;text-transform:none}
+.brand strong em{color:var(--accent-ink)}
+.brand small{font:600 10px/1.4 var(--display);letter-spacing:.04em;color:var(--muted)}
+.eyebrow{font:700 11px/1.4 var(--display);letter-spacing:.07em;color:var(--accent-ink)}
+a{color:var(--accent-ink)}
+button,input,select,textarea{border-radius:12px}
+button.primary,.primary,.header-actions .staff-link{border-radius:13px}
+button.primary,.primary {background:#2563e8;border-color:#2563e8;color:#fff}
+.card,.auth-card,.detail-card,.tip-card,.request-card,.notice{
+  border-radius:24px;background:var(--surface);border-color:var(--line);box-shadow:var(--shadow-sm)
+}
+.welcome-copy h1{color:var(--text)}
+.welcome-layout{
+  gap:clamp(24px,4vw,56px);align-items:center
+}
+.welcome-copy{padding:clamp(20px,3.4vw,48px);border-radius:28px;
+  background:linear-gradient(145deg,rgba(227,241,255,.87),rgba(223,249,244,.75));
+  border:1px solid #cfdef2
+}
+.welcome-copy .lead{font-size:16px;line-height:1.8;color:#587291}
+.benefits>div {border-radius:16px;border-color:#d7e5f5;background:rgba(255,255,255,.69)}
+.step-icon {border-radius:12px;background:#dceaff;color:#235ccb}
+.privacy-note{border-radius:14px}
+.tab-row{border-radius:14px;background:var(--surface-2)}
+.tab-row button[aria-pressed="true"]{border-radius:11px;background:var(--surface);color:var(--accent-ink)}
+.portal-nav,.workspace-bar,.stats>div,.ticket,.tip-card{border-radius:17px}
+.stats>div{box-shadow:var(--shadow-sm)}
+.ticket:hover{border-color:var(--accent-line);background:var(--surface-2)}
+.filters input,.filters select,input,select,textarea{background:var(--surface);border-color:var(--line-strong)}
+.request-layout{gap:16px}
+.faq{border-color:var(--line)}
+:root:not([data-theme="light"]) .welcome-copy{
+  background:linear-gradient(145deg,#25446c,#1e4b59);border-color:#40638b
+}
+:root:not([data-theme="light"]) .welcome-copy .lead{color:#c2d7ed}
+:root:not([data-theme="light"]) .benefits>div{background:#254061;border-color:#44678d}
+@media(max-width:720px){.welcome-copy{padding:22px}.topbar{min-height:70px}}

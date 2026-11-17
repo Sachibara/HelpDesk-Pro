@@ -229,3 +229,32 @@ table tr:hover td{background:var(--accent-soft)}
   .topbar{min-height:69px}
 }
 @media(prefers-reduced-motion:reduce){.nav-link,.btn{transition:none}}
+
+/* ---- Review pass: remove the last pieces inherited from the shared amber base ---- */
+/* Compliance score: a calm service-health card instead of an amber banner. */
+.score-ring{border:1px solid var(--accent-line);background:linear-gradient(150deg,var(--accent-soft),transparent 70%),var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+.score-ring strong{font:800 52px/1 var(--sans);letter-spacing:-.05em;color:var(--accent-ink)}
+.score-ring span{font:700 10px/1.4 var(--sans);letter-spacing:.07em;color:var(--muted)}
+
+/* Sign-in: emblem, module chips and status line use the service-desk blues. */
+.auth-serial,.auth-live,.auth-manifest>p{color:#3f6aa8;font-family:var(--sans);font-weight:700;letter-spacing:.06em}
+.auth-live i{background:#11816c;box-shadow:0 0 0 4px rgba(17,129,108,.14)}
+.auth-emblem{width:min(340px,62%)}
+.auth-emblem-ring{border-color:rgba(37,99,232,.2)}
+.auth-emblem-code{border-radius:28px;background:linear-gradient(145deg,#2563e8,#13a8b8);color:#fff;font:800 38px/1 var(--sans);letter-spacing:-.05em;box-shadow:0 18px 40px rgba(37,99,232,.28)}
+.auth-node{border:1px solid #bed3ed;background:#fff;color:#214d92;font:700 10px/1.3 var(--sans);letter-spacing:.05em;box-shadow:0 6px 16px rgba(35,80,146,.1)}
+.auth-manifest h2{font-size:clamp(32px,3.6vw,50px);line-height:1.04;margin:10px 0 20px}
+.manifest-grid{border-top-color:rgba(37,99,232,.2)}
+.manifest-grid span{color:#516f91;font-family:var(--sans);letter-spacing:.03em;text-transform:none;font-size:11.5px}
+.manifest-grid b{color:#142742;font:800 30px/1 var(--sans);letter-spacing:-.05em}
+.auth-card>h2{font:800 clamp(30px,3vw,40px)/1.08 var(--sans);letter-spacing:-.05em;text-transform:none}
+:root:not([data-theme="light"]) .auth-serial,:root:not([data-theme="light"]) .auth-live,:root:not([data-theme="light"]) .auth-manifest>p{color:#a5cfff}
+:root:not([data-theme="light"]) .auth-emblem-ring{border-color:rgba(165,207,255,.26)}
+:root:not([data-theme="light"]) .auth-node{border-color:#487197;background:#1a2b44;color:#dcecff;box-shadow:none}
+:root:not([data-theme="light"]) .manifest-grid{border-top-color:rgba(165,207,255,.26)}
+:root:not([data-theme="light"]) .manifest-grid span{color:#c7dbed}
+:root:not([data-theme="light"]) .manifest-grid b{color:#f5faff}
+.auth-visual{gap:16px;padding-top:30px;padding-bottom:30px}
+.auth-emblem{width:min(clamp(190px,30vh,300px),56%)}
+/* Keep the sign-in artwork pinned to the viewport while the form column scrolls. */
+@media(min-width:901px){.auth-visual{position:sticky;top:0;height:100vh;min-height:0;align-self:start}}

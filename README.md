@@ -80,11 +80,12 @@ Automation does not perform AI decisions, remote commands, endpoint measurements
 
 ## Interface design
 
-The UI shares one design language with the [portfolio](https://jimcamus.vercel.app/) and [CamusOS](https://github.com/Sachibara/CamusOS): charcoal surfaces, a single amber accent, Barlow Condensed display type, DM Sans for reading and DM Mono for labels.
+OpsFusion has its own identity, built around what it does: a service desk used all day by IT staff and occasionally by employees asking for help.
 
-- **Tokens first.** Every colour, radius and shadow is a CSS custom property at the top of the stylesheet; the light theme only swaps tokens.
-- **Dark by default, light on request.** The toggle in the top bar stores the choice in `localStorage` (`camus-theme`); `ui.js` applies it before first paint and drives the mobile navigation drawer. The staff workspace (`styles.css`), employee portal (`employee.css`) and invitation page (`invitations.css`) all use the same tokens. No inline scripts or remote fonts were added, so the existing Content-Security-Policy is unchanged.
-- **Self-hosted fonts.** Font files live in `assets/fonts/` (SIL Open Font License, see `assets/fonts/FONTS.md`), so there are no third-party font requests.
+- **Human-centred service desk.** Light-first, blue accent, generous radii and sentence-case headings so long working sessions and non-technical users both stay comfortable.
+- **Layers.** `styles.css`, `employee.css` and `invitations.css` hold layout and components; `opsfusion-service.css` (staff workspace) and `employee-service.css` (employee portal and invitations) hold the service-desk identity.
+- **Light by default, dark on request.** The toggle stores the choice in `localStorage` (`opsfusion-theme`); `ui.js` applies it before first paint and drives the mobile navigation drawer.
+- **Self-hosted fonts and no inline scripts.** Font files live in `assets/fonts/` (SIL Open Font License, see `assets/fonts/FONTS.md`); the Content-Security-Policy is unchanged.
 - **Responsive.** The sidebar becomes a drawer on small screens, tables scroll inside their panels, and motion respects `prefers-reduced-motion`.
 
 ## Backend and security boundaries
